@@ -62,12 +62,13 @@ The synthetic header and Restart control also fit the minimum window size in an 
 The first Demo routes clustered contacts excessively during visual inspection, so their starting positions were spread across the viewing area.
 Contact labels still overlap in dense pictures, particularly at 250 aircraft; this is an existing renderer limitation and can be reduced by zooming or lowering the count.
 The source performs no decoder, device, or network I/O, and no decoder process ran during synthetic checks.
-A physical dongle-disconnection test and a session with networking disabled were not repeated for issue #8.
+The agent did not independently repeat a physical dongle-disconnection test or a session with networking disabled for issue #8.
 Recovery is covered by the deterministic source/session check; the agent did not independently time a complete native recovery cycle.
 Spec review reproduced a missing recovery display with a 30-second sweep and 3/6-second freshness thresholds through the actual source/session pipeline using a controlled clock.
 The source's moving phase was extended to at least two sweep revolutions, and a failing regression check now passes through fresh, stale, removed, and recovered states with that configuration.
 Independent rechecks found zero remaining findings on both the standards and spec axes.
 The optional restart-transition duplication identified in standards review was consolidated into a shared helper.
+Jonny subsequently confirmed that the manual acceptance tests passed.
 
 Build, launch, and exercise both scenarios using the exact commands and steps in [README.md](../README.md#manual-offline-acceptance-check).
 
