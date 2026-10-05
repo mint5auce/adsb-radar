@@ -1,3 +1,7 @@
+## Product design
+
+Read `docs/product-spec.md` before product design or implementation work.
+
 ## Agent skills
 
 ### Issue tracker
