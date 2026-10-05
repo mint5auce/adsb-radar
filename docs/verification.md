@@ -34,11 +34,42 @@ Computer Use initially rejected app access without presenting an approval popup.
 Access succeeded after the CLI permission mode changed to permit approval prompts.
 The agent inspected the live window and selected aircraft details, switched update modes, opened settings, scrolled to unit controls, and saved the restored sweep mode.
 Jonny reported that manual testing passed, requesting only removal of stale text from map labels while retaining amber plots and the sidebar's stale text.
+After that change, Jonny confirmed that stale-update manual testing and the manual acceptance checks for issue #1 were complete and all passed.
 The agent did not independently repeat the complete hardware-disconnection, quit, persistence, and live offline exercise.
 Owned-process cleanup also passed the receiver fixture.
 
 Build and run with the commands in [README.md](../README.md#build-and-start), then follow its [manual acceptance check](../README.md#manual-acceptance-check).
 Quit the currently running app before reopening a rebuilt candidate.
+
+## Issue #8: synthetic offline scenarios
+
+Debug and release compilation passed after adding the interactive synthetic source.
+The full suite passed all 18 tests, including repeatable movement and restart, clean Demo data at 25/100/250 aircraft, generation around a configured origin, and Test freshness/removal/recovery through the normal session.
+Preference checks cover the first-launch Local default, older saved settings, persistence, invalid launch options, and temporary CLI choices while saving display settings.
+
+Native Computer Use checks exercised Test selection and synthetic attribution, an increasing position age, amber stale plots with sidebar text, contact removal, and clearing selection on Restart.
+Demo reached 25, 100, and 250 positioned aircraft with no aircraft lacking positions.
+Navigation controls responded at 250 aircraft, and normal relaunch retained the saved Demo choice.
+Switching from Local to Synthetic stopped the app-owned decoder, confirmed by inspecting the process list.
+Switching back to Local started one decoder, and quitting stopped it again.
+
+A native `--synthetic --scenario test` launch overrode saved Demo choices.
+Saving Immediate mode during that launch and reopening normally restored Demo with 25 aircraft while retaining Immediate mode, confirming that the scenario override remained temporary.
+An invalid scenario exited with an actionable command-line error.
+Offscreen renders of the actual Demo source confirmed 250 contacts, the bundled example origin, and unset receiver fields in Settings.
+The synthetic header and Restart control also fit the minimum window size in an inspected offscreen render.
+
+The first Demo routes clustered contacts excessively during visual inspection, so their starting positions were spread across the viewing area.
+Contact labels still overlap in dense pictures, particularly at 250 aircraft; this is an existing renderer limitation and can be reduced by zooming or lowering the count.
+The source performs no decoder, device, or network I/O, and no decoder process ran during synthetic checks.
+A physical dongle-disconnection test and a session with networking disabled were not repeated for issue #8.
+Recovery is covered by the deterministic source/session check; the agent did not independently time a complete native recovery cycle.
+Spec review reproduced a missing recovery display with a 30-second sweep and 3/6-second freshness thresholds through the actual source/session pipeline using a controlled clock.
+The source's moving phase was extended to at least two sweep revolutions, and a failing regression check now passes through fresh, stale, removed, and recovered states with that configuration.
+Independent rechecks found zero remaining findings on both the standards and spec axes.
+The optional restart-transition duplication identified in standards review was consolidated into a shared helper.
+
+Build, launch, and exercise both scenarios using the exact commands and steps in [README.md](../README.md#manual-offline-acceptance-check).
 
 ## Standards review
 

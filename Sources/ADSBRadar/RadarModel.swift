@@ -15,21 +15,22 @@ final class RadarModel {
     private(set) var retrying = false
     var selectedAddress: String?
     var camera: RadarCamera
-    let sweepStartedAt = Date.now
+    private(set) var sweepStartedAt: Date
 
-    @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private let source: any AircraftDataSource
+    @ObservationIgnored private let preferences: RadarPreferences
+    @ObservationIgnored private let suppliedSource: (any AircraftDataSource)?
+    @ObservationIgnored private var source: (any AircraftDataSource)?
     @ObservationIgnored private var session: RadarSession
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var mapTask: Task<Void, Never>?
     @ObservationIgnored private var shuttingDown = false
-    @ObservationIgnored private var pendingRestart = false
+    @ObservationIgnored private var sourceRevision = 0
 
-    init(source: any AircraftDataSource = ReadsbReceiver(), initialSettings: RadarSettings? = nil) {
-        self.source = source
-        defaults = .standard
-        let saved = initialSettings ?? defaults.data(forKey: "radar-settings")
-            .flatMap { try? JSONDecoder().decode(RadarSettings.self, from: $0) } ?? RadarSettings()
+    init(source: (any AircraftDataSource)? = nil, initialSettings: RadarSettings? = nil,
+         options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
+        suppliedSource = source
+        preferences = RadarPreferences(defaults: defaults, options: options)
+        let saved = initialSettings ?? preferences.load()
         var configured = saved.validated()
         let env = ProcessInfo.processInfo.environment
         if initialSettings == nil, let lat = env["ADSB_RADAR_LATITUDE"].flatMap(Double.init),
@@ -38,30 +39,62 @@ final class RadarModel {
         }
         settings = configured
         camera = RadarCamera(radiusNM: configured.initialRadiusNM)
-        session = RadarSession(startedAt: sweepStartedAt)
+        let startedAt = Date.now
+        sweepStartedAt = startedAt
+        session = RadarSession(startedAt: startedAt)
     }
 
     var selectedContact: PresentedContact? { contacts.first { $0.id == selectedAddress } }
+
+    var origin: GeographicCoordinate? {
+        settings.receiver ?? (settings.source == .synthetic ? SyntheticSource.exampleLocation : nil)
+    }
+
+    // The example origin is a presentation input, never a saved receiver preference.
+    var displaySettings: RadarSettings {
+        var result = settings
+        result.receiver = origin
+        return result
+    }
 
     func start() {
         guard loop == nil, !shuttingDown else { return }
         loadGeography()
         loop = Task {
-            await source.start(location: settings.receiver)
+            var activeRevision: Int?
             var nextRead = Date.distantPast
             while !Task.isCancelled {
+                if activeRevision != sourceRevision {
+                    await source?.stop()
+                    guard !Task.isCancelled else { break }
+                    let revision = sourceRevision
+                    let configured = settings
+                    let replacement: any AircraftDataSource = suppliedSource ?? Self.makeSource(configured)
+                    source = replacement
+                    sweepStartedAt = .now
+                    session = RadarSession(startedAt: sweepStartedAt)
+                    await replacement.start(location: origin)
+                    guard !Task.isCancelled else { break }
+                    guard revision == sourceRevision else { continue }
+                    activeRevision = revision
+                    nextRead = .distantPast
+                    retrying = false
+                }
                 let now = Date.now
                 if now >= nextRead {
+                    guard let source else { break }
                     let reading = await source.poll()
                     guard !Task.isCancelled else { break }
+                    guard activeRevision == sourceRevision else { continue }
                     reception = reading.status
                     if let snapshot = reading.snapshot {
                         heardWithoutPosition = snapshot.heardWithoutPosition
                         session.ingest(snapshot)
                     }
-                    nextRead = now.addingTimeInterval(1)
+                    let interval = settings.source == .synthetic ? min(1, settings.staleSeconds / 3) : 1
+                    nextRead = now.addingTimeInterval(interval)
                 }
-                contacts = session.advance(to: now, settings: settings)
+                contacts = session.advance(to: now, settings: displaySettings)
                 if let selectedAddress, !contacts.contains(where: { $0.id == selectedAddress }) {
                     self.selectedAddress = nil
                 }
@@ -72,14 +105,7 @@ final class RadarModel {
 
     func retry() async {
         guard !shuttingDown else { return }
-        if retrying { pendingRestart = true; return }
-        retrying = true
-        reception = .starting
-        repeat {
-            pendingRestart = false
-            await source.start(location: settings.receiver)
-        } while pendingRestart && !shuttingDown
-        retrying = false
+        requestRestart()
     }
 
     func shutdown() async {
@@ -88,21 +114,26 @@ final class RadarModel {
         loop?.cancel()
         await loop?.value
         loop = nil
-        await source.stop()
+        await source?.stop()
+        source = nil
     }
 
     func apply(_ value: RadarSettings) {
         let previous = settings
         settings = value.validated()
-        if let data = try? JSONEncoder().encode(settings) { defaults.set(data, forKey: "radar-settings") }
+        preferences.save(settings)
         if settings.initialRadiusNM != previous.initialRadiusNM { camera.radiusNM = settings.initialRadiusNM }
-        if settings.receiver != previous.receiver {
+        let originChanged = settings.receiver != previous.receiver || settings.source != previous.source
+        let syntheticChanged = settings.source == .synthetic &&
+            (settings.scenario != previous.scenario || settings.demoCount != previous.demoCount ||
+             settings.staleSeconds != previous.staleSeconds || settings.removalSeconds != previous.removalSeconds ||
+             settings.sweepSeconds != previous.sweepSeconds)
+        if originChanged || syntheticChanged {
+            requestRestart()
+        }
+        if originChanged {
             camera.offset = RadarPoint()
-            session = RadarSession(startedAt: sweepStartedAt)
-            contacts = []
-            selectedAddress = nil
             loadGeography()
-            Task { await retry() }
         }
     }
 
@@ -119,18 +150,39 @@ final class RadarModel {
     private func loadGeography() {
         mapTask?.cancel()
         geography = nil
-        guard let origin = settings.receiver else { mapMessage = nil; return }
+        guard let origin else { mapMessage = nil; return }
         mapMessage = "LOADING GEOGRAPHY"
         mapTask = Task {
             do {
                 let paths = try await GeographyPaths.load(origin: origin)
-                guard !Task.isCancelled, settings.receiver == origin else { return }
+                guard !Task.isCancelled, self.origin == origin else { return }
                 geography = paths
                 mapMessage = nil
             } catch {
                 guard !Task.isCancelled else { return }
                 mapMessage = "OFFLINE GEOGRAPHY UNAVAILABLE"
             }
+        }
+    }
+
+    private func clearContacts() {
+        contacts = []
+        heardWithoutPosition = 0
+        selectedAddress = nil
+        session = RadarSession(startedAt: sweepStartedAt)
+    }
+
+    private func requestRestart() {
+        sourceRevision += 1
+        retrying = true
+        reception = .starting
+        clearContacts()
+    }
+
+    private static func makeSource(_ settings: RadarSettings) -> any AircraftDataSource {
+        switch settings.source {
+        case .local: ReadsbReceiver()
+        case .synthetic: SyntheticSource(scenario: settings.scenario, demoCount: settings.demoCount, timing: settings)
         }
     }
 }

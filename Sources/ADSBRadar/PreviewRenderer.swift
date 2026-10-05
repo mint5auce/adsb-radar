@@ -6,12 +6,13 @@ import SwiftUI
 /// Offscreen visual verification only. Does not open or control a desktop window.
 @MainActor
 enum PreviewRenderer {
-    static func render(to directory: String) async throws {
-        var settings = RadarSettings()
-        settings.receiver = GeographicCoordinate(latitude: 51.5, longitude: -2.5)
+    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions()) async throws {
+        var settings = options.applying(to: RadarSettings())
+        let syntheticPlayback = options.source == .synthetic
+        settings.receiver = syntheticPlayback ? nil : SyntheticSource.exampleLocation
+        settings.source = .synthetic
         settings.mode = .immediate
-        guard let origin = settings.receiver else { throw CocoaError(.coderInvalidValue) }
-        let fixture = PreviewSource(origin: origin)
+        let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation)
         let model = RadarModel(source: fixture, initialSettings: settings)
         model.start()
         for _ in 0..<100 {
@@ -26,7 +27,7 @@ enum PreviewRenderer {
         model.camera = model.camera.panned(dx: 180, dy: -90, width: 944, height: 680).zoomed(by: 1.5)
         try image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
         try image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
-        try image(RadarSettingsView(settings: settings, save: { _ in }),
+        try image(RadarSettingsView(settings: model.settings, save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         await model.shutdown()
         print("Rendered native previews in \(directory)")

@@ -32,9 +32,16 @@ struct RadarWindow: View {
         HStack(spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ADSB / RADAR").font(.system(size: 19, weight: .semibold, design: .monospaced)).tracking(2)
-                Text("LOCAL AIR PICTURE").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundStyle(RadarStyle.muted)
+                Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : "LOCAL AIR PICTURE")
+                    .font(.system(size: 10, design: .monospaced)).tracking(2)
+                    .foregroundStyle(model.settings.source == .synthetic ? RadarStyle.amber : RadarStyle.muted)
             }
             Spacer(minLength: 8)
+            if model.settings.source == .synthetic {
+                Button { Task { await model.retry() } } label: { Label("RESTART", systemImage: "arrow.counterclockwise") }
+                    .buttonStyle(.plain).disabled(model.retrying)
+                    .help("Restart the synthetic scenario")
+            }
             Menu {
                 ForEach(UpdateMode.allCases, id: \.self) { mode in
                     Button(mode == .sweep ? "Sweep-timed updates" : "Immediate updates") { model.setMode(mode) }
@@ -86,12 +93,21 @@ struct RadarWindow: View {
     }
 
     private var statusText: String {
+        if model.settings.source == .synthetic {
+            switch model.reception {
+            case .stopped: return "SYNTHETIC STOPPED"
+            case .starting: return "STARTING SYNTHETIC \(model.settings.scenario.rawValue.uppercased())"
+            case .waiting, .receiving:
+                return "SYNTHETIC \(model.settings.scenario.rawValue.uppercased()) / GENERATED TRAFFIC"
+            case .failed(let message): return message
+            }
+        }
         switch model.reception {
-        case .stopped: "RECEPTION STOPPED"
-        case .starting: "STARTING LOCAL RECEPTION"
-        case .waiting: "RECEIVER ACTIVE / WAITING FOR AIRCRAFT"
-        case .receiving: "LOCAL RECEPTION ACTIVE"
-        case .failed(let message): message
+        case .stopped: return "RECEPTION STOPPED"
+        case .starting: return "STARTING LOCAL RECEPTION"
+        case .waiting: return "RECEIVER ACTIVE / WAITING FOR AIRCRAFT"
+        case .receiving: return "LOCAL RECEPTION ACTIVE"
+        case .failed(let message): return message
         }
     }
 }

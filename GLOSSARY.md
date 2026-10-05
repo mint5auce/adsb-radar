@@ -34,3 +34,12 @@ A display mode in which aircraft contacts update as new information arrives, ind
 
 **Sweep-timed update mode**:
 A display mode in which aircraft contacts update when the simulated radar sweep, anchored to the receiver location, reaches them.
+
+**Synthetic aircraft data**:
+Generated aircraft observations used to explore the radar display without receiving real-world aircraft traffic.
+
+**Test scenario**:
+A repeatable sequence of synthetic aircraft observations containing movement, missing information, and changes in position freshness.
+
+**Demo scenario**:
+A synthetic traffic picture with many aircraft, complete flight details, and fresh positions, used to demonstrate the radar display.

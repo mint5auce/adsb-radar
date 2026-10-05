@@ -22,6 +22,26 @@ struct RadarSettingsView: View {
                 Spacer()
             }.padding(24)
             Form {
+                Section("Aircraft data") {
+                    Picker("Source", selection: $draft.source) {
+                        Text("Local receiver").tag(AircraftSourceKind.local)
+                        Text("Synthetic / offline").tag(AircraftSourceKind.synthetic)
+                    }
+                    if draft.source == .synthetic {
+                        Picker("Scenario", selection: $draft.scenario) {
+                            Text("Test / lifecycle and missing data").tag(SyntheticScenario.test)
+                            Text("Demo / clean traffic").tag(SyntheticScenario.demo)
+                        }
+                        if draft.scenario == .demo {
+                            TextField("Demo aircraft (25 to 250)", value: $draft.demoCount, format: .number)
+                            if !countValid { Text("Enter an aircraft count from 25 to 250.").foregroundStyle(RadarStyle.amber) }
+                        }
+                        Text("Generated traffic only. No dongle, decoder, or internet needed.").foregroundStyle(.secondary)
+                        if draft.receiver == nil, latitude.isEmpty, longitude.isEmpty {
+                            Text("Without a saved position, traffic uses the bundled example at 51.5, -2.5.").foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 Section("Receiver position") {
                     TextField("Latitude", text: $latitude).accessibilityIdentifier("receiver-latitude")
                     TextField("Longitude", text: $longitude).accessibilityIdentifier("receiver-longitude")
@@ -65,7 +85,7 @@ struct RadarSettingsView: View {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                     .buttonStyle(.plain).padding(8).overlay(Rectangle().stroke(RadarStyle.line))
                 Spacer()
-                Button("Save settings", action: saveSettings).keyboardShortcut(.defaultAction).disabled(!locationValid)
+                Button("Save settings", action: saveSettings).keyboardShortcut(.defaultAction).disabled(!locationValid || !countValid)
                     .buttonStyle(.plain).padding(8).background(RadarStyle.green.opacity(0.12))
                     .overlay(Rectangle().stroke(RadarStyle.line))
             }.padding(24)
@@ -86,6 +106,10 @@ struct RadarSettingsView: View {
         if latitude.isEmpty, longitude.isEmpty { return true }
         guard let lat = Double(latitude), let lon = Double(longitude) else { return false }
         return GeographicCoordinate(latitude: lat, longitude: lon) != nil
+    }
+
+    private var countValid: Bool {
+        draft.source != .synthetic || draft.scenario != .demo || (25...250).contains(draft.demoCount)
     }
 
     private func saveSettings() {

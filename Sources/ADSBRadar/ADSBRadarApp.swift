@@ -1,9 +1,12 @@
 import AppKit
+import RadarCore
 import SwiftUI
 
 struct ADSBRadarApp: App {
     @NSApplicationDelegateAdaptor(RadarAppDelegate.self) private var delegate
-    @State private var model = RadarModel()
+    @State private var model: RadarModel
+
+    init() { _model = State(initialValue: RadarModel(options: RadarLauncher.options)) }
 
     var body: some Scene {
         WindowGroup("ADSB Radar") {
@@ -23,14 +26,18 @@ struct ADSBRadarApp: App {
 
 @main
 enum RadarLauncher {
+    @MainActor static var options = RadarLaunchOptions()
+
     @MainActor static func main() {
+        do { options = try RadarLaunchOptions(arguments: Array(CommandLine.arguments.dropFirst())) }
+        catch { fputs("\(error)\n", stderr); exit(EXIT_FAILURE) }
         #if DEBUG
         if let index = CommandLine.arguments.firstIndex(of: "--render-preview"),
            CommandLine.arguments.indices.contains(index + 1) {
             NSApplication.shared.setActivationPolicy(.prohibited)
             let destination = CommandLine.arguments[index + 1]
             Task {
-                do { try await PreviewRenderer.render(to: destination) }
+                do { try await PreviewRenderer.render(to: destination, options: options) }
                 catch { fputs("Preview failed: \(error)\n", stderr) }
                 NSApplication.shared.terminate(nil)
             }

@@ -30,7 +30,7 @@ Bundle a lightweight coastline and border background so the geographic display a
 
 ## Reception lifecycle
 
-The application starts the installed `readsb` decoder when it opens and stops the process it started when it quits.
+When local reception is selected, the application starts the installed `readsb` decoder when it opens and stops the process it started when it quits or switches to synthetic aircraft data.
 A one-time receiver software setup is acceptable.
 If the dongle is missing or busy, keep the interface usable and show a clear reception status with a retry control.
 
@@ -65,6 +65,35 @@ Expose position age in the selected contact's details.
 
 All settings in this table are configurable.
 The stale and removal thresholds are both measured from the last available position observation.
+
+## Synthetic aircraft data for offline use
+
+Implementation is tracked in [issue #8](https://github.com/mint5auce/adsb-radar/issues/8).
+
+Provide an interactive synthetic aircraft data source that works without a dongle, decoder installation, or network access.
+Use the same radar display, contact lifecycle, selection, trails, units, pan, zoom, and update modes as local reception.
+Keep synthetic operation clearly identified in the window and contact details.
+Do not switch to synthetic aircraft data automatically when local reception fails.
+
+Allow source selection between Local and Synthetic in settings and provide a `--synthetic` launch option for repeatable offline launches.
+Offer two synthetic scenarios: Test and Demo.
+Remember the selected source and scenario between launches, with Local as the first-launch default.
+Launch options override saved choices for that launch without rewriting them.
+Switching sources clears contacts, trails, and selection while preserving receiver and display settings.
+Stop the previous source before starting its replacement, including any app-owned decoder process.
+
+Generate traffic around the saved receiver location.
+If no receiver location is saved, use a documented bundled example location without saving it as the user's receiver location.
+Keep the sweep and range rings anchored to the scenario's geographic origin.
+
+The Test scenario is a repeatable sequence with moving aircraft, trails, missing optional fields, aircraft heard without positions, and stale contacts that disappear and recover.
+Exercise the configured stale and removal thresholds in real time using genuine position age, including continued messages without new positions.
+The Demo scenario shows many moving aircraft with fresh positions and complete callsign, altitude, speed, and direction information on varied routes.
+Default Demo to 100 aircraft and allow counts from 25 to 250.
+
+Provide a Restart control that clears scenario contacts, trails, and selection and restarts the same repeatable sequence with current observation timestamps.
+Document offline launch commands and manual checks for both scenarios.
+Use focused automated checks for repeatability, movement, timestamps, lifecycle transitions, and clean Demo data, with manual inspection of the normal native interface.
 
 ## Future online coverage
 

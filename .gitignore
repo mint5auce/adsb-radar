@@ -1,6 +1,7 @@
 .build/
 .swiftpm/
 build/
+/output/imagegen/
 .DS_Store
 *.xcuserstate
 xcuserdata/

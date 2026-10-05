@@ -11,13 +11,13 @@ struct RadarSurface: View {
 
     var body: some View {
         ZStack {
-            GeographyCanvas(paths: model.geography, camera: model.camera, settings: model.settings)
-            if model.settings.receiver != nil {
+            GeographyCanvas(paths: model.geography, camera: model.camera, settings: model.displaySettings)
+            if model.displaySettings.receiver != nil {
                 TimelineView(.animation(minimumInterval: 1 / 30, paused: scenePhase != .active)) { timeline in
-                    SweepCanvas(camera: model.camera, angle: SweepTiming.angle(at: timeline.date, startedAt: model.sweepStartedAt, period: model.settings.sweepSeconds))
+                    SweepCanvas(camera: model.camera, angle: SweepTiming.angle(at: timeline.date, startedAt: model.sweepStartedAt, period: model.displaySettings.sweepSeconds))
                 }
                 .allowsHitTesting(false)
-                AircraftCanvas(contacts: model.contacts, camera: model.camera, settings: model.settings, selected: model.selectedAddress)
+                AircraftCanvas(contacts: model.contacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress)
                     .allowsHitTesting(false)
             }
             overlays
@@ -43,10 +43,10 @@ struct RadarSurface: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("NORTH UP / \(model.settings.distance(model.camera.radiusNM)) RADIUS")
+                    Text("NORTH UP / \(model.displaySettings.distance(model.camera.radiusNM)) RADIUS")
                         .padding(3).background(RadarStyle.background.opacity(0.9))
                     if let message = model.mapMessage { Text(message).foregroundStyle(RadarStyle.amber) }
-                    if model.contacts.isEmpty, model.settings.receiver != nil {
+                    if model.contacts.isEmpty, model.displaySettings.receiver != nil {
                         Text("NO POSITIONED CONTACTS").foregroundStyle(RadarStyle.muted)
                     }
                 }
@@ -61,7 +61,7 @@ struct RadarSurface: View {
             .padding(6)
             .background(RadarStyle.background)
             Spacer()
-            if model.settings.receiver == nil {
+            if model.displaySettings.receiver == nil {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("SET RECEIVER POSITION").font(.system(size: 15, weight: .medium, design: .monospaced))
                     Text("Choose the geographic origin for\nyour sweep and range rings.").foregroundStyle(RadarStyle.muted)
@@ -72,8 +72,8 @@ struct RadarSurface: View {
             }
             Spacer()
             HStack {
-                if let receiver = model.settings.receiver {
-                    Text(String(format: "RX  %.4f  /  %.4f", receiver.latitude, receiver.longitude))
+                if let receiver = model.displaySettings.receiver {
+                    Text(String(format: "ORIGIN  %.4f  /  %.4f", receiver.latitude, receiver.longitude))
                         .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted)
                 }
                 Spacer()
@@ -97,7 +97,7 @@ struct RadarSurface: View {
     }
 
     private func select(at point: CGPoint) {
-        guard let receiver = model.settings.receiver else { return }
+        guard let receiver = model.displaySettings.receiver else { return }
         let projection = ReceiverProjection(origin: receiver)
         let closest = model.contacts.compactMap { contact -> (String, Double)? in
             guard let coordinate = contact.observation.position else { return nil }
