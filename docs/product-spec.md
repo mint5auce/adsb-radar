@@ -28,6 +28,22 @@ Provide a return-to-receiver control.
 
 Bundle a lightweight coastline and border background so the geographic display and local reception work offline.
 
+## Application icon
+
+Use the [supplied artwork](design/app-icon-reference.png) as the source for the macOS application icon.
+Preserve its glossy dark rounded tile, green aircraft pointing towards the upper-right corner, green glow, and three short fading trail dashes running towards the lower-left corner.
+Remove the white exterior background and presentation shadow, leaving transparent space around the tile.
+Keep the tile's own shading and reflections.
+
+Allow restrained simplification of glow and fine tile details at the smallest sizes while preserving the aircraft silhouette, direction, colours, and three-dash composition.
+Do not redesign the artwork or add text, radar rings, or other motifs.
+Keep the supplied reference and cleaned master artwork in tracked repository locations.
+Generate the native icon representations reproducibly and install the application icon in both debug and release app bundles.
+Retain macOS 14 support and the existing SwiftPM build workflow.
+
+Verify the packaged icon and inspect small-size previews, Finder, and the running Dock icon.
+Keep verification proportionate to an asset and packaging change.
+
 ## Reception lifecycle
 
 When local reception is selected, the application starts the installed `readsb` decoder when it opens and stops the process it started when it quits or switches to synthetic aircraft data.

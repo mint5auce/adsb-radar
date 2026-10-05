@@ -7,6 +7,9 @@ Vocabulary for displaying live aircraft information in the style of a vintage ai
 **Radar display**:
 The geographic presentation of live aircraft information in the style of a vintage military tactical display.
 
+**Application icon**:
+The visual mark identifying ADSB Radar in macOS application surfaces such as Finder and the Dock.
+
 **Aircraft data source**:
 An origin of live aircraft information supplied to the radar display.
 _Avoid_: Radar, when referring to the source of the information rather than its presentation.
