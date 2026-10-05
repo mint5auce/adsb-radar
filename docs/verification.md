@@ -90,11 +90,15 @@ No behavioural tests were added for this asset and packaging change.
 
 Computer Use verified the new icon in Finder's Get Info header and large preview, with clean transparent corners and the preserved design.
 The rebuilt debug and release apps launched successfully using the existing saved settings; local reception was active in the debug launch.
-Direct Computer Use access to the Dock timed out, so the running Dock icon has not been independently visually verified.
+Direct Computer Use access to the Dock timed out.
+Jonny initially reported the old placeholder in the running Dock despite Finder displaying the new artwork.
+The running process was confirmed to use the rebuilt app bundle, and macOS returned the new artwork when queried for that application's icon.
+Quitting the app and opening the rebuilt bundle directly from Finder resolved the placeholder, and Jonny confirmed that the new running Dock icon was showing.
+The agent could not independently capture the Dock's appearance.
 The manual steps in [README.md](../README.md#check-the-application-icon) cover both configurations and a narrow relaunch procedure for cached artwork.
 No system icon-cache resets or preference changes were made.
 Independent review against baseline `610130a` found zero standards findings and no actionable spec defects or scope creep.
-The spec review identified the unverified running Dock appearance as the one partial acceptance check.
+The spec review initially identified the unverified running Dock appearance as the one partial acceptance check; Jonny's subsequent confirmation after the clean Finder relaunch completes that visual check.
 
 ## Standards review
 

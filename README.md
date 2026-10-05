@@ -46,7 +46,7 @@ In Finder, navigate to the repository's `build` directory and inspect ADSB Radar
 Check that Finder and the running Dock show the dark tile with the green aircraft and three fading trail dashes, with transparent rounded corners and no white square.
 Repeat using `./scripts/build-app.sh release` after quitting the debug copy.
 Both configurations replace the same app bundle.
-If cached artwork persists, quit the app, close the Finder preview or build-directory window, reopen that directory, and launch the rebuilt bundle again.
+If cached artwork persists, quit the app, close the Finder preview or build-directory window, reopen that directory, and double-click the rebuilt ADSB Radar app in Finder.
 Avoid broad system icon-cache resets.
 
 ## Offline Test and Demo scenarios
