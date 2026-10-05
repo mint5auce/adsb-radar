@@ -72,6 +72,28 @@ Jonny subsequently confirmed that the manual acceptance tests passed.
 
 Build, launch, and exercise both scenarios using the exact commands and steps in [README.md](../README.md#manual-offline-acceptance-check).
 
+## Issue #9: native macOS application icon
+
+The unchanged reference retains its recorded SHA-256, and the cleaned master is tracked in `assets/app-icon/master.png` with its imagegen prompt and local export instructions.
+The cleaned artwork preserves the tile, upper-right aircraft, green glow, and three fading trail dashes.
+Light and dark contact sheets were inspected at native sizes from 16 through 256 pixels, with a preview of the 1024-pixel representation.
+The small trail remains subtle at 16 pixels, but the aircraft stays recognisable without a separate small-size redesign.
+The exterior has transparent corners and no visible white surround or presentation shadow.
+
+`./scripts/build-app.sh` and `./scripts/build-app.sh release` both passed.
+Both generated and packaged the same icon SHA-256, `dcf275410129285f9c785f7d8bd6c4c3678d5c1cda54c58d39870cb3040e843d`, confirming repeatable exports with the installed macOS tooling.
+`CFBundleIconFile` resolves to `Contents/Resources/AppIcon.icns`, and both bundles passed `codesign --verify --deep --strict`.
+The packaged icon was decoded using `iconutil`; all ten standard and Retina representations have their expected dimensions from 16 through 1024 pixels and retain alpha.
+The packaged minimum system version remains 14.0.
+Shell syntax checks passed, debug and release compilation passed, and the complete existing suite passed all 18 tests.
+No behavioural tests were added for this asset and packaging change.
+
+Computer Use verified the new icon in Finder's Get Info header and large preview, with clean transparent corners and the preserved design.
+The rebuilt debug and release apps launched successfully using the existing saved settings; local reception was active in the debug launch.
+Direct Computer Use access to the Dock timed out, so the running Dock icon has not been independently visually verified.
+The manual steps in [README.md](../README.md#check-the-application-icon) cover both configurations and a narrow relaunch procedure for cached artwork.
+No system icon-cache resets or preference changes were made.
+
 ## Standards review
 
 No hard documented-standard violations or blocking receiver lifecycle defect were found.

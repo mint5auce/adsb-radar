@@ -6,8 +6,10 @@ cd "$repo_root"
 swift build -c "$configuration"
 bin_dir="$(swift build -c "$configuration" --show-bin-path)"
 app_dir="$repo_root/build/ADSB Radar.app"
+icon_file="$("$repo_root/scripts/generate-app-icon.sh")"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
 cp "$bin_dir/ADSB Radar" "$app_dir/Contents/MacOS/ADSB Radar"
+cp "$icon_file" "$app_dir/Contents/Resources/AppIcon.icns"
 for bundle in "$bin_dir"/*.bundle(N); do
     cp -R "$bundle" "$app_dir/Contents/Resources/"
 done
@@ -19,6 +21,7 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>ADSB Radar</string>
 <key>CFBundleName</key><string>ADSB Radar</string>
 <key>CFBundleDisplayName</key><string>ADSB Radar</string>
+<key>CFBundleIconFile</key><string>AppIcon.icns</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>

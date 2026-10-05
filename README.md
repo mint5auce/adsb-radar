@@ -24,6 +24,7 @@ open 'build/ADSB Radar.app'
 ```
 
 A release build is available with `./scripts/build-app.sh release`.
+Both builds include the native application icon, generated locally from the [tracked master artwork](assets/app-icon/README.md).
 The application uses the installed decoder rather than bundling it.
 It looks in the standard Homebrew locations and the process PATH; set `READSB_PATH` to an executable path when launching from Terminal to use another installation.
 
@@ -31,6 +32,22 @@ Enter the receiver's latitude and longitude in Settings and save them.
 Those coordinates and other settings stay in local macOS preferences, outside the repository.
 When Local is selected, the receiver starts when the app opens and its app-owned process stops when switching to Synthetic, closing the last window, or quitting.
 Close other applications using the dongle before retrying reception.
+
+## Check the application icon
+
+Quit any running copy of ADSB Radar, then build and launch the candidate:
+
+```sh
+./scripts/build-app.sh
+open 'build/ADSB Radar.app'
+```
+
+In Finder, navigate to the repository's `build` directory and inspect ADSB Radar in icon view or Get Info.
+Check that Finder and the running Dock show the dark tile with the green aircraft and three fading trail dashes, with transparent rounded corners and no white square.
+Repeat using `./scripts/build-app.sh release` after quitting the debug copy.
+Both configurations replace the same app bundle.
+If cached artwork persists, quit the app, close the Finder preview or build-directory window, reopen that directory, and launch the rebuilt bundle again.
+Avoid broad system icon-cache resets.
 
 ## Offline Test and Demo scenarios
 
