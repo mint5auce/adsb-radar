@@ -45,7 +45,8 @@ In sweep-timed update mode, update contacts when the simulated sweep reaches the
 Both modes keep the sweep anchored to the receiver.
 
 Measure position age from the source observation, independently of when the sweep or interface last refreshed.
-When a contact becomes stale, dim it at its last known position and mark it stale before removing it at the removal threshold.
+When a contact becomes stale, dim it in amber at its last known position before removing it at the removal threshold.
+Keep stale text in the selected contact's sidebar, with only callsign and altitude beside the map plot.
 Expose position age in the selected contact's details.
 
 ## Configurable defaults
