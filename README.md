@@ -71,7 +71,7 @@ swift build
 "$(swift build --show-bin-path)/ADSB Radar" --render-preview /tmp/adsb-radar-preview
 ```
 
-This debug-only command produces map, contact-inspection, and panned previews with synthetic data.
+This debug-only command produces map, contact-inspection, panned, minimum-window, and settings previews with synthetic data.
 It is a layout check rather than an interactive UI or RF reception test.
 The preview renders an offscreen native hosting view, including menus and the scrollable contact panel.
 

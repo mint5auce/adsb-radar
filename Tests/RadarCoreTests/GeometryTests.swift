@@ -3,6 +3,20 @@ import Testing
 @testable import RadarCore
 
 struct GeometryTests {
+    @Test func directionVectorsFollowProjectedGeographyAwayFromTheReceiver() throws {
+        let origin = try #require(GeographicCoordinate(latitude: 50, longitude: 0))
+        let position = try #require(GeographicCoordinate(latitude: 60, longitude: 40))
+        let northward = try #require(GeographicCoordinate(latitude: 60.01, longitude: 40))
+        let projection = ReceiverProjection(origin: origin)
+        let a = projection.project(position)
+        let b = projection.project(northward)
+        let direction = projection.direction(at: position, headingDegrees: 0)
+        let length = hypot(b.east - a.east, b.north - a.north)
+        #expect(abs(direction.east - (b.east - a.east) / length) < 0.001)
+        #expect(abs(direction.north - (b.north - a.north) / length) < 0.001)
+        #expect(abs(hypot(direction.east, direction.north) - 1) < 0.001)
+    }
+
     @Test func projectsCompassDirectionsAndKeepsReceiverAnchoredWhilePanning() throws {
         let origin = try #require(GeographicCoordinate(latitude: 0, longitude: 0))
         let east = try #require(GeographicCoordinate(latitude: 0, longitude: 1))

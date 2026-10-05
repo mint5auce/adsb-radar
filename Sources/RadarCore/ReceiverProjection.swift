@@ -10,6 +10,25 @@ public struct RadarPoint: Equatable, Sendable {
 public struct ReceiverProjection: Sendable {
     public let origin: GeographicCoordinate
     public init(origin: GeographicCoordinate) { self.origin = origin }
+    /// Project a short geographic heading segment so vectors align with the map away from its origin.
+    public func direction(at coordinate: GeographicCoordinate, headingDegrees: Double) -> RadarPoint {
+        guard headingDegrees.isFinite else { return RadarPoint() }
+        let heading = headingDegrees * .pi / 180
+        let latitude = coordinate.latitude * .pi / 180
+        let longitude = coordinate.longitude * .pi / 180
+        let arc = 0.1 / 3440.065
+        let nextLatitude = asin(min(1, max(-1, sin(latitude) * cos(arc) + cos(latitude) * sin(arc) * cos(heading))))
+        let nextLongitude = longitude + atan2(sin(heading) * sin(arc) * cos(latitude), cos(arc) - sin(latitude) * sin(nextLatitude))
+        let degreesLongitude = (nextLongitude * 180 / .pi + 540).truncatingRemainder(dividingBy: 360) - 180
+        guard let destination = GeographicCoordinate(latitude: nextLatitude * 180 / .pi, longitude: degreesLongitude) else { return RadarPoint() }
+        let start = project(coordinate)
+        let end = project(destination)
+        let east = end.east - start.east
+        let north = end.north - start.north
+        let length = hypot(east, north)
+        guard length > 0 else { return RadarPoint() }
+        return RadarPoint(east: east / length, north: north / length)
+    }
     public func project(_ coordinate: GeographicCoordinate) -> RadarPoint {
         let latitude = coordinate.latitude * .pi / 180
         let originLatitude = origin.latitude * .pi / 180

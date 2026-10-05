@@ -25,12 +25,19 @@ enum PreviewRenderer {
         try image(model, to: folder.appendingPathComponent("inspection.png"), width: 1200, height: 800)
         model.camera = model.camera.panned(dx: 180, dy: -90, width: 944, height: 680).zoomed(by: 1.5)
         try image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
+        try image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
+        try image(RadarSettingsView(settings: settings, save: { _ in }),
+            to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         await model.shutdown()
         print("Rendered native previews in \(directory)")
     }
 
     private static func image(_ model: RadarModel, to url: URL, width: Double, height: Double) throws {
-        let content = RadarWindow(model: model).frame(width: width, height: height).environment(\.colorScheme, .dark)
+        try image(RadarWindow(model: model), to: url, width: width, height: height)
+    }
+
+    private static func image<Content: View>(_ content: Content, to url: URL, width: Double, height: Double) throws {
+        let content = content.frame(width: width, height: height).environment(\.colorScheme, .dark)
         let view = NSHostingView(rootView: content)
         view.frame = NSRect(x: 0, y: 0, width: width, height: height)
         view.layoutSubtreeIfNeeded()

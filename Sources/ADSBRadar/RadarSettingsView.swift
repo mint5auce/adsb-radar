@@ -63,11 +63,17 @@ struct RadarSettingsView: View {
             .onChange(of: draft.staleSeconds) { draft.removalSeconds = max(draft.removalSeconds, draft.staleSeconds) }
             HStack {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                    .buttonStyle(.plain).padding(8).overlay(Rectangle().stroke(RadarStyle.line))
                 Spacer()
                 Button("Save settings", action: saveSettings).keyboardShortcut(.defaultAction).disabled(!locationValid)
+                    .buttonStyle(.plain).padding(8).background(RadarStyle.green.opacity(0.12))
+                    .overlay(Rectangle().stroke(RadarStyle.line))
             }.padding(24)
         }
         .frame(width: 560, height: 680)
+        .background(RadarStyle.panel)
+        .foregroundStyle(RadarStyle.green)
+        .font(RadarStyle.mono)
         .preferredColorScheme(.dark)
         .tint(RadarStyle.green)
     }

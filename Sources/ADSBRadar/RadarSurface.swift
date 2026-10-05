@@ -44,6 +44,7 @@ struct RadarSurface: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("NORTH UP / \(model.settings.distance(model.camera.radiusNM)) RADIUS")
+                        .padding(3).background(RadarStyle.background.opacity(0.9))
                     if let message = model.mapMessage { Text(message).foregroundStyle(RadarStyle.amber) }
                     if model.contacts.isEmpty, model.settings.receiver != nil {
                         Text("NO POSITIONED CONTACTS").foregroundStyle(RadarStyle.muted)
@@ -54,8 +55,11 @@ struct RadarSurface: View {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
                     Text(timeline.date.formatted(Date.FormatStyle(date: .omitted, time: .standard, locale: Locale(identifier: "en_GB"), timeZone: .gmt)) + " UTC")
                         .font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                        .padding(3).background(RadarStyle.background.opacity(0.9))
                 }
             }
+            .padding(6)
+            .background(RadarStyle.background)
             Spacer()
             if model.settings.receiver == nil {
                 VStack(alignment: .leading, spacing: 16) {
@@ -186,10 +190,10 @@ struct AircraftCanvas: View {
                 drawTrail(contact, projection: projection, context: context, size: size, color: color)
                 guard CGRect(origin: .zero, size: size).insetBy(dx: -100, dy: -40).contains(point) else { continue }
                 if let heading = contact.observation.directionDegrees {
-                    let radians = heading * .pi / 180
+                    let direction = projection.direction(at: position, headingDegrees: heading)
                     var vector = Path()
                     vector.move(to: point)
-                    vector.addLine(to: CGPoint(x: point.x + sin(radians) * 22, y: point.y - cos(radians) * 22))
+                    vector.addLine(to: CGPoint(x: point.x + direction.east * 22, y: point.y - direction.north * 22))
                     context.stroke(vector, with: .color(color), lineWidth: 0.8)
                 }
                 let marker = CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)
