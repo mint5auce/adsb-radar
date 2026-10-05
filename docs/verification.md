@@ -93,6 +93,8 @@ The rebuilt debug and release apps launched successfully using the existing save
 Direct Computer Use access to the Dock timed out, so the running Dock icon has not been independently visually verified.
 The manual steps in [README.md](../README.md#check-the-application-icon) cover both configurations and a narrow relaunch procedure for cached artwork.
 No system icon-cache resets or preference changes were made.
+Independent review against baseline `610130a` found zero standards findings and no actionable spec defects or scope creep.
+The spec review identified the unverified running Dock appearance as the one partial acceptance check.
 
 ## Standards review
 
