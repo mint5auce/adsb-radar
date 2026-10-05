@@ -1,6 +1,7 @@
 # ADSB Radar product specification
 
-This is the accepted design for a personal macOS application that displays live aircraft information from an RTL-SDR V4 receiver in the style of a vintage military tactical display.
+This is the accepted design for a personal macOS application that displays live aircraft information from an RTL-SDR receiver in the style of a vintage military tactical display.
+The initial hardware is a generic dongle, with compatible RTL-SDR V4 support retained.
 The product is for enjoyment and exploration, with testing and hardening proportionate to that use.
 
 Use the vocabulary in [GLOSSARY.md](../GLOSSARY.md).
