@@ -38,7 +38,7 @@ After that change, Jonny confirmed that stale-update manual testing and the manu
 The agent did not independently repeat the complete hardware-disconnection, quit, persistence, and live offline exercise.
 Owned-process cleanup also passed the receiver fixture.
 
-Build and run with the commands in [README.md](../README.md#build-and-start), then follow its [manual acceptance check](../README.md#manual-acceptance-check).
+Build and run with the commands in [usage guide](usage.md#build-and-start), then follow its [manual acceptance check](usage.md#manual-acceptance-check).
 Quit the currently running app before reopening a rebuilt candidate.
 
 ## Issue #8: synthetic offline scenarios
@@ -70,7 +70,7 @@ Independent rechecks found zero remaining findings on both the standards and spe
 The optional restart-transition duplication identified in standards review was consolidated into a shared helper.
 Jonny subsequently confirmed that the manual acceptance tests passed.
 
-Build, launch, and exercise both scenarios using the exact commands and steps in [README.md](../README.md#manual-offline-acceptance-check).
+Build, launch, and exercise both scenarios using the exact commands and steps in [usage guide](usage.md#manual-offline-acceptance-check).
 
 ## Issue #9: native macOS application icon
 
@@ -95,7 +95,7 @@ Jonny initially reported the old placeholder in the running Dock despite Finder 
 The running process was confirmed to use the rebuilt app bundle, and macOS returned the new artwork when queried for that application's icon.
 Quitting the app and opening the rebuilt bundle directly from Finder resolved the placeholder, and Jonny confirmed that the new running Dock icon was showing.
 The agent could not independently capture the Dock's appearance.
-The manual steps in [README.md](../README.md#check-the-application-icon) cover both configurations and a narrow relaunch procedure for cached artwork.
+The manual steps in [usage guide](usage.md#check-the-application-icon) cover both configurations and a narrow relaunch procedure for cached artwork.
 No system icon-cache resets or preference changes were made.
 Independent review against baseline `610130a` found zero standards findings and no actionable spec defects or scope creep.
 The spec review initially identified the unverified running Dock appearance as the one partial acceptance check; Jonny's subsequent confirmation after the clean Finder relaunch completes that visual check.
