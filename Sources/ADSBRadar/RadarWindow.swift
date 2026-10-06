@@ -12,7 +12,7 @@ struct RadarWindow: View {
             HStack(spacing: 0) {
                 RadarSurface(model: model, openSettings: { showingSettings = true })
                 if let contact = model.selectedContact {
-                    ContactInspector(contact: contact, settings: model.settings) { model.selectedAddress = nil }
+                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings) { model.selectedAddress = nil }
                         .frame(width: 256)
                 }
             }
@@ -78,7 +78,7 @@ struct RadarWindow: View {
                 }
             }
             Spacer(minLength: 8)
-            if model.settings.source.usesOnline {
+            if model.showsOnlineAttribution {
                 Link("adsb.fi", destination: URL(string: "https://adsb.fi")!).foregroundStyle(RadarStyle.muted)
             }
             Text("\(model.contacts.count) POSITIONED").foregroundStyle(RadarStyle.green)
@@ -123,6 +123,7 @@ private struct FeedStatusIndicator: View {
 
 struct ContactInspector: View {
     let contact: PresentedContact
+    let identity: AircraftIdentity?
     let settings: RadarSettings
     let dismiss: () -> Void
 
@@ -144,6 +145,8 @@ struct ContactInspector: View {
                     Text("\(contact.observation.address.hasPrefix("~") ? "NON-ICAO" : "ICAO") \(contact.observation.address.uppercased())").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
                 }
                 Rectangle().fill(RadarStyle.line).frame(height: 1)
+                field("REGISTRATION", identity?.registration?.value ?? "UNKNOWN")
+                field("AIRCRAFT TYPE", identity?.aircraftType?.value ?? "UNKNOWN")
                 field("ALTITUDE", settings.altitude(contact.observation.altitude))
                 field("GROUND SPEED", settings.speed(contact.observation.speedKnots))
                 field("DIRECTION", contact.observation.directionDegrees.map { String(format: "%03.0f°", $0) } ?? "UNKNOWN")

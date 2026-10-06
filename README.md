@@ -65,6 +65,12 @@ Choose Local + Online to combine both sources in one view with separate health i
 Fresh local positions take precedence; when they become stale, fresh online positions take over automatically.
 Local reception resumes precedence when fresh observations return, without duplicating matching ICAO aircraft.
 
+Enrich aircraft details online is enabled by default, including in Local mode.
+It adds optional registration and aircraft type to the inspector using visible aircraft and selected-contact lookups.
+Disable it in Settings to stop dedicated identity requests; ordinary Online responses can still supply details.
+Missing details and network failures leave known values and aircraft movement intact.
+Synthetic does not request or display real identity data.
+
 Aircraft data is supplied by [adsb.fi](https://adsb.fi), using its [public personal-use API](https://github.com/adsbfi/opendata).
 No account, payment, or receiver sharing is enabled.
 For implementation checks and exact manual steps, see [online verification](docs/verification-online.md).

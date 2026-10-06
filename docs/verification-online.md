@@ -86,3 +86,32 @@ The live native candidate exposes all four source choices; selecting Local + Onl
 The live Local health row displayed the missing-dongle message and Retry control while Online remained active with hundreds of contacts.
 Debug packaging, release compilation, and the final full test suite passed.
 A physical receiver failure/recovery exercise remains to be confirmed.
+
+## Issue #18: optional identity enrichment
+
+The completed slice passes 46 tests.
+New checks cover optional and missing identity fields, batched ICAO lookups, selection priority, deduplication, pending cancellation, increasing retries, preserved provenance, shared pacing and Retry-After, and position updates continuing during a slow identity response.
+Application checks cover Local enrichment, dedicated-request disabling without restarting reception, metadata reuse from Online snapshots with lookups disabled, Synthetic isolation, and offline failure without changing movement or introducing contacts.
+Debug packaging and release compilation passed.
+The live batched ICAO endpoint returned HTTP 200 with G-JZHX/B738 and G-VBOW/B789 on 6 October 2026.
+The live native inspector showed BAW19N / G-VIIG / B772 with adsb.fi as the position source and a genuine position age.
+Native Local fixture views were inspected at normal and minimum window sizes with enrichment enabled and disabled.
+The inspector retains Local as the position source and shows G-TEST/A320; the settings toggle defaults to enabled and remains available in Local mode.
+Fixture failure tests confirm Local reception continues with unknown details.
+Physical Local reception and its real-aircraft enrichment could not be checked without a dongle.
+
+Build and launch using the commands above, then:
+
+1. Choose Local with a connected receiver and enable Enrich aircraft details online.
+2. Select a visible aircraft with a reliable ICAO address; confirm registration and aircraft type appear when adsb.fi has them, while position source and age continue to reflect Local reception.
+3. Disable enrichment and confirm reception continues, known details remain, and newly encountered aircraft can show unknown details.
+4. Re-enable enrichment, disconnect networking, and confirm the radar remains responsive and known values remain; restore networking and check later lookups recover.
+5. Choose Online with enrichment disabled and confirm ordinary position responses can still supply identity fields.
+6. Switch to Synthetic and confirm real identities disappear and no online identity work runs.
+
+Repeatable native Local enrichment views:
+
+```sh
+swift build
+"$(swift build --show-bin-path)/ADSB Radar" --render-local-enrichment-preview /tmp/adsb-radar-local-enrichment-preview
+```

@@ -29,6 +29,11 @@ struct RadarSettingsView: View {
                         Text("Local + Online").tag(AircraftSourceKind.combined)
                         Text("Synthetic / offline").tag(AircraftSourceKind.synthetic)
                     }
+                    if draft.source != .synthetic {
+                        Toggle("Enrich aircraft details online", isOn: $draft.enrichIdentities)
+                        Text("Optional registration and aircraft type from adsb.fi, including in Local mode.").foregroundStyle(.secondary)
+                        Link("Aircraft data from adsb.fi", destination: URL(string: "https://adsb.fi")!)
+                    }
                     if draft.source == .synthetic {
                         Picker("Scenario", selection: $draft.scenario) {
                             Text("Test / lifecycle and missing data").tag(SyntheticScenario.test)
@@ -55,7 +60,6 @@ struct RadarSettingsView: View {
                         Stepper("Refresh: \(Int(draft.onlineRefreshSeconds)) seconds", value: $draft.onlineRefreshSeconds, in: 1...300)
                         TextField("Search limit (\(draft.distanceSymbol))", value: onlineRadiusBinding, format: .number)
                         Text("Maximum: \(draft.distance(250)). Shared allowance: one request per second.").foregroundStyle(.secondary)
-                        Link("Aircraft data from adsb.fi", destination: URL(string: "https://adsb.fi")!)
                     }
                 }
                 Section("Presentation") {

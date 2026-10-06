@@ -8,16 +8,22 @@ import SwiftUI
 final class RadarModel {
     private(set) var settings: RadarSettings
     private(set) var contacts: [PresentedContact] = []
+    private(set) var identities: [String: AircraftIdentity] = [:]
     private(set) var statuses: [AircraftFeed: ReceptionStatus] = [:]
     private(set) var heardWithoutPosition = 0
     private(set) var geography: GeographyPaths?
     private(set) var mapMessage: String?
-    var selectedAddress: String?
+    var selectedAddress: String? { didSet { if selectedAddress != oldValue { cancelIdentityRequest() } } }
     var camera: RadarCamera { didSet { if camera != oldValue { scheduleSearchUpdate() } } }
     private(set) var sweepStartedAt: Date
     private(set) var viewportWidth: Double = 800
     private(set) var viewportHeight: Double = 600
 
+    @ObservationIgnored private let provider: any OnlineAircraftProvider & AircraftIdentityProvider
+    @ObservationIgnored private var catalogue = AircraftIdentityCatalogue()
+    @ObservationIgnored private var identityLoop: Task<Void, Never>?
+    @ObservationIgnored private var identityRequest: Task<[AircraftIdentityUpdate], any Error>?
+    @ObservationIgnored private var identityRevision = 0
     @ObservationIgnored private let preferences: RadarPreferences
     @ObservationIgnored private let suppliedSource: (any AircraftDataSource)?
     @ObservationIgnored private let suppliedSources: [AircraftFeed: any AircraftDataSource]
@@ -39,7 +45,9 @@ final class RadarModel {
     }
 
     init(source: (any AircraftDataSource)? = nil, sources: [AircraftFeed: any AircraftDataSource] = [:],
+         provider: any OnlineAircraftProvider & AircraftIdentityProvider = ADSBFiProvider(),
          initialSettings: RadarSettings? = nil, options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
+        self.provider = provider
         suppliedSource = source
         suppliedSources = sources
         preferences = RadarPreferences(defaults: defaults, options: options)
@@ -70,6 +78,13 @@ final class RadarModel {
     }
 
     var selectedContact: PresentedContact? { contacts.first { $0.id == selectedAddress } }
+    var selectedIdentity: AircraftIdentity? {
+        guard settings.source != .synthetic, let contact = selectedContact else { return nil }
+        return identities[contact.observation.address]
+    }
+    var showsOnlineAttribution: Bool {
+        settings.source != .synthetic && (settings.source.usesOnline || settings.enrichIdentities || !identities.isEmpty)
+    }
     var retrying: Bool { statuses.values.contains(.starting) }
     var reception: ReceptionStatus {
         statuses[settings.source == .online ? .online : settings.source == .synthetic ? .synthetic : .local] ?? .starting
@@ -98,6 +113,7 @@ final class RadarModel {
     }
 
     private func scheduleSearchUpdate() {
+        cancelIdentityRequest()
         searchRevision += 1
         searchTask?.cancel()
         guard settings.source.usesOnline, !shuttingDown else { return }
@@ -121,6 +137,54 @@ final class RadarModel {
             }
         }
         reconcileFeeds()
+        startIdentityLoop()
+    }
+
+    private func cancelIdentityRequest() {
+        identityRevision += 1
+        identityRequest?.cancel()
+    }
+
+    private func relevantIdentityAddresses() -> [String] {
+        guard let origin else { return [] }
+        let projection = ReceiverProjection(origin: origin)
+        return contacts.compactMap { contact in
+            guard let position = contact.observation.position else { return nil }
+            let screen = camera.screen(projection.project(position), width: viewportWidth, height: viewportHeight)
+            guard (0...viewportWidth).contains(screen.x), (0...viewportHeight).contains(screen.y) else { return nil }
+            return contact.observation.address
+        }
+    }
+
+    private func startIdentityLoop() {
+        identityLoop = Task {
+            while !Task.isCancelled {
+                if settings.enrichIdentities, settings.source != .synthetic {
+                    let batch = catalogue.begin(visible: relevantIdentityAddresses(),
+                        selected: selectedContact?.observation.address, at: .now)
+                    if !batch.isEmpty {
+                        let revision = identityRevision
+                        let provider = provider
+                        let request = Task { try await provider.identities(for: batch) }
+                        identityRequest = request
+                        do {
+                            let updates = try await withTaskCancellationHandler { try await request.value }
+                                onCancel: { request.cancel() }
+                            if revision == identityRevision, !Task.isCancelled, settings.enrichIdentities, settings.source != .synthetic {
+                                catalogue.finish(batch, updates: updates, at: .now)
+                                identities = catalogue.identities
+                            } else { catalogue.cancel(batch) }
+                        } catch {
+                            if revision != identityRevision || Task.isCancelled || error is CancellationError {
+                                catalogue.cancel(batch)
+                            } else { catalogue.finish(batch, updates: [], at: .now) }
+                        }
+                        identityRequest = nil
+                    }
+                }
+                do { try await Task.sleep(for: .milliseconds(500)) } catch { break }
+            }
+        }
     }
 
     private func advanceDisplay() {
@@ -186,6 +250,10 @@ final class RadarModel {
             if let snapshot = reading.snapshot {
                 if feed == .local || feed == .synthetic { heardWithoutPosition = snapshot.heardWithoutPosition }
                 session.ingest(snapshot, from: feed)
+                if feed != .synthetic, !snapshot.identities.isEmpty {
+                    catalogue.merge(snapshot.identities)
+                    identities = catalogue.identities
+                }
             }
             if feed == .local {
                 if case .failed = reading.status {
@@ -217,6 +285,8 @@ final class RadarModel {
         transitionRevision += 1
         mapTask?.cancel()
         searchTask?.cancel()
+        cancelIdentityRequest()
+        identityLoop?.cancel()
         loop?.cancel()
         let active = runs
         runs = [:]
@@ -227,6 +297,8 @@ final class RadarModel {
             await run.task?.value
         }
         await loop?.value
+        await identityLoop?.value
+        identityLoop = nil
         loop = nil
         statuses = [:]
     }
@@ -235,6 +307,7 @@ final class RadarModel {
         let previous = settings
         settings = value.validated()
         preferences.save(settings)
+        if settings.enrichIdentities != previous.enrichIdentities || settings.source != previous.source { cancelIdentityRequest() }
         if settings.initialRadiusNM != previous.initialRadiusNM { camera.radiusNM = settings.initialRadiusNM }
         let locationChanged = settings.receiver != previous.receiver
         let syntheticTransition = settings.source != previous.source && (settings.source == .synthetic || previous.source == .synthetic)
@@ -296,7 +369,7 @@ final class RadarModel {
     private func makeSource(_ feed: AircraftFeed) -> any AircraftDataSource {
         switch feed {
         case .local: ReadsbReceiver()
-        case .online: OnlineFeed(interval: settings.onlineRefreshSeconds, radiusNM: settings.onlineRadiusNM)
+        case .online: OnlineFeed(provider: provider, interval: settings.onlineRefreshSeconds, radiusNM: settings.onlineRadiusNM)
         case .synthetic: SyntheticSource(scenario: settings.scenario, demoCount: settings.demoCount, timing: settings)
         }
     }

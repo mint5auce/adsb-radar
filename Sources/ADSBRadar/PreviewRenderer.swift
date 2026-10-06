@@ -6,11 +6,11 @@ import SwiftUI
 /// Offscreen visual verification only. Does not open or control a desktop window.
 @MainActor
 enum PreviewRenderer {
-    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false, combined: Bool = false) async throws {
+    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false, combined: Bool = false, localEnrichment: Bool = false) async throws {
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
         settings.receiver = syntheticPlayback ? nil : SyntheticSource.exampleLocation
-        settings.source = combined ? .combined : online ? .online : .synthetic
+        settings.source = localEnrichment ? .local : combined ? .combined : online ? .online : .synthetic
         settings.mode = .immediate
         let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
         let suite = "adsb-radar-preview-\(UUID())"
@@ -18,8 +18,8 @@ enum PreviewRenderer {
         defer { defaults.removePersistentDomain(forName: suite) }
         let localFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")
         let onlineFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "adsb.fi")
-        let sources: [AircraftFeed: any AircraftDataSource] = combined ? [.local: localFixture, .online: onlineFixture] : [:]
-        let model = RadarModel(source: combined ? nil : fixture, sources: sources, initialSettings: settings, defaults: defaults)
+        let sources: [AircraftFeed: any AircraftDataSource] = combined ? [.local: localFixture, .online: onlineFixture] : localEnrichment ? [.local: localFixture] : [:]
+        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
             if model.geography != nil, !model.contacts.isEmpty { break }
@@ -29,12 +29,24 @@ enum PreviewRenderer {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try image(model, to: folder.appendingPathComponent("radar.png"), width: 1200, height: 800)
         model.selectedAddress = model.contacts.first?.id
+        if online || combined || localEnrichment {
+            for _ in 0..<50 {
+                if model.selectedIdentity?.complete == true { break }
+                try await Task.sleep(for: .milliseconds(50))
+            }
+        }
         try image(model, to: folder.appendingPathComponent("inspection.png"), width: 1200, height: 800)
         model.camera = model.camera.panned(dx: 180, dy: -90, width: 944, height: 680).zoomed(by: 1.5)
         try image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
         try image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
         try image(RadarSettingsView(settings: model.settings, save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
+        if localEnrichment {
+            var offline = model.settings
+            offline.enrichIdentities = false
+            model.apply(offline)
+            try image(model, to: folder.appendingPathComponent("disabled-enrichment.png"), width: 800, height: 560)
+        }
         if combined {
             var timing = model.settings
             timing.staleSeconds = 1
@@ -113,6 +125,15 @@ private actor PreviewSource: AircraftDataSource {
             }
         }
         return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations))
+    }
+}
+#endif
+
+#if DEBUG
+private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentityProvider {
+    func positions(in search: OnlineSearch) async throws -> ReceiverSnapshot { ReceiverSnapshot(observations: []) }
+    func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] {
+        addresses.map { AircraftIdentityUpdate(address: $0, registration: "G-TEST", aircraftType: "A320") }
     }
 }
 #endif

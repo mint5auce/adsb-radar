@@ -10,6 +10,7 @@ struct RadarModelTests {
         settings.receiver = SyntheticSource.exampleLocation
         settings.source = .online
         settings.mode = .immediate
+        settings.enrichIdentities = false
         settings.staleSeconds = 1
         settings.removalSeconds = 2
         let model = RadarModel(source: fixture, initialSettings: settings, defaults: isolatedDefaults())
@@ -33,6 +34,7 @@ struct RadarModelTests {
         settings.receiver = SyntheticSource.exampleLocation
         settings.source = .online
         settings.mode = .immediate
+        settings.enrichIdentities = false
         let model = RadarModel(source: feed, initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 1 }
@@ -63,6 +65,7 @@ struct RadarModelTests {
         settings.receiver = SyntheticSource.exampleLocation
         settings.source = .combined
         settings.mode = .immediate
+        settings.enrichIdentities = false
         let model = RadarModel(sources: [.local: local, .online: online], initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 3 }
@@ -93,6 +96,7 @@ struct RadarModelTests {
         settings.receiver = SyntheticSource.exampleLocation
         settings.source = .combined
         settings.mode = .immediate
+        settings.enrichIdentities = false
         let model = RadarModel(sources: [.local: local, .online: online], initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 1 }
@@ -145,21 +149,23 @@ private actor SearchRecordingProvider: OnlineAircraftProvider {
     }
 }
 
-private actor ControlledSource: AircraftDataSource {
+actor ControlledSource: AircraftDataSource {
     var starts = 0
     var stops = 0
     let addresses: [String]
     let source: String
     let failed: Bool
-    init(addresses: [String], source: String, failed: Bool = false) {
-        self.addresses = addresses; self.source = source; self.failed = failed
+    let fixedPositions: Bool
+    private var positionTime = Date.now
+    init(addresses: [String], source: String, failed: Bool = false, fixedPositions: Bool = false) {
+        self.addresses = addresses; self.source = source; self.failed = failed; self.fixedPositions = fixedPositions
     }
-    func start(location: GeographicCoordinate?) async { starts += 1 }
+    func start(location: GeographicCoordinate?) async { starts += 1; positionTime = .now }
     func stop() async { stops += 1 }
     func poll() async -> ReceptionReading {
         if failed { return ReceptionReading(status: .failed("Receiver unavailable")) }
         return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: addresses.map {
-            AircraftObservation(address: $0, position: SyntheticSource.exampleLocation, positionTime: .now, source: source)
+            AircraftObservation(address: $0, position: SyntheticSource.exampleLocation, positionTime: fixedPositions ? positionTime : .now, source: source)
         }))
     }
 }

@@ -45,9 +45,11 @@ public struct AircraftObservation: Equatable, Sendable {
 
 public struct ReceiverSnapshot: Sendable {
     public let observations: [AircraftObservation]
+    public let identities: [AircraftIdentityUpdate]
 
-    public init(observations: [AircraftObservation]) {
+    public init(observations: [AircraftObservation], identities: [AircraftIdentityUpdate] = []) {
         self.observations = observations
+        self.identities = identities
     }
 
     public var heardWithoutPosition: Int {

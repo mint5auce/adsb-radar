@@ -34,12 +34,13 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var demoCount: Int = 100
     public var onlineRefreshSeconds: Double = 5
     public var onlineRadiusNM: Double = 250
+    public var enrichIdentities: Bool = true
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
-        case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM
+        case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -61,6 +62,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         demoCount = try values.decodeIfPresent(Int.self, forKey: .demoCount) ?? demoCount
         onlineRefreshSeconds = try values.decodeIfPresent(Double.self, forKey: .onlineRefreshSeconds) ?? onlineRefreshSeconds
         onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
+        enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
     }
 
     public func validated() -> RadarSettings {

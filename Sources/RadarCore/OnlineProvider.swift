@@ -91,8 +91,7 @@ public actor OnlineRequestScheduler {
     private var order: [UUID] = []
     private var pending: [UUID: Pending] = [:]
     private var worker: Task<Void, Never>?
-    private var active: UUID?
-    private var activeRequest: Task<OnlineHTTPResponse, any Error>?
+    private var activeRequests: [UUID: Task<Void, Never>] = [:]
 
     public init(transport: any OnlineHTTPTransport = URLSessionOnlineTransport()) {
         self.transport = transport
@@ -116,34 +115,39 @@ public actor OnlineRequestScheduler {
     private func cancel(_ id: UUID) {
         order.removeAll { $0 == id }
         pending.removeValue(forKey: id)?.continuation.resume(throwing: CancellationError())
-        if active == id { activeRequest?.cancel() }
+        activeRequests.removeValue(forKey: id)?.cancel()
     }
 
     private func run() async {
         while !order.isEmpty {
             try? await clock.sleep(until: nextStart)
+            if clock.now < nextStart { continue }
             let candidates = order.compactMap { id in pending[id].map { (id, $0.priority) } }
             guard let id = candidates.max(by: { $0.1.rawValue < $1.1.rawValue })?.0,
                   let item = pending[id] else { continue }
             order.removeAll { $0 == id }
-            active = id
+            // Space request starts, without allowing a slow identity response to block positions.
             nextStart = clock.now.advanced(by: .seconds(1))
             let transport = transport
-            let request = Task { try await transport.get(item.url) }
-            activeRequest = request
-            let result = await request.result
-            if case .success(let response) = result, let retry = response.retryAfter {
-                nextStart = max(nextStart, clock.now.advanced(by: .seconds(max(0, retry.timeIntervalSinceNow))))
+            activeRequests[id] = Task {
+                let result: Result<OnlineHTTPResponse, any Error>
+                do { result = .success(try await transport.get(item.url)) }
+                catch { result = .failure(error) }
+                complete(id, result: result)
             }
-            pending.removeValue(forKey: id)?.continuation.resume(with: result)
-            active = nil
-            activeRequest = nil
         }
         worker = nil
     }
+    private func complete(_ id: UUID, result: Result<OnlineHTTPResponse, any Error>) {
+        if case .success(let response) = result, let retry = response.retryAfter {
+            nextStart = max(nextStart, clock.now.advanced(by: .seconds(max(0, retry.timeIntervalSinceNow))))
+        }
+        pending.removeValue(forKey: id)?.continuation.resume(with: result)
+        activeRequests.removeValue(forKey: id)
+    }
 }
 
-public struct ADSBFiProvider: OnlineAircraftProvider {
+public struct ADSBFiProvider: OnlineAircraftProvider, AircraftIdentityProvider {
     private let scheduler: OnlineRequestScheduler
     private let baseURL: URL
 
@@ -162,6 +166,17 @@ public struct ADSBFiProvider: OnlineAircraftProvider {
         return try Self.decode(response.data)
     }
 
+    public func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] {
+        let requested = Set(addresses.map { $0.lowercased() }.filter(AircraftIdentityCatalogue.isICAO))
+        guard !requested.isEmpty else { return [] }
+        let path = "v2/icao/" + requested.sorted().joined(separator: ",")
+        let response = try await scheduler.get(baseURL.appendingPathComponent(path), priority: .identity)
+        guard (200..<300).contains(response.status) else {
+            throw OnlineProviderError.http(response.status, retryAfter: response.retryAfter)
+        }
+        return try Self.decode(response.data).identities.filter { requested.contains($0.address) }
+    }
+
     public static func decode(_ data: Data) throws -> ReceiverSnapshot {
         guard var json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let timestamp = json["now"] as? NSNumber,
@@ -176,11 +191,17 @@ public struct ADSBFiProvider: OnlineAircraftProvider {
         json["now"] = timestamp.doubleValue > 100_000_000_000 ? timestamp.doubleValue / 1000 : timestamp.doubleValue
         json["aircraft"] = aircraft
         let snapshot = try ReceiverSnapshot.decode(JSONSerialization.data(withJSONObject: json))
+        let identities = aircraft.compactMap { entry -> AircraftIdentityUpdate? in
+            guard let entry = entry as? [String: Any], let address = (entry["hex"] as? String)?.lowercased(),
+                  AircraftIdentityCatalogue.isICAO(address) else { return nil }
+            let update = AircraftIdentityUpdate(address: address, registration: entry["r"] as? String, aircraftType: entry["t"] as? String)
+            return update.registration == nil && update.aircraftType == nil ? nil : update
+        }
         return ReceiverSnapshot(observations: snapshot.observations.map {
             AircraftObservation(address: $0.address, callsign: $0.callsign, position: $0.position,
                 positionTime: $0.positionTime, altitude: $0.altitude, speedKnots: $0.speedKnots,
                 directionDegrees: $0.directionDegrees, source: "adsb.fi")
-        })
+        }, identities: identities)
     }
 }
 
