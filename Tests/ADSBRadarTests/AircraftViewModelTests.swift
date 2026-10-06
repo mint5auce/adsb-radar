@@ -95,6 +95,43 @@ struct AircraftViewModelTests {
         await model.shutdown()
     }
 
+    @Test @MainActor func largerAircraftUsesReportedSizeGroupsWithIndependentUnknownAndSelection() async throws {
+        var settings = RadarSettings()
+        settings.source = .synthetic; settings.receiver = SyntheticSource.exampleLocation; settings.mode = .immediate
+        let categories: [AircraftCategory?] = [.light, .small, .large, .highVortexLarge, .heavy, .highPerformance, .helicopter, .glider, nil]
+        let observations = categories.enumerated().map { index, category in
+            AircraftObservation(address: String(format: "aaa%03x", index + 1), position: SyntheticSource.exampleLocation,
+                positionTime: .now, altitude: .feet(10000), category: category, source: "SYNTHETIC TEST")
+        }
+        let model = RadarModel(source: ViewFixtureSource(observations: observations), identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 9 }
+        var filters = model.settings.aircraftFilters
+        filters.categories = AircraftCategoryGroup.largerAircraft
+        model.setAircraftFilters(filters)
+        #expect(Set(model.eligibleContacts.map(\.id)) == ["aaa002", "aaa003", "aaa004", "aaa005", "aaa009"])
+        filters.includeUnknownCategory = false; model.setAircraftFilters(filters)
+        #expect(model.eligibleContacts.count == 4)
+        model.selectedAddress = "aaa001"
+        #expect(model.selectedOutsideFilters && model.eligibleContacts.count == 5)
+        filters.minimumAltitudeFeet = 15000; model.setAircraftFilters(filters)
+        #expect(model.eligibleContacts.map(\.id) == ["aaa001"])
+        await model.shutdown()
+    }
+
+    @Test @MainActor func hiddenUnknownContactsCanBeEnrichedWithoutChangingTheirPositions() async throws {
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation; settings.mode = .immediate
+        settings.aircraftFilters.categories = AircraftCategoryGroup.largerAircraft
+        settings.aircraftFilters.includeUnknownCategory = false
+        let observation = AircraftObservation(address: "abc123", position: SyntheticSource.exampleLocation, positionTime: .now, source: "LOCAL")
+        let model = RadarModel(source: ViewFixtureSource(observations: [observation]), provider: IdentityFixtureProvider(), identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 1 }
+        try await eventually { model.eligibleContacts.count == 1 }
+        #expect(model.contacts.first?.observation == observation)
+        #expect(model.identities["abc123"]?.category?.value == .large)
+        await model.shutdown()
+    }
+
 }
 
 actor ViewFixtureSource: AircraftDataSource {

@@ -42,3 +42,28 @@ public struct AircraftCategoryValue: Equatable, Codable, Sendable {
         self.value = value; self.provider = provider; self.updatedAt = updatedAt
     }
 }
+
+public enum AircraftCategoryGroup: String, Codable, CaseIterable, Sendable {
+    case light, small, large, heavy, highPerformance, helicopters, other
+    public var title: String {
+        switch self {
+        case .highPerformance: "High-performance"
+        default: rawValue.capitalized
+        }
+    }
+    public static let largerAircraft: Set<AircraftCategoryGroup> = [.small, .large, .heavy]
+}
+
+extension AircraftCategory {
+    public var group: AircraftCategoryGroup {
+        switch self {
+        case .light: .light
+        case .small: .small
+        case .large, .highVortexLarge: .large
+        case .heavy: .heavy
+        case .highPerformance: .highPerformance
+        case .helicopter: .helicopters
+        default: .other
+        }
+    }
+}

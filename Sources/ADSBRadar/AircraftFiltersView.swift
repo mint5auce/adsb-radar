@@ -32,6 +32,8 @@ struct AircraftFiltersView: View {
             distanceControls
             Divider()
             altitudeControls
+            Divider()
+            AircraftCategoryControls(model: model)
         }
         .padding(20)
         }
@@ -137,4 +139,33 @@ struct AircraftFiltersView: View {
         distanceText = Self.number(model.settings.distanceValue(model.settings.aircraftFilters.homeDistanceNM ?? 50))
     }
     private static func number(_ value: Double) -> String { String(format: "%.4g", value) }
+}
+
+struct AircraftCategoryControls: View {
+    @Bindable var model: RadarModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Reported category").font(.system(size: 12, weight: .medium))
+                Spacer()
+                Button("All") { var filters = model.settings.aircraftFilters; filters.categories = Set(AircraftCategoryGroup.allCases); model.setAircraftFilters(filters) }
+                Button("Larger aircraft") { var filters = model.settings.aircraftFilters; filters.categories = AircraftCategoryGroup.largerAircraft; model.setAircraftFilters(filters) }
+            }
+            LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 10) {
+                ForEach(AircraftCategoryGroup.allCases, id: \.self) { group in
+                    Toggle(group.title, isOn: Binding(get: { model.settings.aircraftFilters.categories.contains(group) }, set: { included in
+                        var filters = model.settings.aircraftFilters
+                        if included { filters.categories.insert(group) } else { filters.categories.remove(group) }
+                        model.setAircraftFilters(filters)
+                    }))
+                }
+            }
+            Toggle("Include unknown category", isOn: Binding(get: { model.settings.aircraftFilters.includeUnknownCategory }, set: { value in
+                var filters = model.settings.aircraftFilters; filters.includeUnknownCategory = value; model.setAircraftFilters(filters)
+            }))
+            Text("Larger includes Small, Large, and Heavy (A2-A5), including larger business jets. Category does not establish commercial or private operation.")
+                .font(.system(size: 11)).foregroundStyle(RadarStyle.muted).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
 }

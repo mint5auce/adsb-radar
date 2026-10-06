@@ -88,7 +88,7 @@ final class RadarModel {
         contacts.filter { $0.id == selectedAddress || matchesFilters($0) }
     }
     func matchesFilters(_ contact: PresentedContact) -> Bool {
-        settings.aircraftFilters.matches(contact.observation, home: settings.receiver)
+        settings.aircraftFilters.matches(contact.observation, home: settings.receiver, category: reportedCategory(for: contact)?.value)
     }
     var selectedOutsideFilters: Bool { selectedContact.map { !matchesFilters($0) } ?? false }
     func isInView(_ contact: PresentedContact) -> Bool {
@@ -123,6 +123,11 @@ final class RadarModel {
         if let altitude = filters.maximumAltitudeFeet { parts.append("Max \(settings.altitude(.feet(altitude)))") }
         if filters.hideGround { parts.append("Ground hidden") }
         if !filters.includeUnknownAltitude { parts.append("Unknown altitude hidden") }
+        if filters.categories != Set(AircraftCategoryGroup.allCases) {
+            let names = AircraftCategoryGroup.allCases.filter { filters.categories.contains($0) }.map(\.title).joined(separator: ", ")
+            parts.append(filters.categories == AircraftCategoryGroup.largerAircraft ? "Larger aircraft" : names.isEmpty ? "No known categories" : names)
+        }
+        if !filters.includeUnknownCategory { parts.append("Unknown category hidden") }
         return parts.isEmpty ? "Unrestricted aircraft" : parts.joined(separator: " · ")
     }
 

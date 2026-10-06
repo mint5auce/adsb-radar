@@ -51,3 +51,14 @@ Deterministic altitude checks passed for exact bounds, missing altitude, explici
 
 Category parsing, known-value retention, file restart, and independent Local precedence have deterministic checks.
 The existing cache format accepts older entries with no category and refreshes encountered incomplete details under the existing configurable refresh/backoff policy.
+
+## Category filters (#24)
+
+1. Scroll the Filters panel to Reported category and choose Larger aircraft.
+2. Verify Small, Large, and Heavy are selected; Light, High-performance, Helicopters, and Other are not.
+3. Toggle individual categories and Include unknown category, combining them with distance and altitude criteria.
+4. Inspect a high-vortex large contact and verify it belongs to Large while its inspector retains A4.
+5. With enrichment enabled, hide unknown categories and verify an encountered unknown contact can appear when matching details arrive without changing its received position or source.
+6. Relaunch and clear filters, confirming persisted criteria and independent presentation preferences.
+
+Category checks cover A2-A5, high-performance and helicopter exclusion, unknown handling, AND composition, selection exceptions, and enrichment of hidden contacts.
