@@ -68,7 +68,10 @@ Local reception resumes precedence when fresh observations return, without dupli
 Enrich aircraft details online is enabled by default, including in Local mode.
 It adds optional registration and aircraft type to the inspector using visible aircraft and selected-contact lookups.
 Disable it in Settings to stop dedicated identity requests; ordinary Online responses can still supply details.
-Missing details and network failures leave known values and aircraft movement intact.
+Known identities survive relaunches in a local Application Support cache, including while offline or enrichment is disabled.
+Set the identity refresh age separately in Settings; the default is seven days and fractional days are supported.
+Only encountered visible or selected aircraft trigger dedicated refreshes, and their details show the provider and successful update date.
+Missing details and network failures leave known values, their previous update dates, and aircraft movement intact.
 Synthetic does not request or display real identity data.
 
 Aircraft data is supplied by [adsb.fi](https://adsb.fi), using its [public personal-use API](https://github.com/adsbfi/opendata).

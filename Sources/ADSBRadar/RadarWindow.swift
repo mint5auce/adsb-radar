@@ -147,6 +147,11 @@ struct ContactInspector: View {
                 Rectangle().fill(RadarStyle.line).frame(height: 1)
                 field("REGISTRATION", identity?.registration?.value ?? "UNKNOWN")
                 field("AIRCRAFT TYPE", identity?.aircraftType?.value ?? "UNKNOWN")
+                if let identity {
+                    field("DETAILS UPDATED", identity.lastUpdated?.formatted(date: .abbreviated, time: .shortened) ?? "UNKNOWN")
+                        .help("The oldest successful update of the known identity fields. Missing fields retain their previous dates.")
+                    field("DETAILS FROM", Array(Set([identity.registration?.provider, identity.aircraftType?.provider].compactMap { $0 })).sorted().joined(separator: ", "))
+                }
                 field("ALTITUDE", settings.altitude(contact.observation.altitude))
                 field("GROUND SPEED", settings.speed(contact.observation.speedKnots))
                 field("DIRECTION", contact.observation.directionDegrees.map { String(format: "%03.0f°", $0) } ?? "UNKNOWN")

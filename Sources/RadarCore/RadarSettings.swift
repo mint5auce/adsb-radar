@@ -35,12 +35,13 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var onlineRefreshSeconds: Double = 5
     public var onlineRadiusNM: Double = 250
     public var enrichIdentities: Bool = true
+    public var identityRefreshDays: Double = 7
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
-        case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities
+        case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -63,6 +64,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         onlineRefreshSeconds = try values.decodeIfPresent(Double.self, forKey: .onlineRefreshSeconds) ?? onlineRefreshSeconds
         onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
         enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
+        identityRefreshDays = try values.decodeIfPresent(Double.self, forKey: .identityRefreshDays) ?? identityRefreshDays
     }
 
     public func validated() -> RadarSettings {
@@ -78,6 +80,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         value.demoCount = min(250, max(25, demoCount))
         value.onlineRefreshSeconds = bounded(onlineRefreshSeconds, 5, 1...300)
         value.onlineRadiusNM = bounded(onlineRadiusNM, 250, 1...250)
+        value.identityRefreshDays = bounded(identityRefreshDays, 7, (1.0 / 24)...3650)
         if let receiver { value.receiver = GeographicCoordinate(latitude: receiver.latitude, longitude: receiver.longitude) }
         return value
     }

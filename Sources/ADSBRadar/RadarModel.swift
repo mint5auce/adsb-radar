@@ -20,6 +20,10 @@ final class RadarModel {
     private(set) var viewportHeight: Double = 600
 
     @ObservationIgnored private let provider: any OnlineAircraftProvider & AircraftIdentityProvider
+    @ObservationIgnored private let identityStorage: any AircraftIdentityStorage
+    @ObservationIgnored private var cacheLoad: Task<Void, Never>?
+    @ObservationIgnored private var cacheLoop: Task<Void, Never>?
+    @ObservationIgnored private var savedIdentities: [String: AircraftIdentity] = [:]
     @ObservationIgnored private var catalogue = AircraftIdentityCatalogue()
     @ObservationIgnored private var identityLoop: Task<Void, Never>?
     @ObservationIgnored private var identityRequest: Task<[AircraftIdentityUpdate], any Error>?
@@ -46,8 +50,10 @@ final class RadarModel {
 
     init(source: (any AircraftDataSource)? = nil, sources: [AircraftFeed: any AircraftDataSource] = [:],
          provider: any OnlineAircraftProvider & AircraftIdentityProvider = ADSBFiProvider(),
+         identityStorage: any AircraftIdentityStorage = FileAircraftIdentityStorage(),
          initialSettings: RadarSettings? = nil, options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
         self.provider = provider
+        self.identityStorage = identityStorage
         suppliedSource = source
         suppliedSources = sources
         preferences = RadarPreferences(defaults: defaults, options: options)
@@ -137,7 +143,34 @@ final class RadarModel {
             }
         }
         reconcileFeeds()
+        startIdentityCache()
         startIdentityLoop()
+    }
+
+    private func startIdentityCache() {
+        cacheLoad = Task {
+            do {
+                let saved = try await identityStorage.load()
+                catalogue.restore(saved)
+                savedIdentities = saved
+                identities = catalogue.identities
+            } catch {
+                // Missing, corrupt or unreadable storage never prevents reception or enrichment.
+            }
+        }
+        cacheLoop = Task {
+            await cacheLoad?.value
+            var retryAfter = Date.distantPast
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(1)) } catch { break }
+                guard !Task.isCancelled, identities != savedIdentities, Date.now >= retryAfter else { continue }
+                let snapshot = identities
+                do {
+                    try await identityStorage.save(snapshot)
+                    savedIdentities = snapshot
+                } catch { retryAfter = Date.now.addingTimeInterval(30) }
+            }
+        }
     }
 
     private func cancelIdentityRequest() {
@@ -158,10 +191,11 @@ final class RadarModel {
 
     private func startIdentityLoop() {
         identityLoop = Task {
+            await cacheLoad?.value
             while !Task.isCancelled {
                 if settings.enrichIdentities, settings.source != .synthetic {
                     let batch = catalogue.begin(visible: relevantIdentityAddresses(),
-                        selected: selectedContact?.observation.address, at: .now)
+                        selected: selectedContact?.observation.address, at: .now, refreshAge: settings.identityRefreshDays * 86400)
                     if !batch.isEmpty {
                         let revision = identityRevision
                         let provider = provider
@@ -171,13 +205,13 @@ final class RadarModel {
                             let updates = try await withTaskCancellationHandler { try await request.value }
                                 onCancel: { request.cancel() }
                             if revision == identityRevision, !Task.isCancelled, settings.enrichIdentities, settings.source != .synthetic {
-                                catalogue.finish(batch, updates: updates, at: .now)
+                                catalogue.finish(batch, updates: updates, at: .now, refreshAge: settings.identityRefreshDays * 86400)
                                 identities = catalogue.identities
                             } else { catalogue.cancel(batch) }
                         } catch {
                             if revision != identityRevision || Task.isCancelled || error is CancellationError {
                                 catalogue.cancel(batch)
-                            } else { catalogue.finish(batch, updates: [], at: .now) }
+                            } else { catalogue.finish(batch, updates: [], at: .now, refreshAge: settings.identityRefreshDays * 86400) }
                         }
                         identityRequest = nil
                     }
@@ -287,6 +321,7 @@ final class RadarModel {
         searchTask?.cancel()
         cancelIdentityRequest()
         identityLoop?.cancel()
+        cacheLoop?.cancel()
         loop?.cancel()
         let active = runs
         runs = [:]
@@ -298,6 +333,14 @@ final class RadarModel {
         }
         await loop?.value
         await identityLoop?.value
+        await cacheLoad?.value
+        await cacheLoop?.value
+        if identities != savedIdentities {
+            do { try await identityStorage.save(identities); savedIdentities = identities }
+            catch { /* In-memory identities remain useful even when persistence fails. */ }
+        }
+        cacheLoop = nil
+        cacheLoad = nil
         identityLoop = nil
         loop = nil
         statuses = [:]
@@ -307,7 +350,8 @@ final class RadarModel {
         let previous = settings
         settings = value.validated()
         preferences.save(settings)
-        if settings.enrichIdentities != previous.enrichIdentities || settings.source != previous.source { cancelIdentityRequest() }
+        if settings.enrichIdentities != previous.enrichIdentities || settings.source != previous.source ||
+           settings.identityRefreshDays != previous.identityRefreshDays { cancelIdentityRequest() }
         if settings.initialRadiusNM != previous.initialRadiusNM { camera.radiusNM = settings.initialRadiusNM }
         let locationChanged = settings.receiver != previous.receiver
         let syntheticTransition = settings.source != previous.source && (settings.source == .synthetic || previous.source == .synthetic)

@@ -32,12 +32,12 @@ enum RadarLauncher {
         do { options = try RadarLaunchOptions(arguments: Array(CommandLine.arguments.dropFirst())) }
         catch { fputs("\(error)\n", stderr); exit(EXIT_FAILURE) }
         #if DEBUG
-        if let index = CommandLine.arguments.firstIndex(of: "--render-preview") ?? CommandLine.arguments.firstIndex(of: "--render-online-preview") ?? CommandLine.arguments.firstIndex(of: "--render-combined-preview") ?? CommandLine.arguments.firstIndex(of: "--render-local-enrichment-preview"),
+        if let index = CommandLine.arguments.firstIndex(of: "--render-preview") ?? CommandLine.arguments.firstIndex(of: "--render-online-preview") ?? CommandLine.arguments.firstIndex(of: "--render-combined-preview") ?? CommandLine.arguments.firstIndex(of: "--render-local-enrichment-preview") ?? CommandLine.arguments.firstIndex(of: "--render-cache-preview"),
            CommandLine.arguments.indices.contains(index + 1) {
             NSApplication.shared.setActivationPolicy(.prohibited)
             let destination = CommandLine.arguments[index + 1]
             Task {
-                do { try await PreviewRenderer.render(to: destination, options: options, online: CommandLine.arguments.contains("--render-online-preview"), combined: CommandLine.arguments.contains("--render-combined-preview"), localEnrichment: CommandLine.arguments.contains("--render-local-enrichment-preview")) }
+                do { try await PreviewRenderer.render(to: destination, options: options, online: CommandLine.arguments.contains("--render-online-preview"), combined: CommandLine.arguments.contains("--render-combined-preview"), localEnrichment: CommandLine.arguments.contains("--render-local-enrichment-preview"), cachePreview: CommandLine.arguments.contains("--render-cache-preview")) }
                 catch { fputs("Preview failed: \(error)\n", stderr) }
                 NSApplication.shared.terminate(nil)
             }

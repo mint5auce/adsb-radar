@@ -6,7 +6,8 @@ import SwiftUI
 /// Offscreen visual verification only. Does not open or control a desktop window.
 @MainActor
 enum PreviewRenderer {
-    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false, combined: Bool = false, localEnrichment: Bool = false) async throws {
+    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false, combined: Bool = false, localEnrichment: Bool = false, cachePreview: Bool = false) async throws {
+        if cachePreview { try await renderCacheSequence(to: directory); return }
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
         settings.receiver = syntheticPlayback ? nil : SyntheticSource.exampleLocation
@@ -19,7 +20,7 @@ enum PreviewRenderer {
         let localFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")
         let onlineFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "adsb.fi")
         let sources: [AircraftFeed: any AircraftDataSource] = combined ? [.local: localFixture, .online: onlineFixture] : localEnrichment ? [.local: localFixture] : [:]
-        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), initialSettings: settings, defaults: defaults)
+        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL(fileURLWithPath: directory).appendingPathComponent("preview-identities.json")), initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
             if model.geography != nil, !model.contacts.isEmpty { break }
@@ -27,7 +28,7 @@ enum PreviewRenderer {
         }
         let folder = URL(fileURLWithPath: directory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try image(model, to: folder.appendingPathComponent("radar.png"), width: 1200, height: 800)
+        try await image(model, to: folder.appendingPathComponent("radar.png"), width: 1200, height: 800)
         model.selectedAddress = model.contacts.first?.id
         if online || combined || localEnrichment {
             for _ in 0..<50 {
@@ -35,30 +36,30 @@ enum PreviewRenderer {
                 try await Task.sleep(for: .milliseconds(50))
             }
         }
-        try image(model, to: folder.appendingPathComponent("inspection.png"), width: 1200, height: 800)
+        try await image(model, to: folder.appendingPathComponent("inspection.png"), width: 1200, height: 800)
         model.camera = model.camera.panned(dx: 180, dy: -90, width: 944, height: 680).zoomed(by: 1.5)
-        try image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
-        try image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
-        try image(RadarSettingsView(settings: model.settings, save: { _ in }),
+        try await image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
+        try await image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
+        try await image(RadarSettingsView(settings: model.settings, save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         if localEnrichment {
             var offline = model.settings
             offline.enrichIdentities = false
             model.apply(offline)
-            try image(model, to: folder.appendingPathComponent("disabled-enrichment.png"), width: 800, height: 560)
+            try await image(model, to: folder.appendingPathComponent("disabled-enrichment.png"), width: 800, height: 560)
         }
         if combined {
             var timing = model.settings
             timing.staleSeconds = 1
             model.apply(timing)
-            try image(model, to: folder.appendingPathComponent("local-source.png"), width: 1200, height: 800)
+            try await image(model, to: folder.appendingPathComponent("local-source.png"), width: 1200, height: 800)
             await localFixture.fail()
             try await Task.sleep(for: .seconds(2.2))
-            try image(model, to: folder.appendingPathComponent("online-fallback.png"), width: 800, height: 560)
+            try await image(model, to: folder.appendingPathComponent("online-fallback.png"), width: 800, height: 560)
             await localFixture.recover()
             await model.retry(feed: .local)
             try await Task.sleep(for: .seconds(1.2))
-            try image(model, to: folder.appendingPathComponent("local-recovery.png"), width: 1200, height: 800)
+            try await image(model, to: folder.appendingPathComponent("local-recovery.png"), width: 1200, height: 800)
         }
         if online {
             var wideSettings = model.settings
@@ -66,28 +67,87 @@ enum PreviewRenderer {
             wideSettings.distanceUnit = .kilometres
             model.apply(wideSettings)
             model.camera.radiusNM = 300
-            try image(model, to: folder.appendingPathComponent("search-limit.png"), width: 1200, height: 800)
-            try image(model, to: folder.appendingPathComponent("search-limit-minimum.png"), width: 800, height: 560)
+            try await image(model, to: folder.appendingPathComponent("search-limit.png"), width: 1200, height: 800)
+            try await image(model, to: folder.appendingPathComponent("search-limit-minimum.png"), width: 800, height: 560)
             model.returnToReceiver()
             model.setMode(.sweep)
             try await Task.sleep(for: .seconds(4.1))
-            try image(model, to: folder.appendingPathComponent("sweep.png"), width: 1200, height: 800)
+            try await image(model, to: folder.appendingPathComponent("sweep.png"), width: 1200, height: 800)
             if let fixture = fixture as? PreviewSource { await fixture.fail() }
             try await Task.sleep(for: .milliseconds(250))
-            try image(model, to: folder.appendingPathComponent("outage.png"), width: 800, height: 560)
+            try await image(model, to: folder.appendingPathComponent("outage.png"), width: 800, height: 560)
         }
         await model.shutdown()
         print("Rendered native previews in \(directory)")
     }
 
-    private static func image(_ model: RadarModel, to url: URL, width: Double, height: Double) throws {
-        try image(RadarWindow(model: model), to: url, width: width, height: height)
+    private static func renderCacheSequence(to directory: String) async throws {
+        let folder = URL(fileURLWithPath: directory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let storage = FileAircraftIdentityStorage(url: folder.appendingPathComponent("restart-identities-\(UUID()).json"))
+        let suite = "adsb-cache-preview-\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation
+        settings.mode = .immediate
+        let original = RadarModel(sources: [.local: PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")],
+            provider: PreviewIdentityProvider(registration: "G-CACHED", aircraftType: "A319", updatedAt: Date.now.addingTimeInterval(-8 * 86400)),
+            identityStorage: storage, initialSettings: settings, defaults: defaults)
+        original.start()
+        try await waitForIdentity(original)
+        try await image(original, to: folder.appendingPathComponent("before-restart.png"), width: 1200, height: 800)
+        await original.shutdown()
+
+        let offline = RadarModel(sources: [.local: PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")],
+            provider: PreviewIdentityProvider(failing: true), identityStorage: storage, initialSettings: settings, defaults: defaults)
+        offline.start()
+        try await waitForIdentity(offline)
+        try await Task.sleep(for: .milliseconds(600))
+        try await image(offline, to: folder.appendingPathComponent("restart-offline.png"), width: 1200, height: 800)
+        settings.enrichIdentities = false
+        offline.apply(settings)
+        try await image(offline, to: folder.appendingPathComponent("restart-disabled.png"), width: 800, height: 560)
+        await offline.shutdown()
+
+        settings.enrichIdentities = true
+        let refreshed = RadarModel(sources: [.local: PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")],
+            provider: PreviewIdentityProvider(registration: "G-REFRESH", aircraftType: "B738"), identityStorage: storage,
+            initialSettings: settings, defaults: defaults)
+        refreshed.start()
+        try await waitForIdentity(refreshed)
+        for _ in 0..<60 {
+            if refreshed.selectedIdentity?.registration?.value == "G-REFRESH" { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        try await image(refreshed, to: folder.appendingPathComponent("refreshed.png"), width: 1200, height: 800)
+        try await image(RadarSettingsView(settings: refreshed.settings, save: { _ in }),
+            to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
+        await refreshed.shutdown()
+        print("Rendered cache restart / offline / refresh native views in \(directory)")
     }
 
-    private static func image<Content: View>(_ content: Content, to url: URL, width: Double, height: Double) throws {
+    private static func waitForIdentity(_ model: RadarModel) async throws {
+        for _ in 0..<100 {
+            if model.geography != nil, !model.contacts.isEmpty {
+                model.selectedAddress = model.contacts.first?.id
+                if model.selectedIdentity?.complete == true { return }
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        throw CocoaError(.fileReadUnknown)
+    }
+
+    private static func image(_ model: RadarModel, to url: URL, width: Double, height: Double) async throws {
+        try await image(RadarWindow(model: model), to: url, width: width, height: height)
+    }
+
+    private static func image<Content: View>(_ content: Content, to url: URL, width: Double, height: Double) async throws {
         let content = content.frame(width: width, height: height).environment(\.colorScheme, .dark)
         let view = NSHostingView(rootView: content)
         view.frame = NSRect(x: 0, y: 0, width: width, height: height)
+        view.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(50))
         view.layoutSubtreeIfNeeded()
         guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw CocoaError(.fileWriteUnknown) }
         view.cacheDisplay(in: view.bounds, to: bitmap)
@@ -131,9 +191,14 @@ private actor PreviewSource: AircraftDataSource {
 
 #if DEBUG
 private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentityProvider {
+    var registration = "G-TEST"
+    var aircraftType = "A320"
+    var updatedAt = Date.now
+    var failing = false
     func positions(in search: OnlineSearch) async throws -> ReceiverSnapshot { ReceiverSnapshot(observations: []) }
     func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] {
-        addresses.map { AircraftIdentityUpdate(address: $0, registration: "G-TEST", aircraftType: "A320") }
+        if failing { throw URLError(.notConnectedToInternet) }
+        return addresses.map { AircraftIdentityUpdate(address: $0, registration: registration, aircraftType: aircraftType, updatedAt: updatedAt) }
     }
 }
 #endif

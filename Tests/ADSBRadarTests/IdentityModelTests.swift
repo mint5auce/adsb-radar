@@ -10,7 +10,7 @@ struct IdentityModelTests {
         var settings = RadarSettings()
         settings.receiver = SyntheticSource.exampleLocation
         settings.mode = .immediate
-        let model = RadarModel(sources: [.local: local], provider: provider, initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(sources: [.local: local], provider: provider, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 1 }
         let original = try #require(model.contacts.first?.observation)
@@ -31,7 +31,7 @@ struct IdentityModelTests {
         settings.mode = .immediate
         settings.enrichIdentities = false
         let model = RadarModel(sources: [.online: IdentitySnapshotSource()], provider: provider,
-                               initialSettings: settings, defaults: isolatedDefaults())
+                               identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.identities["abc123"] != nil && !model.contacts.isEmpty }
         model.selectedAddress = "abc123"
@@ -46,7 +46,7 @@ struct IdentityModelTests {
         var settings = RadarSettings()
         settings.receiver = SyntheticSource.exampleLocation
         settings.mode = .immediate
-        let model = RadarModel(sources: [.local: local], provider: provider, initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(sources: [.local: local], provider: provider, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { await provider.requests.count == 1 }
         settings.enrichIdentities = false
@@ -64,7 +64,7 @@ struct IdentityModelTests {
         var settings = RadarSettings()
         settings.receiver = SyntheticSource.exampleLocation
         settings.mode = .immediate
-        let model = RadarModel(sources: [.local: local], provider: provider, initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(sources: [.local: local], provider: provider, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.identities["f00001"] != nil }
         let requests = await provider.requests.count
@@ -85,7 +85,7 @@ struct IdentityModelTests {
         var settings = RadarSettings()
         settings.receiver = SyntheticSource.exampleLocation
         settings.mode = .immediate
-        let model = RadarModel(sources: [.local: local], provider: provider, initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(sources: [.local: local], provider: provider, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { await provider.requests.count == 1 }
         try await Task.sleep(for: .milliseconds(600))
@@ -125,5 +125,19 @@ private actor IdentitySnapshotSource: AircraftDataSource {
         ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: [
             AircraftObservation(address: "abc123", position: SyntheticSource.exampleLocation, positionTime: .now, source: "adsb.fi")
         ], identities: [AircraftIdentityUpdate(address: "abc123", registration: "G-SNAP", aircraftType: "B738")]))
+    }
+}
+
+actor MemoryIdentityStorage: AircraftIdentityStorage {
+    var values: [String: AircraftIdentity]
+    let failing: Bool
+    init(values: [String: AircraftIdentity] = [:], failing: Bool = false) { self.values = values; self.failing = failing }
+    func load() throws -> [String: AircraftIdentity] {
+        if failing { throw CocoaError(.fileReadNoPermission) }
+        return values
+    }
+    func save(_ identities: [String: AircraftIdentity]) throws {
+        if failing { throw CocoaError(.fileWriteNoPermission) }
+        values = identities
     }
 }

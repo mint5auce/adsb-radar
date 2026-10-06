@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AircraftIdentityValue: Equatable, Sendable {
+public struct AircraftIdentityValue: Equatable, Codable, Sendable {
     public let value: String
     public let provider: String
     public let updatedAt: Date
@@ -12,7 +12,7 @@ public struct AircraftIdentityValue: Equatable, Sendable {
     }
 }
 
-public struct AircraftIdentity: Equatable, Sendable {
+public struct AircraftIdentity: Equatable, Codable, Sendable {
     public var registration: AircraftIdentityValue?
     public var aircraftType: AircraftIdentityValue?
     public var lastUpdated: Date? { [registration?.updatedAt, aircraftType?.updatedAt].compactMap { $0 }.min() }
@@ -21,6 +21,9 @@ public struct AircraftIdentity: Equatable, Sendable {
         self.aircraftType = aircraftType
     }
     public var complete: Bool { registration != nil && aircraftType != nil }
+    public func isFresh(at now: Date, refreshAge: TimeInterval) -> Bool {
+        complete && lastUpdated.map { now.timeIntervalSince($0) < refreshAge } == true
+    }
 }
 
 public struct AircraftIdentityUpdate: Equatable, Sendable {
@@ -55,6 +58,18 @@ public struct AircraftIdentityCatalogue: Sendable {
     private var retries: [String: OnlineRefreshPolicy] = [:]
     public init() {}
 
+    /// Merge persisted fields independently so a late disk read cannot overwrite a newer response.
+    public mutating func restore(_ saved: [String: AircraftIdentity]) {
+        for (address, identity) in saved {
+            for (registration, field) in [(true, identity.registration), (false, identity.aircraftType)] {
+                guard let field, !field.provider.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      field.updatedAt.timeIntervalSince1970.isFinite else { continue }
+                merge([AircraftIdentityUpdate(address: address, registration: registration ? field.value : nil,
+                    aircraftType: registration ? nil : field.value, provider: field.provider, updatedAt: field.updatedAt)])
+            }
+        }
+    }
+
     public mutating func merge(_ updates: [AircraftIdentityUpdate]) {
         for update in updates where Self.isICAO(update.address) {
             var identity = identities[update.address] ?? AircraftIdentity()
@@ -68,10 +83,10 @@ public struct AircraftIdentityCatalogue: Sendable {
         }
     }
 
-    public mutating func begin(visible: [String], selected: String?, at now: Date, batchSize: Int = 20) -> [String] {
+    public mutating func begin(visible: [String], selected: String?, at now: Date, batchSize: Int = 20, refreshAge: TimeInterval = 7 * 86400) -> [String] {
         let addresses = Set(visible + (selected.map { [$0] } ?? []))
         let due = addresses.filter { Self.isICAO($0) && !pending.contains($0) &&
-            identities[$0]?.complete != true && now >= (retries[$0]?.nextAttempt ?? .distantPast) }
+            identities[$0]?.isFresh(at: now, refreshAge: refreshAge) != true && now >= (retries[$0]?.nextAttempt ?? .distantPast) }
         let batch = Array(due.sorted { lhs, rhs in
             if lhs == rhs { return false }
             if lhs == selected { return true }
@@ -82,12 +97,12 @@ public struct AircraftIdentityCatalogue: Sendable {
         return batch
     }
 
-    public mutating func finish(_ batch: [String], updates: [AircraftIdentityUpdate], at now: Date) {
+    public mutating func finish(_ batch: [String], updates: [AircraftIdentityUpdate], at now: Date, refreshAge: TimeInterval = 7 * 86400) {
         let requested = Set(batch)
         merge(updates.filter { requested.contains($0.address) })
         pending.subtract(batch)
         for address in batch {
-            if identities[address]?.complete == true { retries.removeValue(forKey: address) }
+            if identities[address]?.isFresh(at: now, refreshAge: refreshAge) == true { retries.removeValue(forKey: address) }
             else {
                 var policy = retries[address] ?? OnlineRefreshPolicy()
                 policy.failed(at: now, interval: 30)

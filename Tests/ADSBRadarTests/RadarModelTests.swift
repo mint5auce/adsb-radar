@@ -13,7 +13,7 @@ struct RadarModelTests {
         settings.enrichIdentities = false
         settings.staleSeconds = 1
         settings.removalSeconds = 2
-        let model = RadarModel(source: fixture, initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(source: fixture, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 1 }
         model.selectedAddress = model.contacts.first?.id
@@ -35,7 +35,7 @@ struct RadarModelTests {
         settings.source = .online
         settings.mode = .immediate
         settings.enrichIdentities = false
-        let model = RadarModel(source: feed, initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(source: feed, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 1 }
         model.selectedAddress = "abc123"
@@ -66,7 +66,7 @@ struct RadarModelTests {
         settings.source = .combined
         settings.mode = .immediate
         settings.enrichIdentities = false
-        let model = RadarModel(sources: [.local: local, .online: online], initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(sources: [.local: local, .online: online], identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 3 }
         #expect(model.contacts.first { $0.id == "abc123" }?.observation.source == "LOCAL")
@@ -97,7 +97,7 @@ struct RadarModelTests {
         settings.source = .combined
         settings.mode = .immediate
         settings.enrichIdentities = false
-        let model = RadarModel(sources: [.local: local, .online: online], initialSettings: settings, defaults: isolatedDefaults())
+        let model = RadarModel(sources: [.local: local, .online: online], identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         model.start()
         try await eventually { model.contacts.count == 1 }
         if case .failed = model.statuses[.local] {} else { Issue.record("Local health did not report the failure") }

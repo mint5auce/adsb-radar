@@ -115,3 +115,47 @@ Repeatable native Local enrichment views:
 swift build
 "$(swift build --show-bin-path)/ADSB Radar" --render-local-enrichment-preview /tmp/adsb-radar-local-enrichment-preview
 ```
+
+## Issue #19: persistent identities
+
+The completed implementation passes 56 tests across the core and application model.
+Additional checks cover atomic file round trips, per-field provenance and timestamps, reliable identity filtering, missing/corrupt/unsupported/unwritable storage, preference migration, configurable refresh age, encountered-only refreshes, partial updates, failed-refresh backoff with complete expired entries, and late cache loads preserving newer responses.
+Application checks exercise an actual file-cache restart with dedicated lookups disabled, offline retention, refresh-age changes without position changes, no queries for unseen cached aircraft, and continued operation after storage failures.
+The default refresh age is seven days, with fractional days supported from one hour through 3650 days.
+Identity data is saved under `~/Library/Application Support/dev.mint5auce.adsb-radar/aircraft-identities.json`.
+The versioned file contains registration/type values, their providers, and successful field-update dates; movement is excluded.
+Saving is atomic, occurs independently of the display, and flushes on clean shutdown.
+The inspector's Details updated date conservatively represents the oldest successful update among known fields, so a missing field cannot acquire a false new verification date.
+
+Native fixture views were inspected across three model lifecycles using the same isolated file cache.
+They show G-CACHED/A319 dated 28 September after restart with failed online refreshes and after disabling enrichment, then G-REFRESH/B738 dated 6 October after successful refresh.
+The minimum-window inspector remains scrollable and the seven-day refresh setting is visible in Local mode.
+Preview preferences and cache files are isolated from normal user storage.
+
+Local hardware reception became available during the final release check.
+The live native Local inspector showed RYR85TC / EI-IGI / B38M with adsb.fi identity provenance, LOCAL RTL-SDR position source, and a one-second position age.
+Disabling enrichment retained those details while reception continued.
+After a normal quit and relaunch in Local with enrichment disabled, the live inspector retained EI-IGI/B38M and its 14:40 update date while displaying newly received Local positions.
+The normal cache stored 644 identity entries from the live Online and Local session.
+Quitting stopped the owned readsb process.
+Release packaging and strict signature verification passed.
+Physical dongle disconnection/reconnection and a live operating-system network outage remain unverified; deterministic source/provider failures cover those transitions.
+
+Build and launch using the commands above, then:
+
+1. In Local mode, enable enrichment and select an aircraft whose registration and type become known; note its Details updated date.
+2. Quit, disable networking, relaunch in Local, and select that aircraft when locally received again; confirm cached details and their original update date remain while position age reflects new Local reception.
+3. Disable enrichment, quit, relaunch, and confirm cached details remain usable and the setting persists.
+4. Restore networking and enable enrichment; reduce Refresh aircraft details after (days) to an age below the cached entry's age and confirm a successful encountered-aircraft refresh updates only returned fields and their dates.
+5. If a refresh returns incomplete information or fails, confirm previous values and dates remain and Local reception continues.
+6. Restore the preferred refresh age and switch to Synthetic; confirm no real identity details appear.
+
+Repeat the native restart/offline/refresh sequence without internet or hardware:
+
+```sh
+swift build
+"$(swift build --show-bin-path)/ADSB Radar" --render-cache-preview /tmp/adsb-radar-cache-preview
+```
+
+This uses actual identity-file saves and loads across model lifecycles with deterministic source/provider fixtures.
+It does not disable the computer's network or physically disconnect a receiver.

@@ -31,6 +31,9 @@ struct RadarSettingsView: View {
                     }
                     if draft.source != .synthetic {
                         Toggle("Enrich aircraft details online", isOn: $draft.enrichIdentities)
+                        TextField("Refresh aircraft details after (days)", value: $draft.identityRefreshDays, format: .number)
+                            .help("From one hour (0.0417 days) to ten years (3650 days).")
+                        Text("Known details remain available offline. Refresh happens when aircraft are encountered.").foregroundStyle(.secondary)
                         Text("Optional registration and aircraft type from adsb.fi, including in Local mode.").foregroundStyle(.secondary)
                         Link("Aircraft data from adsb.fi", destination: URL(string: "https://adsb.fi")!)
                     }
