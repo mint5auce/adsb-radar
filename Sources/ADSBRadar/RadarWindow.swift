@@ -32,7 +32,7 @@ struct RadarWindow: View {
         HStack(spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ADSB / RADAR").font(.system(size: 19, weight: .semibold, design: .monospaced)).tracking(2)
-                Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
+                Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : model.settings.source == .combined ? "LOCAL + ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
                     .font(.system(size: 10, design: .monospaced)).tracking(2)
                     .foregroundStyle(model.settings.source == .synthetic ? RadarStyle.amber : RadarStyle.muted)
             }
@@ -54,7 +54,7 @@ struct RadarWindow: View {
             Menu {
                 if model.contacts.isEmpty { Text("No positioned contacts") }
                 ForEach(model.contacts) { contact in
-                    Button(contact.observation.callsign ?? contact.id.uppercased()) { model.selectedAddress = contact.id }
+                    Button(contact.observation.callsign ?? contact.observation.address.uppercased()) { model.selectedAddress = contact.id }
                 }
             } label: { Label("CONTACTS", systemImage: "airplane") }
                 .menuStyle(.borderlessButton).fixedSize()
@@ -71,14 +71,14 @@ struct RadarWindow: View {
 
     private var status: some View {
         HStack(spacing: 16) {
-            Circle().fill(statusColor).frame(width: 6, height: 6)
-            Text(statusText).lineLimit(2).foregroundStyle(statusColor)
-            if case .failed = model.reception {
-                Button("RETRY") { Task { await model.retry() } }
-                    .disabled(model.retrying)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(model.feedHealth) { health in
+                    FeedStatusIndicator(feed: health.feed, status: health.status,
+                        scenario: model.settings.scenario) { Task { await model.retry(feed: health.feed) } }
+                }
             }
             Spacer(minLength: 8)
-            if model.settings.source == .online {
+            if model.settings.source.usesOnline {
                 Link("adsb.fi", destination: URL(string: "https://adsb.fi")!).foregroundStyle(RadarStyle.muted)
             }
             Text("\(model.contacts.count) POSITIONED").foregroundStyle(RadarStyle.green)
@@ -89,39 +89,36 @@ struct RadarWindow: View {
         .padding(.vertical, 14)
         .background(RadarStyle.panel)
     }
+}
 
-    private var statusColor: Color {
-        if case .failed = model.reception { return RadarStyle.amber }
-        return model.reception == .receiving ? RadarStyle.green : RadarStyle.muted
-    }
+private struct FeedStatusIndicator: View {
+    let feed: AircraftFeed
+    let status: ReceptionStatus
+    let scenario: SyntheticScenario
+    let retry: () -> Void
 
-    private var statusText: String {
-        if model.settings.source == .synthetic {
-            switch model.reception {
-            case .stopped: return "SYNTHETIC STOPPED"
-            case .starting: return "STARTING SYNTHETIC \(model.settings.scenario.rawValue.uppercased())"
-            case .waiting, .receiving:
-                return "SYNTHETIC \(model.settings.scenario.rawValue.uppercased()) / GENERATED TRAFFIC"
-            case .failed(let message): return message
-            }
-        }
-        if model.settings.source == .online {
-            switch model.reception {
-            case .stopped: return "ONLINE STOPPED"
-            case .starting: return "CONNECTING TO ADSB.FI"
-            case .waiting: return "ONLINE ACTIVE / WAITING FOR AIRCRAFT"
-            case .receiving: return "ONLINE / ADSB.FI ACTIVE"
-            case .failed(let message): return message
-            }
-        }
-        switch model.reception {
-        case .stopped: return "RECEPTION STOPPED"
-        case .starting: return "STARTING LOCAL RECEPTION"
-        case .waiting: return "RECEIVER ACTIVE / WAITING FOR AIRCRAFT"
-        case .receiving: return "LOCAL RECEPTION ACTIVE"
-        case .failed(let message): return message
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(text).lineLimit(2).foregroundStyle(color)
+            if case .failed = status { Button("RETRY", action: retry) }
         }
     }
+    private var color: Color {
+        if case .failed = status { return RadarStyle.amber }
+        return status == .receiving ? RadarStyle.green : RadarStyle.muted
+    }
+    private var text: String {
+        let name = feed == .local ? "LOCAL" : feed == .online ? "ONLINE / ADSB.FI" : "SYNTHETIC \(scenario.rawValue.uppercased())"
+        switch status {
+        case .stopped: return "\(name) STOPPED"
+        case .starting: return "STARTING \(name)"
+        case .waiting: return "\(name) ACTIVE / WAITING FOR AIRCRAFT"
+        case .receiving: return feed == .synthetic ? "\(name) / GENERATED TRAFFIC" : "\(name) ACTIVE"
+        case .failed(let message): return "\(name): \(message)"
+        }
+    }
+
 }
 
 struct ContactInspector: View {
@@ -141,10 +138,10 @@ struct ContactInspector: View {
                 }
                 .foregroundStyle(contact.stale ? RadarStyle.amber : RadarStyle.muted)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(contact.observation.callsign ?? contact.id.uppercased())
+                    Text(contact.observation.callsign ?? contact.observation.address.uppercased())
                         .font(.system(size: 23, weight: .medium, design: .monospaced))
                         .foregroundStyle(RadarStyle.bright)
-                    Text("ICAO \(contact.id.uppercased())").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                    Text("\(contact.observation.address.hasPrefix("~") ? "NON-ICAO" : "ICAO") \(contact.observation.address.uppercased())").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
                 }
                 Rectangle().fill(RadarStyle.line).frame(height: 1)
                 field("ALTITUDE", settings.altitude(contact.observation.altitude))

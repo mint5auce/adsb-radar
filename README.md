@@ -30,7 +30,8 @@ It looks in the standard Homebrew locations and the process PATH; set `READSB_PA
 
 Enter the receiver's latitude and longitude in Settings and save them.
 Those coordinates and other settings stay in local macOS preferences, outside the repository.
-When Local is selected, the receiver starts when the app opens and its app-owned process stops when switching to Synthetic, closing the last window, or quitting.
+When Local or Local + Online is selected, the receiver starts when the app opens.
+Its app-owned process stops when switching to Online or Synthetic, closing the last window, or quitting.
 Close other applications using the dongle before retrying reception.
 
 ## Check the application icon
@@ -60,6 +61,9 @@ When the map extends beyond it, a dashed amber boundary and search-limit notice 
 This boundary does not guarantee reception coverage, and contacts leaving the search remain until normal ageing removes them.
 The radius cannot exceed 250 nautical miles and all requests share adsb.fi's one-request-per-second allowance.
 Failed requests retry with increasing delays while contacts continue to age using their original position times.
+Choose Local + Online to combine both sources in one view with separate health indicators.
+Fresh local positions take precedence; when they become stale, fresh online positions take over automatically.
+Local reception resumes precedence when fresh observations return, without duplicating matching ICAO aircraft.
 
 Aircraft data is supplied by [adsb.fi](https://adsb.fi), using its [public personal-use API](https://github.com/adsbfi/opendata).
 No account, payment, or receiver sharing is enabled.
@@ -93,7 +97,9 @@ Launch options change only that session's source choices, including when you sav
 
 Traffic uses the saved receiver position, or a bundled example at latitude 51.5 and longitude -2.5 if no receiver position is saved.
 The example is not saved as your receiver location.
-Changing sources clears contacts, trails, and selection while retaining receiver and display settings.
+Switching between real-data modes retains contacts, trails, and selection supported by sources that remain enabled.
+Contacts supported only by a disabled source are removed.
+Entering or leaving Synthetic clears contacts, trails, and selection while retaining location and display settings.
 Restart clears the synthetic picture and repeats its routes and event sequence with current observation timestamps.
 
 Test has eleven positioned aircraft and one heard without a position.

@@ -6,7 +6,7 @@ public struct PositionSample: Equatable, Sendable {
 }
 
 public struct PresentedContact: Equatable, Identifiable, Sendable {
-    public var id: String { observation.address }
+    public let id: String
     public let observation: AircraftObservation
     public let positionAge: Double
     public let stale: Bool
@@ -14,36 +14,52 @@ public struct PresentedContact: Equatable, Identifiable, Sendable {
 }
 
 public struct RadarSession: Sendable {
-    private var observations: [String: AircraftObservation] = [:]
+    private var observations: [String: [AircraftFeed: AircraftObservation]] = [:]
+    private var sourceHistory: [String: [AircraftFeed: [PositionSample]]] = [:]
     private var history: [String: [PositionSample]] = [:]
     private var presented: [String: AircraftObservation] = [:]
+    private var presentedFeeds: [String: AircraftFeed] = [:]
+    private var enabledFeeds: Set<AircraftFeed>
     private var lastAdvance: Date
     private let startedAt: Date
 
-    public init(startedAt: Date) {
+    public init(startedAt: Date, enabledFeeds: Set<AircraftFeed> = [.local]) {
         self.startedAt = startedAt
         self.lastAdvance = startedAt
+        self.enabledFeeds = enabledFeeds
     }
 
-    public mutating func ingest(_ snapshot: ReceiverSnapshot) {
+    public mutating func setEnabledFeeds(_ feeds: Set<AircraftFeed>) {
+        enabledFeeds = feeds
+        for id in Array(observations.keys) {
+            observations[id] = observations[id]?.filter { feeds.contains($0.key) }
+            sourceHistory[id] = sourceHistory[id]?.filter { feeds.contains($0.key) }
+            if observations[id]?.isEmpty != false { remove(id) }
+        }
+    }
+
+    public mutating func ingest(_ snapshot: ReceiverSnapshot, from feed: AircraftFeed = .local) {
+        guard enabledFeeds.contains(feed) else { return }
         for incoming in snapshot.observations {
-            let previous = observations[incoming.address]
+            // Non-ICAO addresses are source-scoped because equal values need not identify the same aircraft.
+            let id = incoming.address.hasPrefix("~") ? "\(feed.rawValue):\(incoming.address)" : incoming.address
+            let previous = observations[id]?[feed]
             if incoming.position == nil, previous == nil { continue }
             if let incomingTime = incoming.positionTime, let oldTime = previous?.positionTime, incomingTime < oldTime { continue }
             if incoming.position == nil, let previous {
-                observations[incoming.address] = AircraftObservation(
+                observations[id, default: [:]][feed] = AircraftObservation(
                     address: incoming.address, callsign: incoming.callsign ?? previous.callsign,
                     position: previous.position, positionTime: previous.positionTime,
                     altitude: incoming.altitude ?? previous.altitude,
                     speedKnots: incoming.speedKnots ?? previous.speedKnots,
                     directionDegrees: incoming.directionDegrees ?? previous.directionDegrees,
-                    source: incoming.source
+                    source: previous.source
                 )
-            } else { observations[incoming.address] = incoming }
+            } else { observations[id, default: [:]][feed] = incoming }
             if let position = incoming.position, let time = incoming.positionTime {
-                let last = history[incoming.address]?.last
+                let last = sourceHistory[id]?[feed]?.last
                 if last?.time != time || last?.position != position {
-                    history[incoming.address, default: []].append(PositionSample(position: position, time: time))
+                    sourceHistory[id, default: [:]][feed, default: []].append(PositionSample(position: position, time: time))
                 }
             }
         }
@@ -55,30 +71,56 @@ public struct RadarSession: Sendable {
         let elapsed = max(0, date.timeIntervalSince(lastAdvance))
         let from = SweepTiming.angle(at: lastAdvance, startedAt: startedAt, period: settings.sweepSeconds)
         defer { lastAdvance = date }
-        for (address, observation) in observations {
-            guard observation.position != nil, let positionTime = observation.positionTime else { continue }
+        for id in Array(observations.keys) {
+            guard let candidates = observations[id], let (feed, observation) = preferred(candidates, at: date, staleAfter: settings.staleSeconds),
+                  let position = observation.position, let positionTime = observation.positionTime else { continue }
             let age = max(0, date.timeIntervalSince(positionTime))
-            if age >= settings.removalSeconds {
-                observations.removeValue(forKey: address)
-                history.removeValue(forKey: address)
-                presented.removeValue(forKey: address)
-                continue
-            }
+            if age >= settings.removalSeconds { remove(id); continue }
             let cutoff = date.addingTimeInterval(-settings.trailSeconds)
-            history[address] = (history[address] ?? []).filter { $0.time >= cutoff }
-            if settings.mode == .immediate {
-                presented[address] = observation
-            } else if let origin = settings.receiver, let position = observation.position {
+            sourceHistory[id] = sourceHistory[id]?.mapValues { $0.filter { $0.time >= cutoff } }
+            history[id] = (history[id] ?? []).filter { $0.time >= cutoff }
+            // Only the active source contributes new trail points, in chronological order.
+            for sample in sourceHistory[id]?[feed] ?? [] {
+                if let last = history[id]?.last, sample.time <= last.time { continue }
+                history[id, default: []].append(sample)
+            }
+            let sourceChanged = presentedFeeds[id] != nil && presentedFeeds[id] != feed
+            if settings.mode == .immediate || sourceChanged {
+                presented[id] = observation
+                presentedFeeds[id] = feed
+            } else if let origin = settings.receiver {
                 let bearing = ReceiverProjection(origin: origin).project(position).bearing
                 if SweepTiming.crossed(bearing: bearing, from: from, elapsed: elapsed, period: settings.sweepSeconds) {
-                    presented[address] = observation
+                    presented[id] = observation
+                    presentedFeeds[id] = feed
                 }
             }
-            guard let displayed = presented[address], let displayedTime = displayed.positionTime else { continue }
-            let visibleTrail = (history[address] ?? []).filter { $0.time <= displayedTime }
-            result.append(PresentedContact(observation: displayed, positionAge: age, stale: age >= settings.staleSeconds, trail: visibleTrail))
+            guard let displayed = presented[id], let displayedTime = displayed.positionTime else { continue }
+            let visibleTrail = (history[id] ?? []).filter { $0.time <= displayedTime }
+            result.append(PresentedContact(id: id, observation: displayed, positionAge: age,
+                stale: age >= settings.staleSeconds, trail: visibleTrail))
         }
         return result.sorted { $0.id < $1.id }
+    }
+
+    private func preferred(_ candidates: [AircraftFeed: AircraftObservation], at date: Date, staleAfter: Double) -> (AircraftFeed, AircraftObservation)? {
+        if let local = candidates[.local], local.position != nil, let time = local.positionTime,
+           date.timeIntervalSince(time) < staleAfter { return (.local, local) }
+        var latest: (AircraftFeed, AircraftObservation)?
+        for feed in AircraftFeed.allCases {
+            guard let candidate = candidates[feed], candidate.position != nil, let time = candidate.positionTime else { continue }
+            if let previousTime = latest?.1.positionTime, time <= previousTime { continue }
+            latest = (feed, candidate)
+        }
+        return latest
+    }
+
+    private mutating func remove(_ id: String) {
+        observations.removeValue(forKey: id)
+        sourceHistory.removeValue(forKey: id)
+        history.removeValue(forKey: id)
+        presented.removeValue(forKey: id)
+        presentedFeeds.removeValue(forKey: id)
     }
 }
 

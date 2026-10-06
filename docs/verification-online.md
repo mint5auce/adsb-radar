@@ -56,3 +56,33 @@ Using the build and launch commands above:
 4. Pan away from the selected aircraft and verify its inspector and trail remain until the usual removal age, without a separate tracking query.
 5. Use Return home and verify that the map and search return to the saved origin.
 6. Repeat at the minimum 800 by 560 window size and restore preferred settings afterwards.
+
+## Issue #17: combined reception
+
+The completed slice passes 34 tests.
+New deterministic checks cover local preference, fallback and recovery, actual source timestamps, missing-position provenance, non-ICAO identity collisions, chronological trails, removal, sweep source handover, source disabling, preserved selection, shared-source lifecycle, and automatic local retries while Online continues.
+Test preferences are isolated from the user's saved settings.
+
+Build and launch using the commands above, then:
+
+1. Choose Local + Online and confirm separate Local and Online health rows.
+2. With reception available, select an aircraft supplied by both sources and confirm one contact using the local position.
+3. Interrupt local reception, wait for its position to become stale, and confirm adsb.fi takes over with its original observation age.
+4. Restore reception and confirm local precedence resumes while selection and trails remain.
+5. Switch to Online, then Local + Online, then Local; confirm shared sources continue, contacts supported only by disabled sources disappear, and the owned decoder runs only in modes using Local.
+6. Interrupt networking while local reception continues and check that local movement remains responsive.
+7. Enter and leave Synthetic and confirm the previous picture and selection clear; quit and check owned decoder cleanup.
+
+Repeatable native views for local preference, fallback, and recovery:
+
+```sh
+swift build
+"$(swift build --show-bin-path)/ADSB Radar" --render-combined-preview /tmp/adsb-radar-combined-preview
+```
+
+The fixture simulates local failure and recovery through the normal model and source loops.
+The normal and minimum-window views were inspected for separate health, retained selection, local attribution, online fallback, and local recovery.
+The live native candidate exposes all four source choices; selecting Local + Online kept Online active while the unavailable receiver was retried automatically.
+The live Local health row displayed the missing-dongle message and Retry control while Online remained active with hundreds of contacts.
+Debug packaging, release compilation, and the final full test suite passed.
+A physical receiver failure/recovery exercise remains to be confirmed.

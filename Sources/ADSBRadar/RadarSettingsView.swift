@@ -26,6 +26,7 @@ struct RadarSettingsView: View {
                     Picker("Source", selection: $draft.source) {
                         Text("Local receiver").tag(AircraftSourceKind.local)
                         Text("Online / adsb.fi").tag(AircraftSourceKind.online)
+                        Text("Local + Online").tag(AircraftSourceKind.combined)
                         Text("Synthetic / offline").tag(AircraftSourceKind.synthetic)
                     }
                     if draft.source == .synthetic {
@@ -49,7 +50,7 @@ struct RadarSettingsView: View {
                     Text("The sweep and range rings stay anchored here.").foregroundStyle(.secondary)
                     if !locationValid { Text("Enter latitude from -90 to 90 and longitude from -180 to 180.").foregroundStyle(RadarStyle.amber) }
                 }
-                if draft.source == .online {
+                if draft.source.usesOnline {
                     Section("Online feed") {
                         Stepper("Refresh: \(Int(draft.onlineRefreshSeconds)) seconds", value: $draft.onlineRefreshSeconds, in: 1...300)
                         TextField("Search limit (\(draft.distanceSymbol))", value: onlineRadiusBinding, format: .number)
@@ -116,7 +117,7 @@ struct RadarSettingsView: View {
     }
 
     private var locationValid: Bool {
-        if latitude.isEmpty, longitude.isEmpty { return draft.source != .online }
+        if latitude.isEmpty, longitude.isEmpty { return !draft.source.usesOnline }
         guard let lat = Double(latitude), let lon = Double(longitude) else { return false }
         return GeographicCoordinate(latitude: lat, longitude: lon) != nil
     }

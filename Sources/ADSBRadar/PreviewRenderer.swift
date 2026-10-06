@@ -6,17 +6,20 @@ import SwiftUI
 /// Offscreen visual verification only. Does not open or control a desktop window.
 @MainActor
 enum PreviewRenderer {
-    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false) async throws {
+    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false, combined: Bool = false) async throws {
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
         settings.receiver = syntheticPlayback ? nil : SyntheticSource.exampleLocation
-        settings.source = online ? .online : .synthetic
+        settings.source = combined ? .combined : online ? .online : .synthetic
         settings.mode = .immediate
         let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
         let suite = "adsb-radar-preview-\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
-        let model = RadarModel(source: fixture, initialSettings: settings, defaults: defaults)
+        let localFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")
+        let onlineFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "adsb.fi")
+        let sources: [AircraftFeed: any AircraftDataSource] = combined ? [.local: localFixture, .online: onlineFixture] : [:]
+        let model = RadarModel(source: combined ? nil : fixture, sources: sources, initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
             if model.geography != nil, !model.contacts.isEmpty { break }
@@ -32,6 +35,19 @@ enum PreviewRenderer {
         try image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
         try image(RadarSettingsView(settings: model.settings, save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
+        if combined {
+            var timing = model.settings
+            timing.staleSeconds = 1
+            model.apply(timing)
+            try image(model, to: folder.appendingPathComponent("local-source.png"), width: 1200, height: 800)
+            await localFixture.fail()
+            try await Task.sleep(for: .seconds(2.2))
+            try image(model, to: folder.appendingPathComponent("online-fallback.png"), width: 800, height: 560)
+            await localFixture.recover()
+            await model.retry(feed: .local)
+            try await Task.sleep(for: .seconds(1.2))
+            try image(model, to: folder.appendingPathComponent("local-recovery.png"), width: 1200, height: 800)
+        }
         if online {
             var wideSettings = model.settings
             wideSettings.onlineRadiusNM = 60
@@ -74,10 +90,11 @@ private actor PreviewSource: AircraftDataSource {
     var failed = false
     init(origin: GeographicCoordinate, source: String) { self.origin = origin; self.source = source }
     func fail() { failed = true }
+    func recover() { failed = false }
     func start(location: GeographicCoordinate?) async {}
     func stop() async {}
     func poll() async -> ReceptionReading {
-        if failed { return ReceptionReading(status: .failed("Online unavailable. Retrying automatically.")) }
+        if failed { return ReceptionReading(status: .failed("Source unavailable. Retrying automatically.")) }
         let now = Date.now
         let observations: [AircraftObservation] = (0..<8).flatMap { index in
             let latitude = origin.latitude + Double(index - 3) * 0.17

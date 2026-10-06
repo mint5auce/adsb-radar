@@ -4,7 +4,19 @@ public enum UpdateMode: String, Codable, CaseIterable, Sendable { case sweep, im
 public enum AltitudeUnit: String, Codable, CaseIterable, Sendable { case feet, metres }
 public enum SpeedUnit: String, Codable, CaseIterable, Sendable { case knots, kilometresPerHour, milesPerHour }
 public enum DistanceUnit: String, Codable, CaseIterable, Sendable { case nauticalMiles, kilometres, miles }
-public enum AircraftSourceKind: String, Codable, CaseIterable, Sendable { case local, online, synthetic }
+public enum AircraftFeed: String, CaseIterable, Sendable { case local, online, synthetic }
+public enum AircraftSourceKind: String, Codable, CaseIterable, Sendable {
+    case local, online, combined, synthetic
+    public var feeds: Set<AircraftFeed> {
+        switch self {
+        case .local: [.local]
+        case .online: [.online]
+        case .combined: [.local, .online]
+        case .synthetic: [.synthetic]
+        }
+    }
+    public var usesOnline: Bool { feeds.contains(.online) }
+}
 
 public struct RadarSettings: Equatable, Codable, Sendable {
     public var receiver: GeographicCoordinate?

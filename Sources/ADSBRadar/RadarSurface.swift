@@ -212,7 +212,7 @@ struct AircraftCanvas: View {
                 if selected == contact.id {
                     context.stroke(Path(CGRect(x: point.x - 8, y: point.y - 8, width: 16, height: 16)), with: .color(RadarStyle.bright), lineWidth: 0.8)
                 }
-                let callsign = contact.observation.callsign ?? contact.id.uppercased()
+                let callsign = contact.observation.callsign ?? contact.observation.address.uppercased()
                 let label = "\(callsign)\n\(settings.altitude(contact.observation.altitude))"
                 let text = context.resolve(Text(label).font(.system(size: 10, design: .monospaced)).foregroundStyle(color))
                 let labelOrigin = CGPoint(x: point.x + 12, y: point.y - 8)
