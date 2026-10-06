@@ -83,6 +83,43 @@ final class RadarModel {
         }
     }
 
+    var eligibleContacts: [PresentedContact] {
+        contacts.filter { $0.id == selectedAddress || matchesFilters($0) }
+    }
+    func matchesFilters(_ contact: PresentedContact) -> Bool {
+        settings.aircraftFilters.matches(contact.observation, home: settings.receiver)
+    }
+    var selectedOutsideFilters: Bool { selectedContact.map { !matchesFilters($0) } ?? false }
+    func isInView(_ contact: PresentedContact) -> Bool {
+        guard let origin, let position = contact.observation.position else { return false }
+        let point = camera.screen(ReceiverProjection(origin: origin).project(position), width: viewportWidth, height: viewportHeight)
+        return (0...viewportWidth).contains(point.x) && (0...viewportHeight).contains(point.y)
+    }
+    struct ContactCounts {
+        let inView: Int
+        let outsideView: Int
+        let filtered: Int
+    }
+    var contactCounts: ContactCounts {
+        let eligible = eligibleContacts
+        let inView = eligible.filter { isInView($0) }.count
+        return ContactCounts(inView: inView, outsideView: eligible.count - inView, filtered: contacts.count - eligible.count)
+    }
+    func setAircraftFilters(_ filters: AircraftViewFilters) {
+        guard filters.validationMessage == nil else { return }
+        var changed = settings
+        changed.aircraftFilters = filters
+        apply(changed)
+    }
+    func clearAircraftFilters() { setAircraftFilters(AircraftViewFilters()) }
+    var filterSummary: String {
+        guard settings.aircraftFilters.isActive else { return "Unrestricted aircraft" }
+        if let distance = settings.aircraftFilters.homeDistanceNM {
+            return settings.receiver == nil ? "Home distance unavailable" : "Within \(settings.distance(distance)) of Home"
+        }
+        return "Aircraft filters active"
+    }
+
     var selectedContact: PresentedContact? { contacts.first { $0.id == selectedAddress } }
     var selectedIdentity: AircraftIdentity? {
         guard settings.source != .synthetic, let contact = selectedContact else { return nil }

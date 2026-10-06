@@ -17,7 +17,7 @@ struct RadarSurface: View {
                     SweepCanvas(camera: model.camera, angle: SweepTiming.angle(at: timeline.date, startedAt: model.sweepStartedAt, period: model.displaySettings.sweepSeconds))
                 }
                 .allowsHitTesting(false)
-                AircraftCanvas(contacts: model.contacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress)
+                AircraftCanvas(contacts: model.eligibleContacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress)
                     .allowsHitTesting(false)
             }
             if let coverage = model.onlineCoverage, coverage.limited, let origin = model.origin {
@@ -110,7 +110,7 @@ struct RadarSurface: View {
     private func select(at point: CGPoint) {
         guard let receiver = model.displaySettings.receiver else { return }
         let projection = ReceiverProjection(origin: receiver)
-        let closest = model.contacts.compactMap { contact -> (String, Double)? in
+        let closest = model.eligibleContacts.compactMap { contact -> (String, Double)? in
             guard let coordinate = contact.observation.position else { return nil }
             let position = model.camera.screen(projection.project(coordinate), width: size.width, height: size.height)
             return (contact.id, hypot(position.x - point.x, position.y - point.y))

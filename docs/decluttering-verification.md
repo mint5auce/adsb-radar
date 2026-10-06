@@ -15,3 +15,16 @@ These launch arguments use generated traffic without replacing the saved source 
 7. Repeat with Immediate and Sweep updates, then relaunch to confirm saved presentation choices.
 
 The original problem was reproduced in the native app with 250 Demo aircraft before implementation.
+
+## Home distance (#21)
+
+1. Save a Home location in Settings, then open Filters and choose 25, 50, and 100 NM or enter a positive custom distance and press Return.
+2. Pan away from Home and confirm the eligibility criteria stay anchored to Home while In view and Outside view change.
+3. Select an aircraft, tighten the distance until it falls outside the criterion, and check the Outside filters note and counts.
+4. Deselect it and confirm its marker and hit target disappear.
+5. Enter zero, a negative value, or invalid text and confirm the inline explanation leaves the last valid filter active.
+6. Wait while contacts are hidden, clear filters, and confirm their updated positions and retained trails reappear.
+7. Change distance units and relaunch to verify the criterion retains its physical distance.
+8. With Home unset, confirm distance controls explain their unavailability.
+
+Home-distance model checks passed with retained contacts, selected exceptions, offscreen counts, and clearing without observation changes.

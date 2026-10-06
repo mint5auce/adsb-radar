@@ -4,6 +4,7 @@ import SwiftUI
 struct RadarWindow: View {
     @Bindable var model: RadarModel
     @State private var showingSettings = false
+    @State private var showingFilters = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,7 +13,7 @@ struct RadarWindow: View {
             HStack(spacing: 0) {
                 RadarSurface(model: model, openSettings: { showingSettings = true })
                 if let contact = model.selectedContact {
-                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings) { model.selectedAddress = nil }
+                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
                         .frame(width: 256)
                 }
             }
@@ -59,15 +60,24 @@ struct RadarWindow: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
+            Button { showingFilters.toggle() } label: {
+                Label(model.settings.aircraftFilters.isActive ? "FILTERS •" : "FILTERS", systemImage: "line.3.horizontal.decrease")
+            }
+            .buttonStyle(.plain).help(model.filterSummary)
+            .popover(isPresented: $showingFilters) { AircraftFiltersView(model: model) }
             presentationMenu
             Menu {
-                if model.contacts.isEmpty { Text("No positioned contacts") }
-                ForEach(model.contacts) { contact in
+                Text("\(model.contacts.count) received positioned contacts")
+                if model.eligibleContacts.isEmpty { Text("No matching contacts") }
+                ForEach(model.eligibleContacts) { contact in
                     Button(contact.observation.callsign ?? contact.observation.address.uppercased()) { model.selectedAddress = contact.id }
                 }
             } label: { Label("CONTACTS", systemImage: "airplane") }
                 .menuStyle(.borderlessButton).fixedSize()
             Spacer(minLength: 0)
+            }
+            if model.settings.aircraftFilters.isActive {
+                Text(model.filterSummary).font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.amber)
             }
         }
         .padding(.leading, 80)
@@ -106,7 +116,9 @@ struct RadarWindow: View {
             if model.showsOnlineAttribution {
                 Link("adsb.fi", destination: URL(string: "https://adsb.fi")!).foregroundStyle(RadarStyle.muted)
             }
-            Text("\(model.contacts.count) POSITIONED").foregroundStyle(RadarStyle.green)
+            let counts = model.contactCounts
+            Text("\(counts.inView) IN VIEW  /  \(counts.outsideView) OUTSIDE VIEW  /  \(counts.filtered) FILTERED")
+                .foregroundStyle(RadarStyle.green)
             Text("\(model.heardWithoutPosition) WITHOUT POSITION").foregroundStyle(RadarStyle.muted)
         }
         .font(.system(size: 10, design: .monospaced))
@@ -150,6 +162,7 @@ struct ContactInspector: View {
     let contact: PresentedContact
     let identity: AircraftIdentity?
     let settings: RadarSettings
+    var outsideFilters: Bool = false
     let dismiss: () -> Void
 
     var body: some View {
@@ -169,6 +182,7 @@ struct ContactInspector: View {
                         .foregroundStyle(RadarStyle.bright)
                     Text("\(contact.observation.address.hasPrefix("~") ? "NON-ICAO" : "ICAO") \(contact.observation.address.uppercased())").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
                 }
+                if outsideFilters { Text("OUTSIDE FILTERS").foregroundStyle(RadarStyle.amber) }
                 Rectangle().fill(RadarStyle.line).frame(height: 1)
                 field("REGISTRATION", identity?.registration?.value ?? "UNKNOWN")
                 field("AIRCRAFT TYPE", identity?.aircraftType?.value ?? "UNKNOWN")

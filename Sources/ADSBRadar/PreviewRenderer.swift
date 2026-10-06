@@ -10,7 +10,7 @@ enum PreviewRenderer {
         if cachePreview { try await renderCacheSequence(to: directory); return }
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
-        settings.receiver = syntheticPlayback ? nil : SyntheticSource.exampleLocation
+        settings.receiver = syntheticPlayback && !CommandLine.arguments.contains("--preview-filters") ? nil : SyntheticSource.exampleLocation
         settings.source = localEnrichment ? .local : combined ? .combined : online ? .online : .synthetic
         settings.mode = .immediate
         let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
@@ -76,6 +76,13 @@ enum PreviewRenderer {
             if let fixture = fixture as? PreviewSource { await fixture.fail() }
             try await Task.sleep(for: .milliseconds(250))
             try await image(model, to: folder.appendingPathComponent("outage.png"), width: 800, height: 560)
+        }
+        if CommandLine.arguments.contains("--preview-filters") {
+            var filters = model.settings.aircraftFilters
+            filters.homeDistanceNM = 50
+            model.setAircraftFilters(filters)
+            try await image(model, to: folder.appendingPathComponent("home-filter.png"), width: 800, height: 560)
+            try await image(AircraftFiltersView(model: model), to: folder.appendingPathComponent("filters.png"), width: 400, height: 250)
         }
         await model.shutdown()
         print("Rendered native previews in \(directory)")

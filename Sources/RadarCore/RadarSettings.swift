@@ -36,6 +36,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var onlineRadiusNM: Double = 250
     public var enrichIdentities: Bool = true
     public var identityRefreshDays: Double = 7
+    public var aircraftFilters = AircraftViewFilters()
     public var labelMode: AircraftLabelMode = .automatic
     public var trailMode: AircraftTrailMode = .selected
     public var directionVectors: Bool = true
@@ -45,7 +46,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
-        case labelMode, trailMode, directionVectors
+        case labelMode, trailMode, directionVectors, aircraftFilters
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -69,6 +70,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
         enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
         identityRefreshDays = try values.decodeIfPresent(Double.self, forKey: .identityRefreshDays) ?? identityRefreshDays
+        aircraftFilters = try values.decodeIfPresent(AircraftViewFilters.self, forKey: .aircraftFilters) ?? aircraftFilters
         labelMode = try values.decodeIfPresent(AircraftLabelMode.self, forKey: .labelMode) ?? labelMode
         trailMode = try values.decodeIfPresent(AircraftTrailMode.self, forKey: .trailMode) ?? trailMode
         directionVectors = try values.decodeIfPresent(Bool.self, forKey: .directionVectors) ?? directionVectors
@@ -88,6 +90,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         value.onlineRefreshSeconds = bounded(onlineRefreshSeconds, 5, 1...300)
         value.onlineRadiusNM = bounded(onlineRadiusNM, 250, 1...250)
         value.identityRefreshDays = bounded(identityRefreshDays, 7, (1.0 / 24)...3650)
+        if value.aircraftFilters.validationMessage != nil { value.aircraftFilters = AircraftViewFilters() }
         if let receiver { value.receiver = GeographicCoordinate(latitude: receiver.latitude, longitude: receiver.longitude) }
         return value
     }
