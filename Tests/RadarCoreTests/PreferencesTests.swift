@@ -3,6 +3,36 @@ import Testing
 import RadarCore
 
 struct PreferencesTests {
+    @Test @MainActor func legacyPresentationSurvivesAndVisibilityChoicePersists() throws {
+        let name = "adsb-legacy-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(Data(#"{"initialRadiusNM":75}"#.utf8), forKey: "radar-settings")
+        let preferences = RadarPreferences(defaults: defaults)
+        var settings = preferences.load()
+        #expect(settings.labelMode == .automatic && settings.trailMode == .selected)
+        #expect(settings.mapLayers.routes && settings.mapLayers.airspace && settings.mapLayers.airports)
+        #expect(settings.controlVisibility == .pointerAtEdge)
+        #expect(settings.initialRadiusNM == 75)
+        settings.controlVisibility = .caretButtons
+        settings.mapLayers.routes = false
+        settings.labelMode = .selectedOnly
+        preferences.save(settings)
+        #expect(RadarPreferences(defaults: defaults).load() == settings)
+    }
+
+    @Test @MainActor func firstLaunchUsesAnUnadornedMapAndAllAircraftDetail() throws {
+        let name = "adsb-startup-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = RadarPreferences(defaults: defaults)
+        let settings = preferences.load()
+        #expect(!settings.mapLayers.routes && !settings.mapLayers.airspace && !settings.mapLayers.airports)
+        #expect(settings.labelMode == .all && settings.trailMode == .all && settings.directionVectors)
+        preferences.save(settings)
+        #expect(RadarPreferences(defaults: defaults).load() == settings)
+    }
+
     @Test @MainActor func missingReceiverAttemptLimitDefaultsMigratesAndPersists() throws {
         let name = "adsb-radar-tests-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))

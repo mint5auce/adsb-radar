@@ -73,7 +73,8 @@ public final class RadarPreferences {
     }
 
     private func savedSettings() -> RadarSettings {
-        defaults.data(forKey: "radar-settings")
+        guard defaults.object(forKey: "radar-settings") != nil else { return .firstLaunch }
+        return defaults.data(forKey: "radar-settings")
             .flatMap { try? JSONDecoder().decode(RadarSettings.self, from: $0) }?.validated() ?? RadarSettings()
     }
 }

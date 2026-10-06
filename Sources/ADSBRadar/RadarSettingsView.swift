@@ -79,6 +79,20 @@ struct RadarSettingsView: View {
                         Text("Maximum: \(draft.distance(250)). Shared allowance: one request per second.").foregroundStyle(.secondary)
                     }
                 }
+                Section("Control visibility") {
+                    Picker("Show controls", selection: Binding(get: { model.settings.controlVisibility }, set: { mode in
+                        draft.controlVisibility = mode
+                        var settings = model.settings
+                        settings.controlVisibility = mode
+                        save(settings)
+                    })) {
+                        ForEach(ControlVisibilityMode.allCases, id: \.self) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    Text("Applies immediately. Bars start visible for 15 seconds unless Always visible is selected.")
+                        .foregroundStyle(.secondary)
+                }
                 Section("Presentation") {
                     Picker("Contact updates", selection: $draft.mode) {
                         Text("Sweep-timed").tag(UpdateMode.sweep)

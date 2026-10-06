@@ -1,32 +1,92 @@
+import AppKit
 import RadarCore
 import SwiftUI
 
 struct RadarWindow: View {
     @Bindable var model: RadarModel
     @State private var showingSettings = false
+    @State private var topBarHeight: CGFloat = 0
+    @State private var bottomBarHeight: CGFloat = 0
+    @State private var controls: RadarControlVisibility
+    @State private var trackingMenus: Set<ObjectIdentifier> = []
+
+    init(model: RadarModel) {
+        self.model = model
+        // Visibility is window-owned; saved mode changes are observed below, not reseeded on redraw.
+        _controls = State(initialValue: RadarControlVisibility(mode: model.settings.controlVisibility,
+                                                               now: ProcessInfo.processInfo.systemUptime))
+    }
+
+    private var caretInset: CGFloat { controls.mode == .caretButtons ? 22 : 0 }
+    private var topInset: CGFloat { (controls.isVisible(.top) ? topBarHeight : 0) + caretInset }
+    private var bottomInset: CGFloat { (controls.isVisible(.bottom) ? bottomBarHeight : 0) + caretInset }
 
     var body: some View {
-        VStack(spacing: 0) {
-            RadarHeader(model: model, showingSettings: $showingSettings)
-            MapLayerControls(model: model)
-            Rectangle().fill(RadarStyle.line).frame(height: 1)
-            HStack(spacing: 0) {
-                RadarSurface(model: model, openSettings: { showingSettings = true })
-                if let contact = model.selectedContact {
-                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, category: model.reportedCategory(for: contact), showOnMap: model.showSelectedOnMap, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
-                        .frame(width: 256)
-                } else if let feature = model.selectedMapFeature {
-                    MapFeatureInspector(feature: feature, snapshot: model.mapLayers.snapshot(for: feature), preferences: model.settings.mapLayers) { model.selection = nil }
-                        .frame(width: 256)
+        HStack(spacing: 0) {
+            RadarSurface(model: model, topInset: topInset, bottomInset: bottomInset,
+                         openSettings: { showingSettings = true })
+            if let contact = model.selectedContact {
+                ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, category: model.reportedCategory(for: contact), showOnMap: model.showSelectedOnMap, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
+                    .frame(width: 256)
+                    .padding(.top, topInset).padding(.bottom, bottomInset)
+            } else if let feature = model.selectedMapFeature {
+                MapFeatureInspector(feature: feature, snapshot: model.mapLayers.snapshot(for: feature), preferences: model.settings.mapLayers) { model.selection = nil }
+                    .frame(width: 256)
+                    .padding(.top, topInset).padding(.bottom, bottomInset)
+            }
+        }
+        .overlay(alignment: .top) {
+            RadarControlBar(visibility: $controls, bar: .top, heightChanged: { topBarHeight = $0 }) {
+                VStack(spacing: 0) {
+                    RadarHeader(model: model, showingSettings: $showingSettings, interactionChanged: {
+                        controls.setInteraction(.popover, active: $0, bar: .top, now: ProcessInfo.processInfo.systemUptime)
+                    })
+                    Rectangle().fill(RadarStyle.line).frame(height: 1)
                 }
             }
-            Rectangle().fill(RadarStyle.line).frame(height: 1)
-            RadarReceptionStatus(model: model)
         }
+        .overlay(alignment: .bottom) {
+            RadarControlBar(visibility: $controls, bar: .bottom, heightChanged: { bottomBarHeight = $0 }) {
+                VStack(spacing: 0) {
+                    Rectangle().fill(RadarStyle.line).frame(height: 1)
+                    RadarReceptionStatus(model: model)
+                }
+            }
+        }
+        .clipped()
         .background(RadarStyle.background)
         .foregroundStyle(RadarStyle.green)
         .font(RadarStyle.mono)
         .tint(RadarStyle.green)
+        .task(id: controls.nextDeadline) {
+            guard let deadline = controls.nextDeadline else { return }
+            do {
+                try await Task.sleep(for: .seconds(max(0, deadline - ProcessInfo.processInfo.systemUptime)))
+                controls.advance(to: ProcessInfo.processInfo.systemUptime)
+            } catch { /* A new interaction or a closed window cancels the old deadline. */ }
+        }
+        .onChange(of: model.settings.controlVisibility) { _, mode in
+            controls.setMode(mode, now: ProcessInfo.processInfo.systemUptime)
+        }
+        .onChange(of: showingSettings) { _, showing in
+            controls.setInteraction(.settings, active: showing, bar: .top, now: ProcessInfo.processInfo.systemUptime)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { notification in
+            guard let menu = notification.object as? NSMenu else { return }
+            trackingMenus.insert(ObjectIdentifier(menu))
+            for bar in RadarControlVisibility.Bar.allCases where controls.isVisible(bar) {
+                controls.setInteraction(.menu, active: true, bar: bar, now: ProcessInfo.processInfo.systemUptime)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { notification in
+            guard let menu = notification.object as? NSMenu else { return }
+            trackingMenus.remove(ObjectIdentifier(menu))
+            if trackingMenus.isEmpty {
+                for bar in RadarControlVisibility.Bar.allCases {
+                    controls.setInteraction(.menu, active: false, bar: bar, now: ProcessInfo.processInfo.systemUptime)
+                }
+            }
+        }
         .sheet(isPresented: $showingSettings) {
             RadarSettingsView(model: model, save: model.apply)
         }
@@ -38,26 +98,63 @@ struct RadarWindow: View {
 private struct RadarHeader: View {
     @Bindable var model: RadarModel
     @Binding var showingSettings: Bool
+    var interactionChanged: (Bool) -> Void = { _ in }
     @State private var showingFilters = false
     @State private var showingContacts = false
+    @State private var showingMap = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 8) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 24) {
+                    brand
+                    Spacer(minLength: 8)
+                    actions
+                    settingsButton
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack { brand; Spacer(); settingsButton }
+                    actions
+                }
+            }
             HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("ADSB / RADAR").font(.system(size: 19, weight: .semibold, design: .monospaced)).tracking(2)
-                Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : model.settings.source == .combined ? "LOCAL + ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
-                    .font(.system(size: 10, design: .monospaced)).tracking(2)
-                    .foregroundStyle(model.settings.source == .synthetic ? RadarStyle.amber : RadarStyle.muted)
+                Text("NORTH UP / \(model.displaySettings.distance(model.camera.radiusNM)) RADIUS")
+                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 8)
-            Button { showingSettings = true } label: { Label("SETTINGS", systemImage: "slider.horizontal.3") }
-                .buttonStyle(.plain)
-                .keyboardShortcut(",", modifiers: .command)
-                .padding(8)
-                .overlay(Rectangle().stroke(RadarStyle.line, lineWidth: 1))
+            if model.settings.aircraftFilters.isActive {
+                Text(model.filterSummary)
+                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.amber)
             }
-            HStack(spacing: 24) {
+        }
+        .padding(.leading, 80)
+        .padding(.trailing, 16)
+        .padding(.vertical, 10)
+        .onChange(of: showingFilters || showingContacts || showingMap) { _, isPresented in interactionChanged(isPresented) }
+        .onDisappear { interactionChanged(false) }
+    }
+
+    private var brand: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("ADSB / RADAR")
+                .font(.system(size: 16, weight: .semibold, design: .monospaced)).tracking(2)
+            Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : model.settings.source == .combined ? "LOCAL + ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
+                .font(.system(size: 9, design: .monospaced)).tracking(1)
+                .foregroundStyle(model.settings.source == .synthetic ? RadarStyle.amber : RadarStyle.muted)
+        }.fixedSize()
+    }
+
+    private var settingsButton: some View {
+        Button { showingSettings = true } label: { Label("SETTINGS", systemImage: "slider.horizontal.3") }
+            .buttonStyle(.plain)
+            .keyboardShortcut(",", modifiers: .command)
+            .padding(6)
+            .overlay(Rectangle().stroke(RadarStyle.line, lineWidth: 1))
+            .fixedSize()
+    }
+
+    private var actions: some View {
+        HStack(spacing: 18) {
             if model.settings.source == .synthetic {
                 Button { Task { await model.retry() } } label: { Label("RESTART", systemImage: "arrow.counterclockwise") }
                     .buttonStyle(.plain).disabled(model.retrying)
@@ -78,18 +175,13 @@ private struct RadarHeader: View {
             .buttonStyle(.plain).help(model.filterSummary)
             .popover(isPresented: $showingFilters) { AircraftFiltersView(model: model) }
             presentationMenu
+            Button { showingMap.toggle() } label: { Label("MAP", systemImage: "map") }
+                .buttonStyle(.plain).fixedSize()
+                .popover(isPresented: $showingMap) { MapLayerControls(model: model) }
             Button { showingContacts.toggle() } label: { Label("CONTACTS", systemImage: "airplane") }
                 .buttonStyle(.plain).fixedSize()
                 .popover(isPresented: $showingContacts) { AircraftContactsView(model: model) }
-            Spacer(minLength: 0)
-            }
-            if model.settings.aircraftFilters.isActive {
-                Text(model.filterSummary).font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.amber)
-            }
-        }
-        .padding(.leading, 80)
-        .padding(.trailing, 24)
-        .padding(.vertical, 12)
+        }.fixedSize()
     }
 
     private var presentationMenu: some View {
@@ -117,28 +209,42 @@ private struct RadarReceptionStatus: View {
     @Bindable var model: RadarModel
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(model.feedHealth) { health in
-                    FeedStatusIndicator(feed: health.feed, status: health.status,
-                        scenario: model.settings.scenario, localReceptionPaused: model.localReceptionPaused)
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                feeds.fixedSize()
+                Spacer(minLength: 8)
+                counts.fixedSize()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 8)
+            VStack(alignment: .leading, spacing: 6) {
+                feeds
+                counts
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.system(size: 10, design: .monospaced))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(RadarStyle.panel)
+    }
+
+    private var feeds: some View {
+        HStack(alignment: .top, spacing: 18) {
+            ForEach(model.feedHealth) { health in
+                FeedStatusIndicator(feed: health.feed, status: health.status,
+                    scenario: model.settings.scenario, localReceptionPaused: model.localReceptionPaused)
+            }
+        }
+    }
+
+    private var counts: some View {
+        HStack(spacing: 12) {
             if model.showsOnlineAttribution {
                 Link("adsb.fi", destination: URL(string: "https://adsb.fi")!).foregroundStyle(RadarStyle.muted)
             }
             let counts = model.contactCounts
             Text("\(counts.inView) IN VIEW  /  \(counts.outsideView) OUTSIDE VIEW  /  \(counts.filtered) FILTERED")
                 .foregroundStyle(RadarStyle.green)
-                .fixedSize()
-            Text("\(model.heardWithoutPosition) WITHOUT POSITION").foregroundStyle(RadarStyle.muted).fixedSize()
-        }
-        .font(.system(size: 10, design: .monospaced))
-        .padding(.horizontal, 24)
-        .padding(.vertical, 14)
-        .background(RadarStyle.panel)
+            Text("\(model.heardWithoutPosition) WITHOUT POSITION").foregroundStyle(RadarStyle.muted)
+        }.fixedSize()
     }
 }
 
@@ -149,19 +255,18 @@ private struct FeedStatusIndicator: View {
     let localReceptionPaused: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(text).lineLimit(2).foregroundStyle(color).help(text)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(text).foregroundStyle(color).help(text)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(height: 28)
     }
     private var color: Color {
         if case .failed = status { return RadarStyle.amber }
         return status == .receiving ? RadarStyle.green : RadarStyle.muted
     }
     private var text: String {
-        if feed == .local, localReceptionPaused { return "LOCAL: No dongle found.\nRetry in Settings." }
+        if feed == .local, localReceptionPaused { return "LOCAL: No dongle found. Retry in Settings." }
         let name = feed == .local ? "LOCAL" : feed == .online ? "ONLINE / ADSB.FI" : "SYNTHETIC \(scenario.rawValue.uppercased())"
         switch status {
         case .stopped: return "\(name) STOPPED"

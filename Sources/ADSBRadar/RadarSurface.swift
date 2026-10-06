@@ -3,6 +3,8 @@ import SwiftUI
 
 struct RadarSurface: View {
     @Bindable var model: RadarModel
+    var topInset: CGFloat = 0
+    var bottomInset: CGFloat = 0
     let openSettings: () -> Void
     @State private var size = CGSize(width: 800, height: 600)
     @State private var dragOrigin: RadarCamera?
@@ -18,14 +20,14 @@ struct RadarSurface: View {
         ZStack {
             GeographyCanvas(paths: model.geography, camera: model.camera, settings: model.displaySettings)
             MapLayersCanvas(layers: model.mapLayers, camera: model.camera, preferences: model.settings.mapLayers,
-                selected: model.selectedMapFeature?.id, reserved: [topOverlayFrame, bottomOverlayFrame])
+                selected: model.selectedMapFeature?.id, reserved: reservedRegions)
             if model.displaySettings.receiver != nil {
                 TimelineView(.animation(minimumInterval: 1 / 30, paused: scenePhase != .active)) { timeline in
                     SweepCanvas(camera: model.camera, angle: SweepTiming.angle(at: timeline.date, startedAt: model.sweepStartedAt, period: model.displaySettings.sweepSeconds))
                 }
                 .allowsHitTesting(false)
                 AircraftCanvas(contacts: model.eligibleContacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress,
-                    reserved: [topOverlayFrame, bottomOverlayFrame])
+                    reserved: reservedRegions)
                     .allowsHitTesting(false)
             }
             if let coverage = model.onlineCoverage, coverage.limited, let origin = model.origin {
@@ -70,6 +72,8 @@ struct RadarSurface: View {
         }
         .overlay {
             MapSecondaryClick { point in
+                // The AppKit event monitor also sees clicks on the bars layered above this map.
+                guard point.y >= topInset, point.y < size.height - bottomInset else { return }
                 let candidates = model.objectChoices(at: point, secondary: true)
                 if !candidates.isEmpty { tapPoint = point; choices = candidates; showingChooser = true }
             }.allowsHitTesting(false)
@@ -82,8 +86,6 @@ struct RadarSurface: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("NORTH UP / \(model.displaySettings.distance(model.camera.radiusNM)) RADIUS")
-                        .padding(3).background(RadarStyle.background.opacity(0.9))
                     if model.onlineCoverage?.limited == true {
                         Text("ONLINE SEARCH LIMIT / \(model.settings.distance(model.settings.onlineRadiusNM))")
                             .foregroundStyle(RadarStyle.amber)
@@ -96,14 +98,20 @@ struct RadarSurface: View {
                 }
                 .font(.system(size: 10, design: .monospaced)).tracking(1)
                 Spacer()
-                TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                    Text(timeline.date.formatted(Date.FormatStyle(date: .omitted, time: .standard, locale: Locale(identifier: "en_GB"), timeZone: .gmt)) + " UTC")
-                        .font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
-                        .padding(3).background(RadarStyle.background.opacity(0.9))
+                HStack(spacing: 8) {
+                    if model.settings.source == .synthetic {
+                        Text("SYNTHETIC")
+                            .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.amber)
+                            .padding(3).background(Color.black)
+                    }
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        Text(timeline.date.formatted(Date.FormatStyle(date: .omitted, time: .standard, locale: Locale(identifier: "en_GB"), timeZone: .gmt)) + " UTC")
+                            .font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                            .padding(3).background(Color.black)
+                    }
                 }
             }
             .padding(6)
-            .background(RadarStyle.background)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { topOverlayFrame = $0 }
             Spacer()
             if model.displaySettings.receiver == nil {
@@ -135,6 +143,14 @@ struct RadarSurface: View {
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { bottomOverlayFrame = $0 }
         }
         .padding(24)
+        .padding(.top, topInset)
+        .padding(.bottom, bottomInset)
+    }
+
+    private var reservedRegions: [CGRect] {
+        [topOverlayFrame, bottomOverlayFrame,
+         CGRect(x: 0, y: 0, width: size.width, height: topInset),
+         CGRect(x: 0, y: size.height - bottomInset, width: size.width, height: bottomInset)]
     }
 
     private func control(_ label: String, symbol: String, action: @escaping () -> Void) -> some View {

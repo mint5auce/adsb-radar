@@ -4,6 +4,8 @@ The design interview is complete.
 The recommendations through Q27 were accepted on 6 October 2026.
 Implementation is complete in issues #20-26.
 See [the verification record](../decluttering-verification.md) for automated and native checks and exact manual exercise steps.
+The later [startup presentation and control-visibility design](../product-spec.md#startup-presentation-and-control-visibility), accepted on 6 October 2026, supersedes this design's first-launch label and trail defaults.
+That later change is implemented; the verification above describes the original defaults, while the [control-visibility verification](../control-visibility-verification.md) covers the updated presentation.
 
 ## Accepted foundations
 
@@ -33,7 +35,7 @@ Normal ageing and removal still apply to the selected aircraft.
 Try several nearby label positions and suppress labels that still overlap, preferring stable placement and always prioritising the selected label.
 Reveal more labels as zoom creates space.
 Draw aircraft symbols above label backgrounds so labels cannot cover contacts.
-Default to the selected aircraft's trail only, with All, Selected, and None trail-display choices.
+Provide All, Selected, and None trail-display choices, with initial preferences governed by the later startup presentation policy.
 Continue retaining normal trail history regardless of its display choice.
 Keep short direction vectors visible by default and provide an independent display switch.
 
@@ -64,10 +66,10 @@ Unknown numeric altitude follows its separate Include unknown setting.
 Provide a Filters button opening a compact panel and display summaries of active filters alongside it.
 Apply toggles and category choices immediately, and apply numeric entries when committed.
 Remember active aircraft filters and presentation choices between launches, with an obvious active-filter indicator on startup.
-First launch uses an unrestricted overview, Automatic labels, Selected trails, and enabled direction vectors.
+First launch uses unrestricted aircraft criteria; initial labels, trails, and direction vectors follow the later startup presentation policy.
 The Contacts list contains matching contacts and the selected exception, identifying contacts outside the current map view.
 Search callsign, ICAO address, registration, and aircraft-model code within the Contacts list without changing map filters.
-Provide Automatic, All, and Selected only label modes, defaulting to Automatic.
+Provide Automatic, All, and Selected only label modes.
 Keep callsign and altitude readable rather than shrinking text to fit dense traffic.
 In Automatic, prioritise selection and fresh contacts, retain existing label placement where practical, and favour contacts nearer Home when space remains contested.
 An ambiguous aircraft click opens a short chooser identifying nearby candidates by callsign/address, altitude, and known model.

@@ -41,14 +41,26 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var labelMode: AircraftLabelMode = .automatic
     public var trailMode: AircraftTrailMode = .selected
     public var directionVectors: Bool = true
+    public var controlVisibility: ControlVisibilityMode = .pointerAtEdge
     public var mapLayers = MapLayerPreferences()
 
     public init() {}
 
+    /// New installations use these choices; decoding older preferences retains the legacy defaults.
+    public static var firstLaunch: RadarSettings {
+        var settings = RadarSettings()
+        settings.labelMode = .all
+        settings.trailMode = .all
+        settings.mapLayers.routes = false
+        settings.mapLayers.airspace = false
+        settings.mapLayers.airports = false
+        return settings
+    }
+
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
-        case labelMode, trailMode, directionVectors, aircraftFilters, localReceiverAttemptLimit, mapLayers
+        case labelMode, trailMode, directionVectors, controlVisibility, aircraftFilters, localReceiverAttemptLimit, mapLayers
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -77,6 +89,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         labelMode = try values.decodeIfPresent(AircraftLabelMode.self, forKey: .labelMode) ?? labelMode
         trailMode = try values.decodeIfPresent(AircraftTrailMode.self, forKey: .trailMode) ?? trailMode
         directionVectors = try values.decodeIfPresent(Bool.self, forKey: .directionVectors) ?? directionVectors
+        controlVisibility = try values.decodeIfPresent(ControlVisibilityMode.self, forKey: .controlVisibility) ?? controlVisibility
         mapLayers = try values.decodeIfPresent(MapLayerPreferences.self, forKey: .mapLayers) ?? mapLayers
     }
 

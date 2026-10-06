@@ -3,41 +3,35 @@ import SwiftUI
 
 struct MapLayerControls: View {
     @Bindable var model: RadarModel
-    @State private var showingAltitude = false
     @State private var showingData = false
 
     var body: some View {
-        HStack(spacing: 18) {
-            Text("MAP").foregroundStyle(RadarStyle.muted)
-            layer("ROUTES", key: \.routes)
-            layer("AIRSPACE", key: \.airspace)
-            layer("AIRPORTS", key: \.airports)
-            Spacer(minLength: 4)
-            Button { showingAltitude.toggle() } label: {
-                Label(model.settings.mapLayers.flightLevel.map { "AT FL \($0)" } ?? "ALL LEVELS", systemImage: "square.3.layers.3d")
-            }
-            .buttonStyle(.plain).fixedSize()
-            .popover(isPresented: $showingAltitude) { MapAltitudeControl(model: model) }
-            Button { showingData.toggle() } label: { Image(systemName: "info.circle") }
-                .buttonStyle(.plain).accessibilityLabel("Map data and updates")
+        VStack(alignment: .leading, spacing: 16) {
+            Text("MAP LAYERS").foregroundStyle(RadarStyle.muted)
+            layer("Routes", key: \.routes)
+            layer("Airspace", key: \.airspace)
+            layer("Airports", key: \.airports)
+            Divider().overlay(RadarStyle.line)
+            MapAltitudeControl(model: model)
+            Divider().overlay(RadarStyle.line)
+            Button { showingData.toggle() } label: { Label("Map data and updates", systemImage: "info.circle") }
+                .buttonStyle(.plain)
                 .popover(isPresented: $showingData) { MapDataView(model: model) }
         }
-        .font(.system(size: 10, design: .monospaced))
-        .padding(.horizontal, 24).padding(.vertical, 10)
+        .padding(20)
+        .font(RadarStyle.mono)
+        .foregroundStyle(RadarStyle.green)
+        .tint(RadarStyle.green)
         .background(RadarStyle.panel)
     }
+
     private func layer(_ title: String, key: WritableKeyPath<MapLayerPreferences, Bool>) -> some View {
-        Button {
-            var settings = model.settings; settings.mapLayers[keyPath: key].toggle(); model.apply(settings)
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: model.settings.mapLayers[keyPath: key] ? "checkmark.square" : "square")
-                Text(title)
-            }
-            .foregroundStyle(model.settings.mapLayers[keyPath: key] ? RadarStyle.green : RadarStyle.muted)
-        }
-        .buttonStyle(.plain).fixedSize()
-        .accessibilityLabel(title.capitalized).accessibilityValue(model.settings.mapLayers[keyPath: key] ? "On" : "Off")
+        Toggle(title, isOn: Binding(get: { model.settings.mapLayers[keyPath: key] }, set: { enabled in
+            var settings = model.settings
+            settings.mapLayers[keyPath: key] = enabled
+            model.apply(settings)
+        }))
+        .toggleStyle(.checkbox)
     }
 }
 
@@ -64,7 +58,7 @@ struct MapAltitudeControl: View {
             Text("Routes and airspace only.\nUncertain limits remain dimly visible.")
                 .foregroundStyle(RadarStyle.muted).font(.system(size: 11, design: .monospaced))
         }
-        .padding(20).font(RadarStyle.mono).frame(width: 370).background(RadarStyle.panel)
+        .font(RadarStyle.mono).frame(width: 370).background(RadarStyle.panel)
         .onAppear { entry = model.settings.mapLayers.flightLevel.map(String.init) ?? "100" }
     }
     private func commit() {

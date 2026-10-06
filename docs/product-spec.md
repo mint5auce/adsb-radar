@@ -30,14 +30,75 @@ Provide a return-to-receiver control, labelled Return home in Online mode.
 
 Bundle a lightweight coastline and border background so the geographic display and local reception work offline.
 
+## Startup presentation and control visibility
+
+The following visual changes were accepted on 6 October 2026 and are implemented.
+See [the verification record](control-visibility-verification.md) for automated checks and native exercise steps.
+They supersede the earlier first-launch presentation defaults in the aircraft-view and airway designs.
+
+### First-launch preferences
+
+When no saved preferences exist, start with Routes, Airspace, and Airports disabled, Labels set to All, Trails set to All, and direction vectors enabled.
+Keep the bundled coastline and border background visible.
+All labels intentionally permits overlaps in dense traffic; Automatic and Selected only remain available.
+Preserve existing saved presentation choices, including when an installation is replaced but preferences remain.
+Retain the previous presentation defaults when decoding older saved preferences that lack those fields, rather than treating them as a fresh installation.
+Use Pointer at edge as the default for the new control-visibility preference, including existing installations without that preference.
+
+### Compact layout
+
+Keep the established phosphor colours and monospaced typography.
+Combine compact branding and aircraft actions into the top row, retaining access to source identification, update mode, Filters, View, Contacts, Settings, and the Synthetic restart action.
+Put a Map button beside Sweep, Filters, View, and Contacts, with the same visual treatment and a popover containing map-layer switches, flight-level controls, and map-data information.
+Move North up and the current viewing radius into the top bar, so they hide with it.
+Arrange source health and contact counts horizontally in a compact footer, retaining separate Local and Online status and existing attribution.
+Keep controls and status readable at the minimum window size, adapting the layout rather than clipping essential content.
+
+The top controls and footer slide independently over the radar map on opaque dark panels.
+Revealing or hiding them keeps the map dimensions and geographic framing stable.
+Keep the UTC clock visible on the map with a small black background tightly surrounding its text, removing the full-width black strip behind the current top map information.
+Keep a small Synthetic badge beside the clock while synthetic aircraft data is active, including when both bars are hidden.
+Origin coordinates, home/receiver and zoom controls, range-ring labels, and the selected-object sidebar remain available independently of bar visibility.
+Existing map messages, including missing Home, no positioned contacts, geography status, and the online search-limit notice, remain visible when applicable.
+
+### Visibility modes and persistence
+
+Offer Pointer at edge, Always visible, and Caret buttons in Settings and remember the selected mode between launches.
+Apply mode changes immediately.
+Remember the mode rather than each bar's last expanded or collapsed state.
+On each launch, initially show both bars for 15 seconds in Pointer at edge and Caret buttons modes, keeping controls visible while they are being used.
+Always visible keeps both bars expanded and bypasses automatic hiding.
+
+In Pointer at edge mode, approaching the top edge reveals the top controls and approaching the bottom edge reveals the footer.
+After a reveal, hide the corresponding bar after the pointer has been away from its controls for 15 seconds.
+Keep the associated controls visible while their menus, popovers, or settings sheet are open.
+
+In Caret buttons mode, leave a visible downward-pointing caret at the top and an upward-pointing caret at the bottom when the respective bars are hidden.
+Each caret reveals only its associated bar and reverses direction while that bar is expanded.
+After an explicit reveal, keep that bar open until its caret is clicked again.
+The initial 15-second startup display still applies before any explicit reveal.
+
+Reception failures do not automatically reveal a hidden footer.
+Show the current source status when the footer is revealed, while preserving the independently visible map messages.
+Hiding controls changes presentation only; normal reception, contact updates, and ageing continue.
+
+### Verification brief
+
+Check fresh preferences, existing explicit preferences, and older saved preferences missing presentation fields separately.
+Verify all three visibility modes, independent bar state, the startup timer, pointer-away timing, caret toggles, interaction holds, immediate settings changes, and relaunch behaviour.
+Inspect normal and minimum window sizes, including an open inspector, active filters, long source failures, and both Test and dense Demo traffic.
+Check that North up and radius hide with the top bar while the clock, Synthetic badge, and retained map information remain legible and unobscured.
+Confirm that showing and hiding bars does not change map framing, trigger map interactions through the panels, or interrupt reception.
+Record exact candidate build/start commands and manual exercise steps when implementing these changes.
+
 ## Aircraft view decluttering and filtering
 
 The accepted design is recorded in [the detailed design](design/aircraft-view-decluttering.md).
-Use automatic label decluttering alongside explicit aircraft view filters, retaining individual aircraft symbols.
+Offer automatic label decluttering alongside explicit aircraft view filters, retaining individual aircraft symbols.
 Prioritise the selected label and fresh contacts, prefer stable nearby label placement, and suppress labels that still overlap.
 Reveal more labels as zoom creates space and draw symbols above label backgrounds.
 Provide Automatic, All, and Selected only label modes without shrinking callsign/altitude text to fit crowded traffic.
-Default to Automatic labels, Selected trails, and enabled short direction vectors.
+Use the [startup presentation policy](#startup-presentation-and-control-visibility) for initial label, trail, and direction-vector preferences.
 Provide All, Selected, and None trail-display choices plus an independent direction-vector switch, while retaining normal trail history regardless of its display.
 
 Offer an optional distance limit around saved Home, independent minimum/maximum reported-altitude limits, reported aircraft categories, and Hide ground aircraft.
@@ -115,7 +176,7 @@ Show large and medium airports at normal viewing scales and introduce small airp
 Exclude closed airports, heliports, and seaplane bases initially.
 Selecting an airport shows its name, codes, and elevation.
 
-Start with all three layers enabled and remember layer switches and the altitude view between launches.
+Use the [startup presentation policy](#startup-presentation-and-control-visibility) for initial layer switches and remember layer switches and the altitude view between launches.
 Show airport codes and sparse route names, introducing waypoint names and smaller features as the user zooms in.
 Keep aircraft labels visually dominant and always label the selected feature.
 
@@ -187,9 +248,11 @@ Expose position age in the selected contact's details.
 | Initial viewing radius | 100 nautical miles |
 | Missing receiver attempt limit | 3 attempts, including the initial start |
 | Aircraft view criteria | Unrestricted, including ground |
-| Label mode | Automatic |
-| Trail display | Selected aircraft |
+| Label mode | All on first launch |
+| Trail display | All aircraft on first launch |
 | Direction vectors | Enabled |
+| Routes, Airspace, Airports | Disabled on first launch |
+| Control visibility | Pointer at edge |
 | Include unknown filter values | Enabled for each applicable field |
 | Online refresh interval | 5 seconds |
 | Online search radius limit | 250 nautical miles |
