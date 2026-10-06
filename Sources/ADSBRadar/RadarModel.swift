@@ -113,11 +113,16 @@ final class RadarModel {
     }
     func clearAircraftFilters() { setAircraftFilters(AircraftViewFilters()) }
     var filterSummary: String {
-        guard settings.aircraftFilters.isActive else { return "Unrestricted aircraft" }
-        if let distance = settings.aircraftFilters.homeDistanceNM {
-            return settings.receiver == nil ? "Home distance unavailable" : "Within \(settings.distance(distance)) of Home"
+        let filters = settings.aircraftFilters
+        var parts: [String] = []
+        if let distance = filters.homeDistanceNM {
+            parts.append(settings.receiver == nil ? "Home distance unavailable" : "Within \(settings.distance(distance)) of Home")
         }
-        return "Aircraft filters active"
+        if let altitude = filters.minimumAltitudeFeet { parts.append("Min \(settings.altitude(.feet(altitude)))") }
+        if let altitude = filters.maximumAltitudeFeet { parts.append("Max \(settings.altitude(.feet(altitude)))") }
+        if filters.hideGround { parts.append("Ground hidden") }
+        if !filters.includeUnknownAltitude { parts.append("Unknown altitude hidden") }
+        return parts.isEmpty ? "Unrestricted aircraft" : parts.joined(separator: " · ")
     }
 
     var selectedContact: PresentedContact? { contacts.first { $0.id == selectedAddress } }

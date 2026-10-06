@@ -28,3 +28,14 @@ The original problem was reproduced in the native app with 250 Demo aircraft bef
 8. With Home unset, confirm distance controls explain their unavailability.
 
 Home-distance model checks passed with retained contacts, selected exceptions, offscreen counts, and clearing without observation changes.
+
+## Reported altitude and ground (#22)
+
+1. Enter a minimum and/or maximum reported altitude and press Return or leave the field to commit it.
+2. Verify that aircraft exactly at either limit remain eligible, Ground is excluded by numeric ranges, and Include unknown altitude controls missing altitude independently.
+3. Enter a minimum above the maximum and confirm the inline error leaves the last valid range active.
+4. Clear the range and toggle Hide ground aircraft, confirming zero numeric altitude does not imply Ground.
+5. Change altitude units and relaunch, checking that physical limits remain unchanged.
+6. Combine Home distance and altitude criteria and confirm both must match, with the explicit selected-aircraft exception retained.
+
+Deterministic altitude checks passed for exact bounds, missing altitude, explicit Ground, numeric zero, and invalid range retention.

@@ -54,13 +54,39 @@ struct AircraftViewModelTests {
         #expect(model.settings.labelMode == .all && model.settings.trailMode == .none && !model.settings.directionVectors)
     }
 
+    @Test @MainActor func altitudeBoundsAreInclusiveAndGroundIsNotNumericZero() async throws {
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation; settings.mode = .immediate; settings.enrichIdentities = false
+        let observations: [AircraftObservation] = [("aaa111", AircraftAltitude.feet(10000)), ("bbb222", .feet(20000)),
+            ("ccc333", .feet(9999)), ("ddd444", .ground), ("eee555", nil), ("fff666", .feet(0))].map {
+                AircraftObservation(address: $0.0, position: SyntheticSource.exampleLocation, positionTime: .now, altitude: $0.1)
+            }
+        let model = RadarModel(source: ViewFixtureSource(observations: observations), identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 6 }
+        var filters = model.settings.aircraftFilters
+        filters.minimumAltitudeFeet = 10000; filters.maximumAltitudeFeet = 20000
+        model.setAircraftFilters(filters)
+        #expect(Set(model.eligibleContacts.map(\.id)) == ["aaa111", "bbb222", "eee555"])
+        filters.includeUnknownAltitude = false; model.setAircraftFilters(filters)
+        #expect(Set(model.eligibleContacts.map(\.id)) == ["aaa111", "bbb222"])
+        filters.minimumAltitudeFeet = 21000; model.setAircraftFilters(filters)
+        #expect(model.settings.aircraftFilters.minimumAltitudeFeet == 10000)
+        model.clearAircraftFilters()
+        filters = model.settings.aircraftFilters; filters.hideGround = true; model.setAircraftFilters(filters)
+        #expect(!model.eligibleContacts.contains { $0.id == "ddd444" })
+        #expect(model.eligibleContacts.contains { $0.id == "fff666" })
+        await model.shutdown()
+    }
+
 }
 
 actor ViewFixtureSource: AircraftDataSource {
+    let observations: [AircraftObservation]?
+    init(observations: [AircraftObservation]? = nil) { self.observations = observations }
     func start(location: GeographicCoordinate?) async {}
     func stop() async {}
     func poll() async -> ReceptionReading {
-        ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: [
+        ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations ?? [
             AircraftObservation(address: "aaa111", position: GeographicCoordinate(latitude: 0.1, longitude: 0), positionTime: .now, altitude: .feet(10000), source: "LOCAL"),
             AircraftObservation(address: "bbb222", position: GeographicCoordinate(latitude: 1.5, longitude: 0), positionTime: .now, altitude: .feet(20000), source: "LOCAL")
         ]))
