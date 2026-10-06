@@ -20,12 +20,18 @@ struct RadarSurface: View {
                 AircraftCanvas(contacts: model.contacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress)
                     .allowsHitTesting(false)
             }
+            if let coverage = model.onlineCoverage, coverage.limited, let origin = model.origin {
+                OnlineBoundaryCanvas(coverage: coverage, origin: origin, camera: model.camera).allowsHitTesting(false)
+            }
             overlays
         }
         .background(RadarStyle.background)
         .clipped()
         .contentShape(Rectangle())
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: {
+            size = $0
+            model.updateViewport(width: $0.width, height: $0.height)
+        }
         .gesture(DragGesture(minimumDistance: 3).onChanged { event in
             if dragOrigin == nil { dragOrigin = model.camera }
             model.camera = (dragOrigin ?? model.camera).panned(dx: event.translation.width, dy: event.translation.height, width: size.width, height: size.height)
@@ -45,6 +51,11 @@ struct RadarSurface: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("NORTH UP / \(model.displaySettings.distance(model.camera.radiusNM)) RADIUS")
                         .padding(3).background(RadarStyle.background.opacity(0.9))
+                    if model.onlineCoverage?.limited == true {
+                        Text("ONLINE SEARCH LIMIT / \(model.settings.distance(model.settings.onlineRadiusNM))")
+                            .foregroundStyle(RadarStyle.amber)
+                            .padding(3).background(RadarStyle.background.opacity(0.9))
+                    }
                     if let message = model.mapMessage { Text(message).foregroundStyle(RadarStyle.amber) }
                     if model.contacts.isEmpty, model.displaySettings.receiver != nil {
                         Text("NO POSITIONED CONTACTS").foregroundStyle(RadarStyle.muted)
@@ -223,6 +234,28 @@ struct AircraftCanvas: View {
             let age = Date.now.timeIntervalSince(samples[index].time)
             let opacity = max(0.08, 0.55 * (1 - age / settings.trailSeconds))
             context.stroke(segment, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: 0.8, dash: [2, 3]))
+        }
+    }
+}
+
+struct OnlineBoundaryCanvas: View {
+    let coverage: OnlineCoverage
+    let origin: GeographicCoordinate
+    let camera: RadarCamera
+
+    var body: some View {
+        Canvas { context, size in
+            var boundary = Path()
+            var previous: CGPoint?
+            for sample in coverage.boundary(relativeTo: origin) {
+                let screen = camera.screen(sample, width: size.width, height: size.height)
+                let point = CGPoint(x: screen.x, y: screen.y)
+                if let previous, hypot(point.x - previous.x, point.y - previous.y) < hypot(size.width, size.height) {
+                    boundary.addLine(to: point)
+                } else { boundary.move(to: point) }
+                previous = point
+            }
+            context.stroke(boundary, with: .color(RadarStyle.amber.opacity(0.65)), style: StrokeStyle(lineWidth: 0.8, dash: [5, 5]))
         }
     }
 }

@@ -55,6 +55,9 @@ Choose Online / adsb.fi in Settings and enter a Home location if none is saved.
 Online mode needs internet access but no receiver or decoder installation.
 The saved location anchors the sweep and range rings, and the location control returns home.
 Configure the refresh interval and search-radius limit in Settings; defaults are five seconds and 250 nautical miles.
+The search follows the visible map after panning settles, using one circle capped by the configured radius.
+When the map extends beyond it, a dashed amber boundary and search-limit notice show the requested area.
+This boundary does not guarantee reception coverage, and contacts leaving the search remain until normal ageing removes them.
 The radius cannot exceed 250 nautical miles and all requests share adsb.fi's one-request-per-second allowance.
 Failed requests retry with increasing delays while contacts continue to age using their original position times.
 

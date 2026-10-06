@@ -10,6 +10,22 @@ public struct RadarPoint: Equatable, Sendable {
 public struct ReceiverProjection: Sendable {
     public let origin: GeographicCoordinate
     public init(origin: GeographicCoordinate) { self.origin = origin }
+    /// Inverse of the home-centred azimuthal equidistant projection.
+    /// Longitude wraps naturally, including when unrestricted panning crosses the date line.
+    public func coordinate(at point: RadarPoint) -> GeographicCoordinate? {
+        guard point.east.isFinite, point.north.isFinite else { return nil }
+        let distance = hypot(point.east, point.north)
+        guard distance.isFinite else { return nil }
+        if distance < 0.000001 { return origin }
+        let arc = (distance / 3440.065).truncatingRemainder(dividingBy: 2 * .pi)
+        let bearing = atan2(point.east, point.north)
+        let latitude = origin.latitude * .pi / 180
+        let longitude = origin.longitude * .pi / 180
+        let destinationLatitude = asin(min(1, max(-1, sin(latitude) * cos(arc) + cos(latitude) * sin(arc) * cos(bearing))))
+        let destinationLongitude = longitude + atan2(sin(bearing) * sin(arc) * cos(latitude), cos(arc) - sin(latitude) * sin(destinationLatitude))
+        let wrapped = (destinationLongitude * 180 / .pi + 540).truncatingRemainder(dividingBy: 360) - 180
+        return GeographicCoordinate(latitude: destinationLatitude * 180 / .pi, longitude: wrapped)
+    }
     /// Project a short geographic heading segment so vectors align with the map away from its origin.
     public func direction(at coordinate: GeographicCoordinate, headingDegrees: Double) -> RadarPoint {
         guard headingDegrees.isFinite else { return RadarPoint() }

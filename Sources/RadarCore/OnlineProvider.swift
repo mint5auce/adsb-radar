@@ -207,6 +207,7 @@ public actor OnlineFeed: AircraftDataSource {
     private var policy = OnlineRefreshPolicy()
     private var status: ReceptionStatus = .stopped
     private var generation = 0
+    private var request: Task<ReceiverSnapshot, any Error>?
 
     public init(provider: any OnlineAircraftProvider = ADSBFiProvider(), interval: Double = 5, radiusNM: Double = 250) {
         self.provider = provider
@@ -225,15 +226,22 @@ public actor OnlineFeed: AircraftDataSource {
     public func poll() async -> ReceptionReading {
         guard let search, Date.now >= policy.nextAttempt else { return ReceptionReading(status: status) }
         let revision = generation
+        let provider = provider
+        let pending = Task { try await provider.positions(in: search) }
+        request = pending
         do {
-            let snapshot = try await provider.positions(in: search)
+            let snapshot = try await withTaskCancellationHandler {
+                try await pending.value
+            } onCancel: { pending.cancel() }
             try Task.checkCancellation()
             guard revision == generation else { return ReceptionReading(status: status) }
+            request = nil
             policy.succeeded(at: .now, interval: interval)
             status = snapshot.observations.isEmpty ? .waiting : .receiving
             return ReceptionReading(status: status, snapshot: snapshot)
         } catch {
             guard revision == generation, !Task.isCancelled else { return ReceptionReading(status: status) }
+            request = nil
             let retryAfter: Date?
             if case OnlineProviderError.http(_, let retry) = error { retryAfter = retry } else { retryAfter = nil }
             policy.failed(at: .now, interval: interval, retryAfter: retryAfter)
@@ -242,8 +250,26 @@ public actor OnlineFeed: AircraftDataSource {
         }
     }
 
+    public func update(search: OnlineSearch, interval: Double) {
+        generation += 1
+        request?.cancel()
+        request = nil
+        self.search = search
+        self.interval = max(1, interval)
+        policy.requestUpdate()
+    }
+
+    public func suspendSearch() {
+        generation += 1
+        request?.cancel()
+        request = nil
+        search = nil
+    }
+
     public func stop() async {
         generation += 1
+        request?.cancel()
+        request = nil
         search = nil
         status = .stopped
     }

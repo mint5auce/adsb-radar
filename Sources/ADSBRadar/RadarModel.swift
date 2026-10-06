@@ -14,7 +14,7 @@ final class RadarModel {
     private(set) var mapMessage: String?
     private(set) var retrying = false
     var selectedAddress: String?
-    var camera: RadarCamera
+    var camera: RadarCamera { didSet { if camera != oldValue { scheduleSearchUpdate() } } }
     private(set) var sweepStartedAt: Date
 
     @ObservationIgnored private let preferences: RadarPreferences
@@ -26,6 +26,10 @@ final class RadarModel {
     @ObservationIgnored private var mapTask: Task<Void, Never>?
     @ObservationIgnored private var shuttingDown = false
     @ObservationIgnored private var sourceRevision = 0
+    @ObservationIgnored private var searchRevision = 0
+    @ObservationIgnored private var searchTask: Task<Void, Never>?
+    private(set) var viewportWidth: Double = 800
+    private(set) var viewportHeight: Double = 600
 
     init(source: (any AircraftDataSource)? = nil, initialSettings: RadarSettings? = nil,
          options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
@@ -58,6 +62,33 @@ final class RadarModel {
         return result
     }
 
+
+    var onlineCoverage: OnlineCoverage? {
+        guard settings.source == .online, let origin else { return nil }
+        return OnlineCoverage(origin: origin, camera: camera, width: viewportWidth, height: viewportHeight, limitNM: settings.onlineRadiusNM)
+    }
+
+    func updateViewport(width: Double, height: Double) {
+        guard width > 0, height > 0, width != viewportWidth || height != viewportHeight else { return }
+        viewportWidth = width
+        viewportHeight = height
+        scheduleSearchUpdate()
+    }
+
+    private func scheduleSearchUpdate() {
+        searchRevision += 1
+        searchTask?.cancel()
+        guard settings.source == .online, !shuttingDown else { return }
+        let revision = searchRevision
+        searchTask = Task {
+            if let feed = source as? OnlineFeed { await feed.suspendSearch() }
+            do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
+            guard revision == searchRevision, !Task.isCancelled,
+                  let coverage = onlineCoverage, let feed = source as? OnlineFeed else { return }
+            await feed.update(search: coverage.search, interval: settings.onlineRefreshSeconds)
+        }
+    }
+
     func start() {
         guard loop == nil, !shuttingDown else { return }
         loadGeography()
@@ -85,15 +116,20 @@ final class RadarModel {
                     let replacement: any AircraftDataSource = suppliedSource ?? Self.makeSource(configured)
                     source = replacement
                     await replacement.start(location: origin)
+                    if let feed = replacement as? OnlineFeed, let coverage = onlineCoverage {
+                        await feed.update(search: coverage.search, interval: settings.onlineRefreshSeconds)
+                    }
                     guard !Task.isCancelled else { break }
                     guard revision == sourceRevision else { continue }
                     activeRevision = revision
                     retrying = false
                 }
                 guard let source else { break }
+                let searchRevision = self.searchRevision
                 let reading = await source.poll()
                 guard !Task.isCancelled else { break }
                 guard activeRevision == sourceRevision else { continue }
+                if settings.source == .online, searchRevision != self.searchRevision { continue }
                 reception = reading.status
                 if let snapshot = reading.snapshot {
                     heardWithoutPosition = snapshot.heardWithoutPosition
@@ -113,6 +149,7 @@ final class RadarModel {
     func shutdown() async {
         shuttingDown = true
         mapTask?.cancel()
+        searchTask?.cancel()
         loop?.cancel()
         sourceLoop?.cancel()
         await loop?.value
@@ -133,9 +170,11 @@ final class RadarModel {
             (settings.scenario != previous.scenario || settings.demoCount != previous.demoCount ||
              settings.staleSeconds != previous.staleSeconds || settings.removalSeconds != previous.removalSeconds ||
              settings.sweepSeconds != previous.sweepSeconds)
-        if originChanged || syntheticChanged ||
-            (settings.source == .online && (settings.onlineRefreshSeconds != previous.onlineRefreshSeconds || settings.onlineRadiusNM != previous.onlineRadiusNM)) {
+        if originChanged || syntheticChanged {
             requestRestart()
+        }
+        if settings.onlineRefreshSeconds != previous.onlineRefreshSeconds || settings.onlineRadiusNM != previous.onlineRadiusNM {
+            scheduleSearchUpdate()
         }
         if originChanged {
             camera.offset = RadarPoint()

@@ -33,6 +33,14 @@ enum PreviewRenderer {
         try image(RadarSettingsView(settings: model.settings, save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         if online {
+            var wideSettings = model.settings
+            wideSettings.onlineRadiusNM = 60
+            wideSettings.distanceUnit = .kilometres
+            model.apply(wideSettings)
+            model.camera.radiusNM = 300
+            try image(model, to: folder.appendingPathComponent("search-limit.png"), width: 1200, height: 800)
+            try image(model, to: folder.appendingPathComponent("search-limit-minimum.png"), width: 800, height: 560)
+            model.returnToReceiver()
             model.setMode(.sweep)
             try await Task.sleep(for: .seconds(4.1))
             try image(model, to: folder.appendingPathComponent("sweep.png"), width: 1200, height: 800)

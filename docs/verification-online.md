@@ -39,3 +39,20 @@ swift build
 ```
 
 These renders exercise native views with fixtures and do not constitute an interactive network-outage or physical-receiver test.
+
+## Issue #16: visible-map searches
+
+The completed slice passes 28 tests.
+Additional deterministic checks cover inverse projection and date-line wrapping, extreme pans, viewport coverage, configured limits, boundary geometry, contact retention outside the search, settled-pan coalescing, changing limits without clearing selection, and Return home.
+The native normal and minimum-window previews show the dashed boundary and a 60 NM limit displayed as 111 KM, confirming that the notice uses the chosen limit and distance units.
+Search changes cancel pending requests and reject obsolete results without resetting the contact session.
+The live native candidate was also exercised through repeated zooms and a pan; the 250 NM boundary and notice appeared while Online reception remained active.
+
+Using the build and launch commands above:
+
+1. Choose Online, select a contact, and drag the map repeatedly; confirm the search follows the final view while the home origin remains fixed.
+2. Zoom out until the view exceeds the configured limit and confirm the dashed amber boundary and limit notice appear.
+3. Change the search limit to 60 NM and distance units to kilometres; confirm the notice reports 111 KM and pan/zoom remain unrestricted.
+4. Pan away from the selected aircraft and verify its inspector and trail remain until the usual removal age, without a separate tracking query.
+5. Use Return home and verify that the map and search return to the saved origin.
+6. Repeat at the minimum 800 by 560 window size and restore preferred settings afterwards.
