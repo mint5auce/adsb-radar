@@ -14,6 +14,7 @@ struct RadarSurface: View {
     @State private var zoomOrigin: RadarCamera?
     @State private var topOverlayFrame = CGRect.zero
     @State private var bottomOverlayFrame = CGRect.zero
+    @State private var navigationFrame = CGRect.zero
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -44,6 +45,7 @@ struct RadarSurface: View {
             model.updateViewport(width: $0.width, height: $0.height)
         }
         .gesture(DragGesture(minimumDistance: 3).onChanged { event in
+            guard !navigationFrame.contains(event.startLocation) else { return }
             if dragOrigin == nil { dragOrigin = model.camera }
             model.camera = (dragOrigin ?? model.camera).panned(dx: event.translation.width, dy: event.translation.height, width: size.width, height: size.height)
         }.onEnded { _ in dragOrigin = nil })
@@ -74,6 +76,7 @@ struct RadarSurface: View {
             MapSecondaryClick { point in
                 // The AppKit event monitor also sees clicks on the bars layered above this map.
                 guard point.y >= topInset, point.y < size.height - bottomInset else { return }
+                guard !navigationFrame.contains(point) else { return }
                 let candidates = model.objectChoices(at: point, secondary: true)
                 if !candidates.isEmpty { tapPoint = point; choices = candidates; showingChooser = true }
             }.allowsHitTesting(false)
@@ -139,6 +142,7 @@ struct RadarSurface: View {
                         .keyboardShortcut("+", modifiers: .command)
                 }
                 .background(RadarStyle.panel).overlay(Rectangle().stroke(RadarStyle.line))
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { navigationFrame = $0 }
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { bottomOverlayFrame = $0 }
         }
@@ -154,11 +158,13 @@ struct RadarSurface: View {
     }
 
     private func control(_ label: String, symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol).frame(width: 40, height: 36) }
+        Button(action: action) { Image(systemName: symbol).frame(width: 40, height: 36).contentShape(Rectangle()) }
             .buttonStyle(.plain).help(label).accessibilityLabel(label)
     }
 
     private func select(at point: CGPoint) {
+        // Navigation owns its entire panel, including the space around button symbols.
+        guard !navigationFrame.contains(point) else { return }
         let candidates = model.objectChoices(at: point)
         if candidates.count > 1 {
             tapPoint = point; choices = candidates; showingChooser = true
