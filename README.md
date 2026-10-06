@@ -10,6 +10,9 @@ Explore aircraft details, trails, and bundled UK airways, airspace, and airports
 
 ## Build and start
 
+An easy-to-install package for non-developers is coming very soon.
+For now, build from source using the instructions below.
+
 Requires macOS 14+ and Swift 6 developer tools.
 
 ```sh
