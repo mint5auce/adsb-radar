@@ -17,16 +17,70 @@ Consumer distribution is outside the initial scope.
 ## Visual direction and exploration
 
 Use [Air Defender](https://airdefendergame.com/) as the visual reference: a rectangular tactical map with a black background, fine green geography, compact monospaced labels, aircraft direction vectors, and trails.
-Show callsign and altitude beside aircraft contacts.
+Use callsign and altitude for aircraft labels, subject to the chosen label mode and automatic decluttering.
 Selecting a contact reveals its available details, including the source and age of its last position.
 Show unavailable fields explicitly as unknown.
 
 The map is north-up and supports free pan and zoom.
-Start centred on a saved, manually entered receiver location, which can be changed in settings.
+Start centred on a saved, manually entered home location, which can be changed in settings and represents the receiver location when using local reception.
+Reuse this saved location across real-data source modes, labelling it Home location in Online mode.
+Require a manually entered location before starting Online mode if none is saved; do not detect the user's location automatically.
 Keep range rings and the simulated sweep anchored to that geographic location when panning.
-Provide a return-to-receiver control.
+Provide a return-to-receiver control, labelled Return home in Online mode.
 
 Bundle a lightweight coastline and border background so the geographic display and local reception work offline.
+
+## Aircraft view decluttering and filtering
+
+The accepted design is recorded in [the detailed design](design/aircraft-view-decluttering.md).
+Use automatic label decluttering alongside explicit aircraft view filters, retaining individual aircraft symbols.
+Prioritise the selected label and fresh contacts, prefer stable nearby label placement, and suppress labels that still overlap.
+Reveal more labels as zoom creates space and draw symbols above label backgrounds.
+Provide Automatic, All, and Selected only label modes without shrinking callsign/altitude text to fit crowded traffic.
+Default to Automatic labels, Selected trails, and enabled short direction vectors.
+Provide All, Selected, and None trail-display choices plus an independent direction-vector switch, while retaining normal trail history regardless of its display.
+
+Offer an optional distance limit around saved Home, independent minimum/maximum reported-altitude limits, reported aircraft categories, and Hide ground aircraft.
+Distance shortcuts start at 25, 50, and 100 NM, with custom values and chosen distance units.
+Altitude limits use chosen altitude units and remain independent of the airspace flight-level slice.
+Do not interpret Ground as zero altitude or reported altitude as height above terrain.
+Hide only explicitly grounded aircraft when Hide ground aircraft is enabled, and exclude them from active numeric altitude bands with an explanatory note.
+Provide Light, Small, Large, Heavy, High-performance, Helicopters, and Other categories, grouping high-vortex large with Large.
+The Larger aircraft shortcut includes Small, Large, and Heavy reported categories, approximately seven tonnes maximum takeoff weight and upwards.
+Do not infer commercial/private operation or emitter weight categories from a model's wake category.
+Keep an independent Include unknown choice for each applicable field, enabled by default.
+Retain last-known reported category information with provenance and successful update date, using the existing cache/refresh approach and preferring valid current Local reports.
+Permitted enrichment may fill category information but must not add contacts or change movement, position age, or active position source.
+
+Combine active criteria with AND, and selected categories within their criterion with OR.
+Apply inclusive boundaries to the displayed contact values without a hidden tolerance or delay.
+Keep receiving and ageing filtered aircraft normally, preserving selection eligibility and history independently of their display.
+A selected aircraft remains eligible outside filters until deselected, with an Outside filters note, but normal removal still applies.
+This exception does not force the aircraft onscreen or make the map follow it.
+Selecting an offscreen aircraft opens its details without automatic panning; Show on map centres it explicitly without moving Home.
+
+Provide a Filters panel accessible from the map, visible active-filter summaries, and one Clear filters action.
+Toggles and categories apply immediately, while numeric entries apply when committed and valid.
+Invalid entries explain the problem inline and leave the previous valid filter active.
+Require positive distance and a valid altitude range, and mark Home distance unavailable if no Home is saved while other criteria continue to work.
+Do not impose the provider's search-radius cap on the presentation distance limit.
+Clear filters restores unrestricted criteria while retaining presentation preferences and selection.
+
+Provide editable Overview, Near Home, Larger near Home, and Higher traffic starting presets with the values in the detailed design.
+Remember the active aircraft criteria and presentation choices between launches, with an obvious active-filter indicator.
+First launch uses unrestricted aircraft criteria, including ground aircraft.
+Named custom presets and aircraft clusters are outside this first version.
+Use the same presentation controls across source modes while retaining the existing real/Synthetic isolation and source-transition rules.
+
+The Contacts list follows aircraft criteria plus the selected exception, marking contacts outside the current view.
+Search callsign, ICAO address, registration, and model code within that list without changing map filters or counts, and provide a separate clear-search action.
+An ambiguous aircraft click opens a short chooser of eligible nearby contacts with callsign/address, altitude, and known model.
+Report In view, Outside view, and Filtered separately, making the total received positioned contacts available in the Contacts panel and keeping heard-without-position counts separate.
+Aircraft filters do not alter the existing online viewport request, provider allowance, or ordinary contact lifecycle.
+Unknown aircraft in the viewed area remain eligible for permitted enrichment even when filtering hides them.
+
+Verify filtering, category ingestion and caching, provenance, selection exceptions, counts, search, boundaries, preferences, and display-only lifecycle effects with focused deterministic checks.
+Inspect sparse and dense native views, including 250-aircraft Demo traffic and airport-like clusters, at normal and minimum window sizes in both update modes.
 
 ## Application icon
 
@@ -46,7 +100,7 @@ Keep verification proportionate to an asset and packaging change.
 
 ## Reception lifecycle
 
-When local reception is selected, the application starts the installed `readsb` decoder when it opens and stops the process it started when it quits or switches to synthetic aircraft data.
+When Local or Local + Online is selected, the application starts the installed `readsb` decoder when it opens and stops the process it started when it quits or changes to a mode without local reception.
 A one-time receiver software setup is acceptable.
 If the dongle is missing or busy, keep the interface usable and show a clear reception status with Retry in Settings.
 Stop automatic Local reception attempts when a missing dongle reaches the configured attempt limit, defaulting to three attempts including the initial start.
@@ -62,7 +116,7 @@ Show a count of aircraft heard without positions in reception status.
 Support immediate update mode and sweep-timed update mode.
 In immediate update mode, update contacts as new information arrives while the sweep provides atmosphere.
 In sweep-timed update mode, update contacts when the simulated sweep reaches them.
-Both modes keep the sweep anchored to the receiver.
+Both modes keep the sweep anchored to the home location.
 
 Measure position age from the source observation, independently of when the sweep or interface last refreshed.
 When a contact becomes stale, dim it in amber at its last known position before removing it at the removal threshold.
@@ -83,9 +137,21 @@ Expose position age in the selected contact's details.
 | Trail duration | 2 minutes during the current session |
 | Initial viewing radius | 100 nautical miles |
 | Missing receiver attempt limit | 3 attempts, including the initial start |
+| Aircraft view criteria | Unrestricted, including ground |
+| Label mode | Automatic |
+| Trail display | Selected aircraft |
+| Direction vectors | Enabled |
+| Include unknown filter values | Enabled for each applicable field |
+| Online refresh interval | 5 seconds |
+| Online search radius limit | 250 nautical miles |
+| Enrich aircraft details online | Enabled |
+| Identity enrichment refresh age | 7 days |
 
 All settings in this table are configurable.
 The stale and removal thresholds are both measured from the last available position observation.
+The online search radius limit may be reduced but must not exceed adsb.fi's 250-nautical-mile maximum.
+The online refresh interval must respect the provider's request-rate limit, currently no more than one request per second across all online requests.
+Render search-limit notices using the configured radius and distance unit rather than hard-coded defaults.
 
 ## Synthetic aircraft data for offline use
 
@@ -96,12 +162,15 @@ Use the same radar display, contact lifecycle, selection, trails, units, pan, zo
 Keep synthetic operation clearly identified in the window and contact details.
 Do not switch to synthetic aircraft data automatically when local reception fails.
 
-Allow source selection between Local and Synthetic in settings and provide a `--synthetic` launch option for repeatable offline launches.
+Allow source selection between Local, Online, Local + Online, and Synthetic in settings and provide a `--synthetic` launch option for repeatable offline launches.
+Keep synthetic aircraft data separate from real aircraft information.
 Offer two synthetic scenarios: Test and Demo.
 Remember the selected source and scenario between launches, with Local as the first-launch default.
 Launch options override saved choices for that launch without rewriting them.
-Switching sources clears contacts, trails, and selection while preserving receiver and display settings.
-Stop the previous source before starting its replacement, including any app-owned decoder process.
+Switching between Local, Online, and Local + Online preserves selection and trails for contacts supported by a source that remains enabled.
+Remove contacts available only from a disabled source.
+Entering or leaving Synthetic clears contacts, trails, and selection while preserving location and display settings.
+Stop sources that are no longer enabled, including any app-owned decoder process, while keeping sources shared by the old and new mode running.
 
 Generate traffic around the saved receiver location.
 If no receiver location is saved, use a documented bundled example location without saving it as the user's receiver location.
@@ -116,17 +185,56 @@ Provide a Restart control that clears scenario contacts, trails, and selection a
 Document offline launch commands and manual checks for both scenarios.
 Use focused automated checks for repeatability, movement, timestamps, lifecycle transitions, and clean Demo data, with manual inspection of the normal native interface.
 
-## Future online coverage
+## Online coverage
 
-An online feed will supplement areas beyond local reception in the same view.
+Support Online operation without a receiver and Local + Online operation that supplements local reception in the same view.
 Represent each aircraft as one contact even when multiple sources provide information about it.
 Prefer local positions while fresh and fall back automatically to fresh online positions when local reception becomes stale.
 Mark the contact stale only when neither source has a fresh position.
 Keep the active source identifiable in the contact details.
 
+Request online traffic for the visible map area as the user pans and zooms, using one search circle centred on the map and bounded by the configured online search radius limit.
+Preserve unrestricted pan and zoom even when the visible map exceeds that search circle.
+When the search circle cannot cover the whole view, show its boundary and a short notice identifying the online search limit.
+The boundary represents the requested area, not a guarantee of receiver coverage.
+Local contacts may appear outside the online search circle.
+When a contact leaves the online search area, retain its selection and trail while it ages normally until the configured removal threshold.
+Continue updating that contact through local reception when available.
+Do not make additional position-tracking requests outside the online search area to follow selected contacts.
+Keep the sweep and range rings anchored to the saved home location when panning.
+
+Refresh online traffic at the configured interval and request an update after panning settles, respecting the provider's request-rate limit.
+Show Local and Online health separately in Local + Online mode.
+Retry failed sources automatically with increasing delays, keeping any working source running without changing the selected source mode.
+The configured missing-dongle attempt limit stops automatic Local retries until Retry in Settings starts a fresh cycle.
+Continue applying the configured stale and removal thresholds to genuine position observation times during an outage.
+Network activity must not block local reception, display updates, or contact ageing.
+
+Include registration and aircraft type when supplied by the online feed, including for contacts whose active position comes from local reception.
+Keep identity enrichment independent of position selection and position age.
+Provide an Enrich aircraft details online setting, enabled by default, that permits adsb.fi lookups in Local mode.
+Disabling this setting stops dedicated enrichment requests while leaving online position requests governed by the selected source mode.
+Enrich visible contacts, prioritising the selected aircraft, reusing identity information from normal online position responses and batching missing lookups where supported.
+Enrichment requests must share the provider's request allowance without delaying position updates.
+Cache registration, aircraft type, and reported category between launches, with a configurable refresh age defaulting to seven days.
+Refresh due identity information when the contact is encountered again rather than querying the entire stored cache in the background.
+If a refresh fails, retain cached details and make their last-updated date available in the contact inspector.
+Local mode continues to obtain its live aircraft positions solely from local reception, even when an enrichment response contains online positions.
+Identity-only lookups must not introduce contacts, update their movement, refresh their position age, or change their active position source.
+Enrichment failures must not interrupt reception or the radar display; retain known identity information and leave unavailable fields unknown.
+Apply the provider's shared request-rate limit to both position requests and identity-enrichment requests.
+Synthetic operation remains isolated from real aircraft data and does not perform online enrichment.
+Photos, route lookups, and additional cockpit telemetry are outside the first online-feed addition.
+
 Prefer free access; account registration is acceptable.
-Provider selection remains open, and sharing receiver data or paying for access has not been agreed.
-The online feed is a later addition rather than a dependency of the initial local viewer.
+Use adsb.fi as the first online feed, keeping the provider replaceable.
+Sharing receiver data or paying for access has not been agreed.
+Local reception remains available independently of the online feed.
+
+Verify provider response handling, observation timestamps, source preference and fallback, duplicate-contact handling, viewport search limits, request pacing, enrichment caching, mode transitions, and graceful failure with focused automated checks.
+Use deterministic provider responses for automated checks so normal tests do not depend on internet access or live traffic.
+Manually inspect all four source modes, configurable limits, panning beyond the search area, source health, offline operation, and persisted identity details in the native app.
+Verify available live adsb.fi data during implementation and explicitly report any provider access or physical receiver checks that could not be completed.
 
 ## Verification and first milestone
 

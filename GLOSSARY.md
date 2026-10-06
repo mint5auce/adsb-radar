@@ -21,10 +21,22 @@ A representation of one aircraft on the radar display, which may be informed by 
 Aircraft information received through the user's own radio receiver.
 
 **Online feed**:
-Aircraft information supplied by an online service to extend the view beyond local reception.
+Aircraft information supplied by an online service, either on its own or alongside local reception.
+
+**Source mode**:
+The choice of aircraft data sources supplying live positions to the radar display, independently of optional identity enrichment.
+
+**Identity enrichment**:
+Registration, model, and reported-category information associated with an aircraft contact, independently of its position and movement.
 
 **Receiver location**:
-The geographic location of the user's radio receiver, used as the home position of the radar display and the origin of its simulated sweep.
+The geographic location of the user's radio receiver, which is also the home location when using local reception.
+
+**Home location**:
+The geographic origin of the radar display's simulated sweep and range rings, independent of the currently viewed map area.
+
+**Online search area**:
+The geographic area requested from an online feed, distinct from the area where that provider can actually receive aircraft.
 
 **Stale contact**:
 An aircraft contact whose last position is too old to count as current, retained briefly at that position before removal.
@@ -36,7 +48,7 @@ The elapsed time since a source's last position observation for an aircraft, dis
 A display mode in which aircraft contacts update as new information arrives, independently of the decorative radar sweep.
 
 **Sweep-timed update mode**:
-A display mode in which aircraft contacts update when the simulated radar sweep, anchored to the receiver location, reaches them.
+A display mode in which aircraft contacts update when the simulated radar sweep, anchored to the home location, reaches them.
 
 **Synthetic aircraft data**:
 Generated aircraft observations used to explore the radar display without receiving real-world aircraft traffic.
@@ -46,3 +58,21 @@ A repeatable sequence of synthetic aircraft observations containing movement, mi
 
 **Demo scenario**:
 A synthetic traffic picture with many aircraft, complete flight details, and fresh positions, used to demonstrate the radar display.
+
+**Label decluttering**:
+A reduction in overlapping aircraft-contact labels while retaining the aircraft contacts themselves.
+
+**Aircraft view filter**:
+A criterion determining which aircraft contacts are shown, independently of their reception and lifecycle.
+
+**Aircraft category**:
+A reported classification of an aircraft's size or characteristics, distinct from its model and commercial or private use.
+
+**Aircraft model**:
+The aircraft design identified by a type code, such as A320, independently of the purpose of a particular flight.
+
+**Home distance**:
+The distance between an aircraft contact and saved Home, independently of the map centre.
+
+**Selected-aircraft exception**:
+A selected aircraft that remains eligible for display despite failing active aircraft view filters.
