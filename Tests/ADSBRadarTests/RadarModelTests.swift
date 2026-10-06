@@ -108,6 +108,39 @@ struct RadarModelTests {
         await model.shutdown()
     }
 
+    @Test @MainActor func automaticLocalRetryKeepsTheFailureVisibleUntilRecovery() async throws {
+        let local = RecoveringReceiverSource()
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation
+        settings.source = .local
+        settings.enrichIdentities = false
+        let model = RadarModel(source: local, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
+        model.start()
+        try await eventually { model.statuses[.local] == .failed("Receiver unavailable") }
+        try await eventually { await local.polledRestart }
+        #expect(model.statuses[.local] == .failed("Receiver unavailable"), "An automatic retry must retain the actionable error while starting")
+        let automaticallyStarting = model.retrying
+        #expect(!automaticallyStarting)
+        await model.retry(feed: .local)
+        try await eventually { model.statuses[.local] == .starting }
+        await local.recover()
+        try await eventually { model.statuses[.local] == .waiting }
+        await model.shutdown()
+    }
+
+}
+
+private actor RecoveringReceiverSource: AircraftDataSource {
+    private var starts = 0
+    private var recovered = false
+    private(set) var polledRestart = false
+    func recover() { recovered = true }
+    func start(location: GeographicCoordinate?) async { starts += 1 }
+    func stop() async {}
+    func poll() async -> ReceptionReading {
+        if starts > 1 { polledRestart = true }
+        return ReceptionReading(status: recovered ? .waiting : starts > 1 ? .starting : .failed("Receiver unavailable"))
+    }
 }
 
 @MainActor

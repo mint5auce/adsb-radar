@@ -4,12 +4,10 @@ import SwiftUI
 struct RadarWindow: View {
     @Bindable var model: RadarModel
     @State private var showingSettings = false
-    @State private var showingFilters = false
-    @State private var showingContacts = false
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            RadarHeader(model: model, showingSettings: $showingSettings)
             Rectangle().fill(RadarStyle.line).frame(height: 1)
             HStack(spacing: 0) {
                 RadarSurface(model: model, openSettings: { showingSettings = true })
@@ -19,7 +17,7 @@ struct RadarWindow: View {
                 }
             }
             Rectangle().fill(RadarStyle.line).frame(height: 1)
-            status
+            RadarReceptionStatus(model: model)
         }
         .background(RadarStyle.background)
         .foregroundStyle(RadarStyle.green)
@@ -30,7 +28,16 @@ struct RadarWindow: View {
         }
     }
 
-    private var header: some View {
+}
+
+// Keep menu and popover ownership independent of reception and contact redraws.
+private struct RadarHeader: View {
+    @Bindable var model: RadarModel
+    @Binding var showingSettings: Bool
+    @State private var showingFilters = false
+    @State private var showingContacts = false
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -100,7 +107,12 @@ struct RadarWindow: View {
         .menuStyle(.borderlessButton).fixedSize()
     }
 
-    private var status: some View {
+}
+
+private struct RadarReceptionStatus: View {
+    @Bindable var model: RadarModel
+
+    var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(model.feedHealth) { health in
@@ -108,6 +120,7 @@ struct RadarWindow: View {
                         scenario: model.settings.scenario) { Task { await model.retry(feed: health.feed) } }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 8)
             if model.showsOnlineAttribution {
                 Link("adsb.fi", destination: URL(string: "https://adsb.fi")!).foregroundStyle(RadarStyle.muted)
@@ -115,7 +128,8 @@ struct RadarWindow: View {
             let counts = model.contactCounts
             Text("\(counts.inView) IN VIEW  /  \(counts.outsideView) OUTSIDE VIEW  /  \(counts.filtered) FILTERED")
                 .foregroundStyle(RadarStyle.green)
-            Text("\(model.heardWithoutPosition) WITHOUT POSITION").foregroundStyle(RadarStyle.muted)
+                .fixedSize()
+            Text("\(model.heardWithoutPosition) WITHOUT POSITION").foregroundStyle(RadarStyle.muted).fixedSize()
         }
         .font(.system(size: 10, design: .monospaced))
         .padding(.horizontal, 24)
@@ -133,9 +147,18 @@ private struct FeedStatusIndicator: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(text).lineLimit(2).foregroundStyle(color)
-            if case .failed = status { Button("RETRY", action: retry) }
+            Text(text).lineLimit(2).foregroundStyle(color).help(text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("RETRY", action: retry)
+                .opacity(hasFailed ? 1 : 0)
+                .disabled(!hasFailed)
+                .accessibilityHidden(!hasFailed)
         }
+        .frame(height: 28)
+    }
+    private var hasFailed: Bool {
+        if case .failed = status { return true }
+        return false
     }
     private var color: Color {
         if case .failed = status { return RadarStyle.amber }

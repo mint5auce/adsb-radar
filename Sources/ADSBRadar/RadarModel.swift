@@ -405,7 +405,13 @@ final class RadarModel {
             let reading = await run.source.poll()
             guard isCurrent(feed: feed, run: run) else { break }
             if feed == .online, searchRevision != self.searchRevision { continue }
-            statuses[feed] = reading.status
+            // Keep the actionable failure visible while an automatic decoder restart warms up.
+            // A manual retry sets Starting explicitly in reconcileFeeds; recovery clears the error.
+            var displayedStatus = reading.status
+            if feed == .local, reading.status == .starting, case .failed(let message) = statuses[feed] {
+                displayedStatus = .failed(message)
+            }
+            if statuses[feed] != displayedStatus { statuses[feed] = displayedStatus }
             if let snapshot = reading.snapshot {
                 if feed == .local || feed == .synthetic { heardWithoutPosition = snapshot.heardWithoutPosition }
                 session.ingest(snapshot, from: feed)
