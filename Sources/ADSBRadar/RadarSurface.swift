@@ -6,6 +6,9 @@ struct RadarSurface: View {
     let openSettings: () -> Void
     @State private var size = CGSize(width: 800, height: 600)
     @State private var dragOrigin: RadarCamera?
+    @State private var showingChooser = false
+    @State private var chooserAddresses: [String] = []
+    @State private var tapPoint = CGPoint.zero
     @State private var zoomOrigin: RadarCamera?
     @Environment(\.scenePhase) private var scenePhase
 
@@ -41,8 +44,16 @@ struct RadarSurface: View {
             model.camera = (zoomOrigin ?? model.camera).zoomed(by: event.magnification)
         }.onEnded { _ in zoomOrigin = nil })
         .simultaneousGesture(SpatialTapGesture().onEnded { event in select(at: event.location) })
+        .overlay(alignment: .topLeading) {
+            Color.clear.frame(width: 1, height: 1).position(tapPoint)
+                .popover(isPresented: $showingChooser) {
+                    AircraftOverlapChooser(model: model, addresses: chooserAddresses) { address in
+                        model.selectedAddress = address; showingChooser = false
+                    }
+                }
+        }
         .accessibilityLabel("Aircraft radar map")
-        .accessibilityHint("Drag to pan. Pinch or use zoom buttons. Use the Contacts menu to select an aircraft with the keyboard.")
+        .accessibilityHint("Drag to pan. Pinch or use zoom buttons. Use Contacts to select an aircraft with the keyboard.")
     }
 
     private var overlays: some View {
@@ -108,14 +119,15 @@ struct RadarSurface: View {
     }
 
     private func select(at point: CGPoint) {
-        guard let receiver = model.displaySettings.receiver else { return }
-        let projection = ReceiverProjection(origin: receiver)
-        let closest = model.eligibleContacts.compactMap { contact -> (String, Double)? in
-            guard let coordinate = contact.observation.position else { return nil }
-            let position = model.camera.screen(projection.project(coordinate), width: size.width, height: size.height)
-            return (contact.id, hypot(position.x - point.x, position.y - point.y))
-        }.min { $0.1 < $1.1 }
-        model.selectedAddress = closest.flatMap { $0.1 <= 20 ? $0.0 : nil }
+        let candidates = model.aircraftCandidates(at: point)
+        if candidates.count > 1 {
+            tapPoint = point
+            chooserAddresses = candidates.map(\.id)
+            showingChooser = true
+        } else {
+            showingChooser = false
+            model.selectedAddress = candidates.first?.id
+        }
     }
 }
 

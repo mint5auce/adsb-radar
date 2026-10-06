@@ -82,6 +82,9 @@ enum PreviewRenderer {
             filters.homeDistanceNM = 50
             model.setAircraftFilters(filters)
             try await image(model, to: folder.appendingPathComponent("home-filter.png"), width: 800, height: 560)
+            try await image(AircraftContactsView(model: model), to: folder.appendingPathComponent("contacts.png"), width: 440, height: 460)
+            try await image(AircraftOverlapChooser(model: model, addresses: Array(model.eligibleContacts.prefix(3).map(\.id)), choose: { _ in }),
+                to: folder.appendingPathComponent("chooser.png"), width: 340, height: 230)
             try await image(AircraftCategoryControls(model: model).padding(20).background(RadarStyle.panel).foregroundStyle(RadarStyle.green).tint(RadarStyle.green),
                 to: folder.appendingPathComponent("categories.png"), width: 400, height: 250)
             try await image(AircraftFiltersView(model: model), to: folder.appendingPathComponent("filters.png"), width: 400, height: 460)

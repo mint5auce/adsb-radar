@@ -132,6 +132,34 @@ struct AircraftViewModelTests {
         await model.shutdown()
     }
 
+    @Test @MainActor func contactsSearchAndOverlapCandidatesFollowFiltersWithoutChangingTheMap() async throws {
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation; settings.mode = .immediate; settings.enrichIdentities = false
+        let observations = [AircraftObservation(address: "aaa111", callsign: "SPEED123", position: SyntheticSource.exampleLocation, positionTime: .now, altitude: .feet(10000)),
+            AircraftObservation(address: "bbb222", callsign: "OTHER456", position: SyntheticSource.exampleLocation, positionTime: .now, altitude: .feet(20000))]
+        let identity = AircraftIdentity(registration: AircraftIdentityValue(value: "G-TEST", provider: "adsb.fi", updatedAt: .now),
+            aircraftType: AircraftIdentityValue(value: "A320", provider: "adsb.fi", updatedAt: .now))
+        let model = RadarModel(source: ViewFixtureSource(observations: observations), identityStorage: MemoryIdentityStorage(values: ["aaa111": identity]), initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 2 && model.identities["aaa111"] != nil }
+        #expect(model.aircraftCandidates(at: CGPoint(x: 400, y: 300)).count == 2)
+        for query in ["speed", "AAA111", "g-test", "a320"] {
+            model.contactsSearch = query
+            #expect(model.listedContacts.map(\.id) == ["aaa111"])
+            #expect(model.eligibleContacts.count == 2 && model.contactCounts.inView == 2)
+        }
+        var filters = model.settings.aircraftFilters; filters.maximumAltitudeFeet = 15000; model.setAircraftFilters(filters)
+        #expect(model.aircraftCandidates(at: CGPoint(x: 400, y: 300)).map(\.id) == ["aaa111"])
+        model.camera.offset = RadarPoint(east: 500, north: 100)
+        let camera = model.camera; model.selectedAddress = "aaa111"
+        #expect(model.camera == camera)
+        model.showSelectedOnMap()
+        #expect(model.camera.offset == RadarPoint())
+        #expect(model.settings.receiver == settings.receiver)
+        model.clearAircraftFilters()
+        #expect(model.contactsSearch == "a320")
+        await model.shutdown()
+    }
+
 }
 
 actor ViewFixtureSource: AircraftDataSource {

@@ -62,3 +62,15 @@ The existing cache format accepts older entries with no category and refreshes e
 6. Relaunch and clear filters, confirming persisted criteria and independent presentation preferences.
 
 Category checks cover A2-A5, high-performance and helicopter exclusion, unknown handling, AND composition, selection exceptions, and enrichment of hidden contacts.
+
+## Contacts search and overlap selection (#25)
+
+1. Open Contacts and search a callsign, ICAO address, known registration, and known model code such as A320.
+2. Verify only list results change; map filters and In view, Outside view, and Filtered counts stay unchanged.
+3. Use Clear search and Clear filters separately, confirming neither clears the other control's state.
+4. Pan away, select an offscreen contact in Contacts, and confirm the map does not move until Show on map is clicked in the inspector.
+5. Click a dense group of nearby markers and choose a contact by callsign/address, altitude, and known model.
+6. Tighten a filter and verify hidden aircraft no longer appear as clickable markers or overlap candidates, while the selected exception remains eligible.
+7. Compare the Contacts panel and chooser at normal and minimum window sizes in both display modes.
+
+Model checks cover all search fields, independent map counts, filtered hit candidates, explicit centring, and Home preservation.

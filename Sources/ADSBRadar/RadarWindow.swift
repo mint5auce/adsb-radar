@@ -5,6 +5,7 @@ struct RadarWindow: View {
     @Bindable var model: RadarModel
     @State private var showingSettings = false
     @State private var showingFilters = false
+    @State private var showingContacts = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,7 +14,7 @@ struct RadarWindow: View {
             HStack(spacing: 0) {
                 RadarSurface(model: model, openSettings: { showingSettings = true })
                 if let contact = model.selectedContact {
-                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, category: model.reportedCategory(for: contact), outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
+                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, category: model.reportedCategory(for: contact), showOnMap: model.showSelectedOnMap, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
                         .frame(width: 256)
                 }
             }
@@ -66,14 +67,9 @@ struct RadarWindow: View {
             .buttonStyle(.plain).help(model.filterSummary)
             .popover(isPresented: $showingFilters) { AircraftFiltersView(model: model) }
             presentationMenu
-            Menu {
-                Text("\(model.contacts.count) received positioned contacts")
-                if model.eligibleContacts.isEmpty { Text("No matching contacts") }
-                ForEach(model.eligibleContacts) { contact in
-                    Button(contact.observation.callsign ?? contact.observation.address.uppercased()) { model.selectedAddress = contact.id }
-                }
-            } label: { Label("CONTACTS", systemImage: "airplane") }
-                .menuStyle(.borderlessButton).fixedSize()
+            Button { showingContacts.toggle() } label: { Label("CONTACTS", systemImage: "airplane") }
+                .buttonStyle(.plain).fixedSize()
+                .popover(isPresented: $showingContacts) { AircraftContactsView(model: model) }
             Spacer(minLength: 0)
             }
             if model.settings.aircraftFilters.isActive {
@@ -163,6 +159,7 @@ struct ContactInspector: View {
     let identity: AircraftIdentity?
     let settings: RadarSettings
     var category: AircraftCategoryValue? = nil
+    var showOnMap: (() -> Void)? = nil
     var outsideFilters: Bool = false
     let dismiss: () -> Void
 
@@ -183,6 +180,7 @@ struct ContactInspector: View {
                         .foregroundStyle(RadarStyle.bright)
                     Text("\(contact.observation.address.hasPrefix("~") ? "NON-ICAO" : "ICAO") \(contact.observation.address.uppercased())").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
                 }
+                if let showOnMap { Button("Show on map", action: showOnMap) }
                 if outsideFilters { Text("OUTSIDE FILTERS").foregroundStyle(RadarStyle.amber) }
                 Rectangle().fill(RadarStyle.line).frame(height: 1)
                 field("REGISTRATION", identity?.registration?.value ?? "UNKNOWN")

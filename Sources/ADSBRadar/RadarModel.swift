@@ -14,6 +14,7 @@ final class RadarModel {
     private(set) var heardWithoutPosition = 0
     private(set) var geography: GeographyPaths?
     private(set) var mapMessage: String?
+    var contactsSearch = ""
     var selectedAddress: String? { didSet { if selectedAddress != oldValue { cancelIdentityRequest() } } }
     var camera: RadarCamera { didSet { if camera != oldValue { scheduleSearchUpdate() } } }
     private(set) var sweepStartedAt: Date
@@ -82,6 +83,33 @@ final class RadarModel {
         AircraftFeed.allCases.filter { settings.source.feeds.contains($0) }.map {
             FeedHealth(feed: $0, status: statuses[$0] ?? .starting)
         }
+    }
+
+    func identity(for contact: PresentedContact) -> AircraftIdentity? {
+        settings.source == .synthetic ? nil : identities[contact.observation.address]
+    }
+    var listedContacts: [PresentedContact] {
+        let query = contactsSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        return eligibleContacts.filter { contact in
+            guard !query.isEmpty else { return true }
+            let identity = identity(for: contact)
+            return [contact.observation.callsign, contact.observation.address, identity?.registration?.value, identity?.aircraftType?.value]
+                .compactMap { $0 }.contains { $0.localizedStandardContains(query) }
+        }
+    }
+    func aircraftCandidates(at point: CGPoint) -> [PresentedContact] {
+        guard let origin else { return [] }
+        let projection = ReceiverProjection(origin: origin)
+        return eligibleContacts.compactMap { contact -> (PresentedContact, Double)? in
+            guard isInView(contact), let position = contact.observation.position else { return nil }
+            let screen = camera.screen(projection.project(position), width: viewportWidth, height: viewportHeight)
+            let distance = hypot(screen.x - point.x, screen.y - point.y)
+            return distance <= 20 ? (contact, distance) : nil
+        }.sorted { a, b in a.1 == b.1 ? a.0.id < b.0.id : a.1 < b.1 }.map { $0.0 }
+    }
+    func showSelectedOnMap() {
+        guard let origin, let position = selectedContact?.observation.position else { return }
+        camera.offset = ReceiverProjection(origin: origin).project(position)
     }
 
     var eligibleContacts: [PresentedContact] {
