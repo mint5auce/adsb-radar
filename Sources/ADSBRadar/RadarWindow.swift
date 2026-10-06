@@ -4,14 +4,16 @@ import SwiftUI
 
 struct RadarWindow: View {
     @Bindable var model: RadarModel
+    let updater: AppUpdater?
     @State private var showingSettings = false
     @State private var topBarHeight: CGFloat = 0
     @State private var bottomBarHeight: CGFloat = 0
     @State private var controls: RadarControlVisibility
     @State private var trackingMenus: Set<ObjectIdentifier> = []
 
-    init(model: RadarModel) {
+    init(model: RadarModel, updater: AppUpdater? = nil) {
         self.model = model
+        self.updater = updater
         // Visibility is window-owned; saved mode changes are observed below, not reseeded on redraw.
         _controls = State(initialValue: RadarControlVisibility(mode: model.settings.controlVisibility,
                                                                now: ProcessInfo.processInfo.systemUptime))
@@ -88,7 +90,7 @@ struct RadarWindow: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            RadarSettingsView(model: model, save: model.apply)
+            RadarSettingsView(model: model, updater: updater, save: model.apply)
         }
     }
 

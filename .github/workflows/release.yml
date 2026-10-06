@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag matching release.json
+        required: true
+        type: string
+
+concurrency:
+  group: app-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPDATES_FEED_URL: ${{ vars.UPDATES_FEED_URL || 'https://mint5auce.github.io/adsb-radar/appcast.xml' }}
+
+jobs:
+  build:
+    runs-on: macos-15
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Validate release inputs
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python3 scripts/release-metadata.py --configuration release --tag "$RELEASE_TAG" --output "$RUNNER_TEMP/Info.plist"
+          python3 scripts/github-release.py preflight --repository "$GITHUB_REPOSITORY"
+          printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          status=$(curl --silent --show-error --location --retry 3 --output "$RUNNER_TEMP/previous-appcast.xml" --write-out '%{http_code}' "$UPDATES_FEED_URL")
+          if [ "$status" = 200 ]; then
+            printf 'PREVIOUS_APPCAST=%s\n' "$RUNNER_TEMP/previous-appcast.xml" >> "$GITHUB_ENV"
+            python3 scripts/release-metadata.py --configuration release --tag "$RELEASE_TAG" --previous-appcast "$RUNNER_TEMP/previous-appcast.xml" --output "$RUNNER_TEMP/Info.plist"
+          elif [ "$status" = 404 ] && [ "$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq '[.[] | select(.draft == false)] | length')" = 0 ]; then
+            rm "$RUNNER_TEMP/previous-appcast.xml"
+          else
+            echo "Cannot retrieve the previous update feed (HTTP $status)." >&2
+            exit 1
+          fi
+      - run: swift test
+      - run: python3 -m unittest discover -s scripts/tests
+      - name: Configure signing
+        env:
+          SIGNING_CERTIFICATE_P12: ${{ secrets.SIGNING_CERTIFICATE_P12 }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          NOTARY_API_KEY_P8: ${{ secrets.NOTARY_API_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ vars.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ vars.NOTARY_ISSUER_ID }}
+        run: |
+          set -eu
+          umask 077
+          : "${SIGNING_CERTIFICATE_P12:?Missing signing certificate}"
+          : "${SPARKLE_PRIVATE_KEY:?Missing Sparkle private key}"
+          : "${NOTARY_API_KEY_P8:?Missing notarisation API key}"
+          : "${NOTARY_KEY_ID:?Missing notarisation key ID}"
+          : "${NOTARY_ISSUER_ID:?Missing notarisation issuer ID}"
+          printf '%s' "$SIGNING_CERTIFICATE_P12" | base64 -D > "$RUNNER_TEMP/signing.p12"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle-private-key"
+          printf '%s' "$NOTARY_API_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+          signing_keychain="$RUNNER_TEMP/release-signing.keychain-db"
+          signing_password=$(uuidgen)
+          security create-keychain -p "$signing_password" "$signing_keychain"
+          security set-keychain-settings -lut 21600 "$signing_keychain"
+          security unlock-keychain -p "$signing_password" "$signing_keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$signing_keychain" -P "$SIGNING_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$signing_password" "$signing_keychain" > /dev/null
+          security list-keychains -d user -s "$signing_keychain" "$HOME/Library/Keychains/login.keychain-db"
+          xcrun notarytool store-credentials adsb-radar-release --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+          printf 'SPARKLE_PRIVATE_KEY_FILE=%s\n' "$RUNNER_TEMP/sparkle-private-key" >> "$GITHUB_ENV"
+      - name: Build signed and notarised artifacts
+        env:
+          DEVELOPER_ID_APPLICATION: ${{ vars.DEVELOPER_ID_APPLICATION }}
+          SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
+          NOTARY_KEYCHAIN_PROFILE: adsb-radar-release
+        run: |
+          ./scripts/package-release.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-candidate
+          path: build/release-assets/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-symbols
+          path: build/release-symbols/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/release-signing.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/release-signing.keychain-db"
+          fi
+          rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/sparkle-private-key" "$RUNNER_TEMP/notary.p8"
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-candidate
+          path: build/release-assets/
+      - name: Publish release and verify anonymous download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
+        run: python3 scripts/github-release.py publish --repository "$GITHUB_REPOSITORY" --source-sha "$RELEASE_SOURCE_SHA"
+      - name: Prepare update site
+        run: |
+          mkdir -p build/update-site
+          cp build/release-assets/appcast.xml build/update-site/appcast.xml
+          touch build/update-site/.nojekyll
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: build/update-site/
+
+  deploy-feed:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        id: deployment
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-candidate
+          path: candidate/
+      - name: Verify hosted feed bytes
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --location "$UPDATES_FEED_URL" --output hosted-appcast.xml && cmp candidate/appcast.xml hosted-appcast.xml; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Hosted update feed does not match the signed candidate.' >&2
+          exit 1

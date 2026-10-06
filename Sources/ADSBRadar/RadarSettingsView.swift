@@ -7,14 +7,16 @@ struct RadarSettingsView: View {
     @State private var latitude: String
     @State private var longitude: String
     let model: RadarModel
+    let updater: AppUpdater?
     let save: (RadarSettings) -> Void
 
-    init(model: RadarModel, save: @escaping (RadarSettings) -> Void) {
+    init(model: RadarModel, updater: AppUpdater? = nil, save: @escaping (RadarSettings) -> Void) {
         let settings = model.settings
         draft = settings
         latitude = settings.receiver.map { String($0.latitude) } ?? ""
         longitude = settings.receiver.map { String($0.longitude) } ?? ""
         self.model = model
+        self.updater = updater
         self.save = save
     }
 
@@ -25,6 +27,9 @@ struct RadarSettingsView: View {
                 Spacer()
             }.padding(24)
             Form {
+                if let updater {
+                    AppUpdateSettingsView(updater: updater)
+                }
                 if model.settings.source != .synthetic {
                     Section("Reception") { ReceptionSettingsControls(model: model) }
                 }

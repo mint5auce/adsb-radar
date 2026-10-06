@@ -5,8 +5,10 @@ import SwiftUI
 struct ADSBRadarApp: App {
     @NSApplicationDelegateAdaptor(RadarAppDelegate.self) private var delegate
     @State private var model: RadarModel
+    @State private var updater: AppUpdater
 
     init() {
+        _updater = State(initialValue: AppUpdater.forApplication())
         #if DEBUG
         if CommandLine.arguments.contains("--ui-fixture") {
             _model = State(initialValue: PreviewRenderer.interactiveModel(options: RadarLauncher.options))
@@ -18,7 +20,7 @@ struct ADSBRadarApp: App {
 
     var body: some Scene {
         WindowGroup("ADSB Radar") {
-            RadarWindow(model: model)
+            RadarWindow(model: model, updater: updater)
                 .frame(minWidth: 800, minHeight: 560)
                 .preferredColorScheme(.dark)
                 .onAppear {
@@ -28,7 +30,12 @@ struct ADSBRadarApp: App {
         }
         .defaultSize(width: 1200, height: 800)
         .windowStyle(.hiddenTitleBar)
-        .commands { CommandGroup(replacing: .newItem) {} }
+        .commands {
+            CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .appInfo) {
+                CheckForAppUpdatesButton(updater: updater)
+            }
+        }
     }
 }
 

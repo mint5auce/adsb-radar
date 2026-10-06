@@ -12,7 +12,29 @@ The choice of native SwiftUI, including acceptance of a separate future Linux in
 Build a native SwiftUI macOS application using local ADS-B reception first.
 Keep aircraft data sources replaceable so an online feed can supplement coverage later.
 Linux is a future release with a potentially different interface.
-Consumer distribution is outside the initial scope.
+Direct macOS distribution uses signed, notarised application archives on GitHub Releases with Sparkle updates.
+
+## Application updates
+
+Keep the existing SwiftPM workflow and macOS 14 minimum.
+Distribute a universal application for Apple silicon and Intel with the existing bundle identifier.
+Use Sparkle's standard update dialogs, an application-menu Check for Updates action, and update preferences in Settings.
+Ask permission for automatic checks and use a daily interval once enabled.
+Allow users to opt into automatic download and installation; leave that choice off initially.
+Update preferences apply immediately and persist through Sparkle rather than the radar-settings draft.
+Keep update startup disabled in development builds, previews and tests.
+Update checks and failures must leave normal radar operation usable, including offline operation.
+During update installation, preserve the existing shutdown path so the app-owned decoder stops and cached aircraft identities finish saving before relaunch.
+Preserve the user's settings and cached data across application updates.
+
+Sign and notarise the app with Developer ID, and sign both update archives and the appcast with Sparkle's EdDSA key.
+Publish version-specific downloads on GitHub Releases and the signed appcast on GitHub Pages.
+Verify the anonymous archive download before deploying a feed that advertises it.
+Keep build numbers increasing and reject attempts to replace published release assets.
+Start with full archives and one stable update channel.
+Existing copies require one manual installation of a Sparkle-enabled release.
+Use GitHub Release asset download counts for distribution metrics, with no usage heartbeat or system profiling.
+Document release preparation, credentials, verification and recovery in [the release guide](releasing.md).
 
 ## Visual direction and exploration
 

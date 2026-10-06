@@ -40,8 +40,9 @@ Quit any running copy, then launch:
 
 ## Development
 
-Use `./scripts/build-app.sh release` for a release build and `swift test` to run the tests.
+Use `./scripts/build-app.sh release` for a release build in `build/release/ADSB Radar.app` and `swift test` to run the tests.
 See the [usage guide](docs/usage.md) for settings, receiver setup, and manual checks, or the [product specification](docs/product-spec.md) for the accepted design.
+Signed distribution builds, Sparkle updates, and the GitHub release workflow are covered in the [release guide](docs/releasing.md).
 
 Aircraft data: [adsb.fi](https://adsb.fi) ([personal-use API](https://github.com/adsbfi/opendata)).
 Map data: [Natural Earth](https://www.naturalearthdata.com/) and [UK aviation / airport sources](docs/airway-verification.md).

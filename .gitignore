@@ -3,5 +3,6 @@
 build/
 /output/imagegen/
 .DS_Store
+__pycache__/
 *.xcuserstate
 xcuserdata/

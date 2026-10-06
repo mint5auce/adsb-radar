@@ -44,7 +44,7 @@ enum PreviewRenderer {
         model.camera = model.camera.panned(dx: 180, dy: -90, width: 944, height: 680).zoomed(by: 1.5)
         try await image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
         try await image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
-        try await image(RadarSettingsView(model: model, save: { _ in }),
+        try await image(RadarSettingsView(model: model, updater: AppUpdater(), save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         if localEnrichment {
             var offline = model.settings
@@ -169,7 +169,7 @@ enum PreviewRenderer {
             try await Task.sleep(for: .milliseconds(50))
         }
         try await image(refreshed, to: folder.appendingPathComponent("refreshed.png"), width: 1200, height: 800)
-        try await image(RadarSettingsView(model: refreshed, save: { _ in }),
+        try await image(RadarSettingsView(model: refreshed, updater: AppUpdater(), save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         await refreshed.shutdown()
         print("Rendered cache restart / offline / refresh native views in \(directory)")
