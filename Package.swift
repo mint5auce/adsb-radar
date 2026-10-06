@@ -10,8 +10,9 @@ let package = Package(
     ],
     targets: [
         .target(name: "RadarCore"),
+        .executableTarget(name: "MapDataTool", dependencies: ["RadarCore"]),
         .executableTarget(name: "ADSBRadar", dependencies: ["RadarCore"], resources: [.process("Resources")]),
-        .testTarget(name: "RadarCoreTests", dependencies: ["RadarCore"]),
+        .testTarget(name: "RadarCoreTests", dependencies: ["RadarCore"], resources: [.process("Fixtures")]),
         .testTarget(name: "ADSBRadarTests", dependencies: ["ADSBRadar", "RadarCore"])
     ]
 )

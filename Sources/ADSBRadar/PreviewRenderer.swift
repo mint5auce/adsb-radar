@@ -24,12 +24,15 @@ enum PreviewRenderer {
         let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL(fileURLWithPath: directory).appendingPathComponent("preview-identities.json")), initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
-            if model.geography != nil, !model.contacts.isEmpty { break }
+            if model.geography != nil, !model.mapLayers.projected.isEmpty, !model.contacts.isEmpty { break }
             try await Task.sleep(for: .milliseconds(50))
         }
         let folder = URL(fileURLWithPath: directory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try await image(model, to: folder.appendingPathComponent("radar.png"), width: 1200, height: 800)
+        if CommandLine.arguments.contains("--preview-airspace") {
+            try await renderMapLayers(model, folder: folder)
+        }
         model.selectedAddress = model.contacts.first?.id
         if online || combined || localEnrichment {
             for _ in 0..<50 {
@@ -100,8 +103,10 @@ enum PreviewRenderer {
         var settings = RadarPreferences(defaults: defaults, options: options).load()
         settings.source = .synthetic
         settings.receiver = settings.receiver ?? SyntheticSource.exampleLocation
+        let maps = MapLayerModel(store: MapSnapshotStore(directory: URL.temporaryDirectory.appendingPathComponent("adsb-radar-ui-map-data")),
+            updater: CommandLine.arguments.contains("--map-offline") ? MapUpdateService(download: { _ in throw URLError(.notConnectedToInternet) }) : MapUpdateService())
         return RadarModel(source: DensePreviewSource(), identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("adsb-radar-ui-verification-identities.json")),
-            initialSettings: settings, options: options, defaults: defaults)
+            mapLayers: maps, initialSettings: settings, options: options, defaults: defaults)
     }
 
     private static func renderDecluttering(_ model: RadarModel, folder: URL) async throws {
@@ -168,6 +173,29 @@ enum PreviewRenderer {
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         await refreshed.shutdown()
         print("Rendered cache restart / offline / refresh native views in \(directory)")
+    }
+
+    private static func renderMapLayers(_ model: RadarModel, folder: URL) async throws {
+        let features = model.mapLayers.snapshots.flatMap(\.features)
+        for (kind, label) in [(MapFeatureKind.route, "route"), (.airspace, "airspace"), (.airport, "airport")] {
+            let feature = features.first { item in
+                if kind == .airport { return item.label == "EGLL" }
+                if kind == .airspace { return item.name == "LONDON TMA 1" }
+                return item.kind == .route && item.paths.first?.first.map { (51...52).contains($0.latitude) && (-2...0).contains($0.longitude) } == true
+            }
+            if let feature {
+                model.selection = .map(feature.id)
+                try await image(model, to: folder.appendingPathComponent("map-\(label).png"), width: 1200, height: 800)
+                try await image(model, to: folder.appendingPathComponent("map-\(label)-minimum.png"), width: 800, height: 560)
+            }
+        }
+        var settings = model.settings; settings.mapLayers.flightLevel = 100; model.apply(settings)
+        try await image(model, to: folder.appendingPathComponent("map-fl100.png"), width: 1200, height: 800)
+        try await image(MapAltitudeControl(model: model), to: folder.appendingPathComponent("map-altitude-controls.png"), width: 390, height: 250)
+        try await image(MapDataView(model: model), to: folder.appendingPathComponent("map-data.png"), width: 430, height: 440)
+        model.camera.radiusNM = 25; model.selection = nil
+        try await image(model, to: folder.appendingPathComponent("map-near.png"), width: 1200, height: 800)
+        settings.mapLayers.flightLevel = nil; model.apply(settings); model.returnToReceiver()
     }
 
     private static func waitForIdentity(_ model: RadarModel) async throws {

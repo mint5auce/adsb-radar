@@ -1,0 +1,32 @@
+Generated with the built-in image-generation tool.
+Reference inputs: an offscreen render of the existing app and the user's bounded-airspace reference chart.
+The image is a visual concept with illustrative route widths and geometry, not the accepted data representation.
+The product specification governs implementation.
+
+Use case: ui-mockup / precise-object-edit.
+Create a polished concept mockup by editing image 1, the actual ADSB Radar macOS app screenshot. Image 2 is a reference ONLY for bounded airspace and corridor shape language, not colours, labels or geography. This is an illustrative design exploration, not an actual navigational chart.
+
+Preserve the current app's visual identity and overall screenshot composition: full rectangular 3:2 desktop interface, almost-black green background (#030604), sparse subdued green coastline, flat north-up 2D projection, thin divider lines, compact monospaced type, existing header ADSB / RADAR, green right inspector about 21% width and bottom status bar. Preserve the underlying southwest England/Wales coastline geometry and receiver-centred rings from image 1. Crisp subtle phosphor green, no excessive bloom, no blur, no scanline texture, no 3D, no perspective. Preserve aircraft square symbols, short trails, vectors and callsign/altitude labels, but spread them slightly if needed for no label collisions. Aircraft must be brighter than the map overlays.
+
+Main change: add a convincing restrained network of 5 connected bounded airway corridors across the map. Draw genuine closed angular polygon strips with two clear thin parallel edges and squared or carefully mitred junctions, small varied widths, and very low opacity green interior fill. Clearly show width rather than single thick lines. Use subtle dashed centrelines and tiny hollow waypoint diamonds at changes of direction. Corridors cross and join in a few places, but keep generous black negative space. Add one or two larger irregular control-area polygons around junctions with still fainter dashed borders and sparse labels 'CONTROL AREA'. No opaque masses, no decorative dots, no grids of UI cards.
+
+Make one diagonal southwest-to-northeast corridor selected, with moderately brighter green edges, soft transparent green fill, selected small hollow diamonds, and a readable inline label 'AIRWAY A' and 'FL 145 / FL 245'. Other route labels 'AIRWAY B', 'AIRWAY C' should be muted. These are fictional example labels deliberately, no claims of current real-world geometry. Add 3 small subdued airport runway-cross markers with small codes EGFF, EGGD and EGTE located plausibly on the preserved map: Cardiff north of Bristol Channel, Bristol east of channel, Exeter to the south. Do not over-label geography.
+
+Add a compact map-layer control row just below the header, with small toggles 'AIRPORTS', 'AIRWAYS', 'CONTROL AREAS' and one highlighted filter 'AT FL 180'. Keep controls thin and consistent with existing app.
+Replace the contact inspector with a clean selected-airway inspector, same spacing/font hierarchy as original:
+'AIRWAY / SELECTED'
+'AIRWAY A'
+'ILLUSTRATIVE SEGMENT'
+thin rule
+'LOWER LIMIT'
+'FL 145'
+'UPPER LIMIT'
+'FL 245'
+'WIDTH'
+'10 NM'
+'VIEW'
+'AT FL 180'
+then a tiny line legend near the bottom: 'CORRIDOR BOUNDARY', 'ROUTE CENTRELINE', 'AIRCRAFT CONTACT', with correct miniature sample strokes/square symbols.
+Keep width as fictional sample data, explicit illustrative segment.
+Change subtitle below app title to 'AIRSPACE / CONCEPT'. Keep a small amber bottom-left status 'DESIGN MOCKUP / ILLUSTRATIVE GEOMETRY'. This notice is crucial.
+Outcome: a plausible extension of the existing actual native radar screenshot, restrained, legible, attractive, with the airway corridors immediately visible but subordinate to aircraft. No promotional captions outside the app frame, no invented chrome, no new branding.

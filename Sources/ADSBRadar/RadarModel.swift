@@ -17,8 +17,39 @@ final class RadarModel {
     private(set) var geography: GeographyPaths?
     private(set) var mapMessage: String?
     var contactsSearch = ""
-    var selectedAddress: String? { didSet { if selectedAddress != oldValue { cancelIdentityRequest() } } }
-    var camera: RadarCamera { didSet { if camera != oldValue { scheduleSearchUpdate() } } }
+    let mapLayers: MapLayerModel
+    var selection: RadarSelection? { didSet { if selection != oldValue { cancelIdentityRequest() } } }
+    var selectedAddress: String? {
+        get { if case .aircraft(let id) = selection { return id }; return nil }
+        set { if let newValue { selection = .aircraft(newValue) } else if selectedAddress != nil { selection = nil } }
+    }
+    var selectedMapFeature: MapFeature? {
+        if case .map(let id) = selection { return mapLayers.feature(id) }; return nil
+    }
+    func mapChoices(at point: CGPoint) -> [RadarObjectChoice] {
+        mapLayers.candidates(at: point, camera: camera, size: CGSize(width: viewportWidth, height: viewportHeight), preferences: settings.mapLayers).map {
+            let endpoints = $0.details.filter { ["FROM", "TO"].contains($0.title) }.map(\.value).joined(separator: " → ")
+            let limits = "\($0.lower.description) / \($0.upper.description)"
+            return RadarObjectChoice(id: .map($0.id), title: $0.name,
+                detail: $0.kind == .airport ? $0.label : endpoints.isEmpty ? limits : endpoints + " · " + limits)
+        }
+    }
+    func objectChoices(at point: CGPoint, secondary: Bool = false) -> [RadarObjectChoice] {
+        let aircraft = aircraftCandidates(at: point).map {
+            RadarObjectChoice(id: .aircraft($0.id), title: $0.observation.callsign ?? $0.id.uppercased(),
+                detail: [$0.id.uppercased(), settings.altitude($0.observation.altitude), identity(for: $0)?.aircraftType?.value].compactMap { $0 }.joined(separator: " / "))
+        }
+        return secondary ? aircraft + mapChoices(at: point) : aircraft.isEmpty ? mapChoices(at: point) : aircraft
+    }
+    func validateMapSelection() {
+        guard case .map(let id) = selection else { return }
+        if mapLayers.feature(id)?.visibility(settings.mapLayers, radiusNM: camera.radiusNM) ?? .hidden == .hidden { selection = nil }
+    }
+    func checkForMapUpdates() async {
+        await mapLayers.checkForUpdates()
+        validateMapSelection()
+    }
+    var camera: RadarCamera { didSet { if camera != oldValue { scheduleSearchUpdate(); validateMapSelection() } } }
     private(set) var sweepStartedAt: Date
     private(set) var viewportWidth: Double = 800
     private(set) var viewportHeight: Double = 600
@@ -55,7 +86,8 @@ final class RadarModel {
     init(source: (any AircraftDataSource)? = nil, sources: [AircraftFeed: any AircraftDataSource] = [:],
          provider: any OnlineAircraftProvider & AircraftIdentityProvider = ADSBFiProvider(),
          identityStorage: any AircraftIdentityStorage = FileAircraftIdentityStorage(),
-         initialSettings: RadarSettings? = nil, options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
+         mapLayers: MapLayerModel = MapLayerModel(), initialSettings: RadarSettings? = nil, options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
+        self.mapLayers = mapLayers
         self.provider = provider
         self.identityStorage = identityStorage
         suppliedSource = source
@@ -493,6 +525,7 @@ final class RadarModel {
         let previous = settings
         settings = value.validated()
         preferences.save(settings)
+        validateMapSelection()
         if settings.enrichIdentities != previous.enrichIdentities || settings.source != previous.source ||
            settings.identityRefreshDays != previous.identityRefreshDays { cancelIdentityRequest() }
         if settings.initialRadiusNM != previous.initialRadiusNM { camera.radiusNM = settings.initialRadiusNM }
@@ -528,6 +561,7 @@ final class RadarModel {
     func returnToReceiver() { camera = RadarCamera(radiusNM: settings.initialRadiusNM) }
 
     private func loadGeography() {
+        Task { await mapLayers.load(origin: origin); validateMapSelection() }
         mapTask?.cancel()
         geography = nil
         guard let origin else { mapMessage = nil; return }

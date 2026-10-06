@@ -8,11 +8,15 @@ struct RadarWindow: View {
     var body: some View {
         VStack(spacing: 0) {
             RadarHeader(model: model, showingSettings: $showingSettings)
+            MapLayerControls(model: model)
             Rectangle().fill(RadarStyle.line).frame(height: 1)
             HStack(spacing: 0) {
                 RadarSurface(model: model, openSettings: { showingSettings = true })
                 if let contact = model.selectedContact {
                     ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, category: model.reportedCategory(for: contact), showOnMap: model.showSelectedOnMap, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
+                        .frame(width: 256)
+                } else if let feature = model.selectedMapFeature {
+                    MapFeatureInspector(feature: feature, snapshot: model.mapLayers.snapshot(for: feature), preferences: model.settings.mapLayers) { model.selection = nil }
                         .frame(width: 256)
                 }
             }

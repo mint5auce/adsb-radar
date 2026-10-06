@@ -1,0 +1,377 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fixtures xmlns:ns0="http://www.aixm.aero/schema/5.1" xmlns:ns1="http://www.opengis.net/gml/3.2" xmlns:ns3="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><ns0:Airspace ns1:id="id84825">
+         <ns1:identifier codeSpace="urn:uuid:">38641850-ac5d-4af7-b3ef-131e0592bef4</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:AirspaceTimeSlice ns1:id="id61640">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id65366">
+                     <ns1:beginPosition>2023-06-15T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>3</ns0:sequenceNumber>
+               <ns0:correctionNumber>0</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id83565">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:type>CTA</ns0:type>
+               <ns0:designator>EGFF002</ns0:designator>
+               <ns0:localType xsi:nil="true" nilReason="unknown" />
+               <ns0:name>CARDIFF CTA 1</ns0:name>
+               <ns0:designatorICAO>NO</ns0:designatorICAO>
+               <ns0:controlType xsi:nil="true" nilReason="unknown" />
+               <ns0:upperLowerSeparation xsi:nil="true" nilReason="unknown" />
+               <ns0:class>
+                  <ns0:AirspaceLayerClass ns1:id="id62384">
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:classification>D</ns0:classification>
+                  </ns0:AirspaceLayerClass>
+               </ns0:class>
+               <ns0:protectedRoute xsi:nil="true" nilReason="unknown" />
+               <ns0:geometryComponent>
+                  <ns0:AirspaceGeometryComponent ns1:id="id63750">
+                     <ns0:operation>BASE</ns0:operation>
+                     <ns0:operationSequence>1</ns0:operationSequence>
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:theAirspaceVolume>
+                        <ns0:AirspaceVolume ns1:id="id63751">
+                           <ns0:upperLimit uom="FL">105</ns0:upperLimit>
+                           <ns0:upperLimitReference>STD</ns0:upperLimitReference>
+                           <ns0:lowerLimit uom="FT">1000</ns0:lowerLimit>
+                           <ns0:lowerLimitReference>MSL</ns0:lowerLimitReference>
+                           <ns0:horizontalProjection>
+                              <ns0:Surface srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id63752">
+                                 <ns1:patches>
+                                    <ns1:PolygonPatch interpolation="planar">
+                                       <ns1:exterior>
+                                          <ns1:Ring>
+                                             <ns1:curveMember ns3:type="simple">
+                                                <ns1:Curve ns1:id="id63753">
+                                                   <ns1:segments>
+                                                      <ns1:GeodesicString interpolation="geodesic">
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id63754">
+                                                               <ns1:pos>51.4708944 -3.2832917</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id63755">
+                                                               <ns1:pos>51.4239028 -3.1349028</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                      </ns1:GeodesicString>
+                                                      <ns1:ArcByCenterPoint interpolation="circularArcCenterPointWithRadius" numArc="1">
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id63756">
+                                                               <ns1:pos>51.3966028 -3.3433250</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:radius uom="[nmi_i]">8</ns1:radius>
+                                                         <ns1:startAngle uom="deg">78.0890270811163276221122941933572292327880859375</ns1:startAngle>
+                                                         <ns1:endAngle uom="deg">155.453923671523199345756438560783863067626953125</ns1:endAngle>
+                                                      </ns1:ArcByCenterPoint>
+                                                      <ns1:GeodesicString interpolation="geodesic">
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id63757">
+                                                               <ns1:pos>51.2754333 -3.2551222</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id63758">
+                                                               <ns1:pos>51.3222778 -3.4031611</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                      </ns1:GeodesicString>
+                                                      <ns1:ArcByCenterPoint interpolation="circularArcCenterPointWithRadius" numArc="1">
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id63759">
+                                                               <ns1:pos>51.3966028 -3.3433250</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:radius uom="[nmi_i]">5</ns1:radius>
+                                                         <ns1:startAngle uom="deg">206.77271100338793985429219901561737060546875</ns1:startAngle>
+                                                         <ns1:endAngle uom="deg">26.774407355977633216070898924954235553741455078125</ns1:endAngle>
+                                                      </ns1:ArcByCenterPoint>
+                                                   </ns1:segments>
+                                                </ns1:Curve>
+                                             </ns1:curveMember>
+                                          </ns1:Ring>
+                                       </ns1:exterior>
+                                    </ns1:PolygonPatch>
+                                 </ns1:patches>
+                                 <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                 <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                              </ns0:Surface>
+                           </ns0:horizontalProjection>
+                           <ns0:centreline xsi:nil="true" nilReason="unknown" />
+                           <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                        </ns0:AirspaceVolume>
+                     </ns0:theAirspaceVolume>
+                  </ns0:AirspaceGeometryComponent>
+               </ns0:geometryComponent>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id61641">
+                     <ns0:purpose>REMARK</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id61642">
+                           <ns0:note lang="eng">All training flights in the Cardiff CTR/CTA are subject to the prior permission of Cardiff Approach Control.
+
+To operate UAS within this area, UAS operators are required to notify NATS via the NATS Non-Standard Flight (NSF) Portal. UAS operators are required to notify NATS at least 14 days before the date of each activity.
+
+CTA Chart published in AD-2 Section.
+
+Note 1: Radar may be available 2300-0600 (2200-0500).</ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id61643">
+                     <ns0:propertyName>designatorICAO</ns0:propertyName>
+                     <ns0:purpose>WARNING</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id61644">
+                           <ns0:note lang="eng">Code Location Indicator: EGFF</ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+            </ns0:AirspaceTimeSlice>
+         </ns0:timeSlice>
+      </ns0:Airspace>
+   <ns0:Airspace ns1:id="id86685">
+         <ns1:identifier codeSpace="urn:uuid:">7b31aefb-deaa-40a6-a838-203b00548212</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:AirspaceTimeSlice ns1:id="id53883">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id56571">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>1</ns0:sequenceNumber>
+               <ns0:correctionNumber>3</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id83586">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:type>CTR</ns0:type>
+               <ns0:designator>EGPH001</ns0:designator>
+               <ns0:localType xsi:nil="true" nilReason="unknown" />
+               <ns0:name>EDINBURGH CTR</ns0:name>
+               <ns0:designatorICAO>NO</ns0:designatorICAO>
+               <ns0:controlType xsi:nil="true" nilReason="unknown" />
+               <ns0:upperLowerSeparation xsi:nil="true" nilReason="unknown" />
+               <ns0:class>
+                  <ns0:AirspaceLayerClass ns1:id="id54146">
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:classification>D</ns0:classification>
+                  </ns0:AirspaceLayerClass>
+               </ns0:class>
+               <ns0:protectedRoute xsi:nil="true" nilReason="unknown" />
+               <ns0:geometryComponent>
+                  <ns0:AirspaceGeometryComponent ns1:id="id55969">
+                     <ns0:operation>BASE</ns0:operation>
+                     <ns0:operationSequence>1</ns0:operationSequence>
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:theAirspaceVolume>
+                        <ns0:AirspaceVolume ns1:id="id55970">
+                           <ns0:upperLimit uom="FT">6000</ns0:upperLimit>
+                           <ns0:upperLimitReference>MSL</ns0:upperLimitReference>
+                           <ns0:lowerLimit uom="FT">0</ns0:lowerLimit>
+                           <ns0:lowerLimitReference>SFC</ns0:lowerLimitReference>
+                           <ns0:horizontalProjection>
+                              <ns0:Surface srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id55971">
+                                 <ns1:patches>
+                                    <ns1:PolygonPatch interpolation="planar">
+                                       <ns1:exterior>
+                                          <ns1:Ring>
+                                             <ns1:curveMember ns3:type="simple">
+                                                <ns1:Curve ns1:id="id55972">
+                                                   <ns1:segments>
+                                                      <ns1:CircleByCenterPoint interpolation="circularArcCenterPointWithRadius" numArc="1">
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point ns1:id="id55973">
+                                                               <ns1:pos>55.95000 -3.37250</ns1:pos>
+                                                               <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:radius uom="[nmi_i]">10</ns1:radius>
+                                                      </ns1:CircleByCenterPoint>
+                                                   </ns1:segments>
+                                                </ns1:Curve>
+                                             </ns1:curveMember>
+                                          </ns1:Ring>
+                                       </ns1:exterior>
+                                    </ns1:PolygonPatch>
+                                 </ns1:patches>
+                                 <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                                 <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                              </ns0:Surface>
+                           </ns0:horizontalProjection>
+                           <ns0:centreline xsi:nil="true" nilReason="unknown" />
+                           <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                        </ns0:AirspaceVolume>
+                     </ns0:theAirspaceVolume>
+                  </ns0:AirspaceGeometryComponent>
+               </ns0:geometryComponent>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id53884">
+                     <ns0:propertyName>designatorICAO</ns0:propertyName>
+                     <ns0:purpose>WARNING</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id53885">
+                           <ns0:note lang="eng">Code Location Indicator: EGPH</ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+            </ns0:AirspaceTimeSlice>
+         </ns0:timeSlice>
+      </ns0:Airspace>
+   <ns0:Airspace ns1:id="id84808">
+         <ns1:identifier codeSpace="urn:uuid:">f6fd2f2c-20df-4ba2-89d8-bbef0e773710</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:AirspaceTimeSlice ns1:id="id62076">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id65352">
+                     <ns1:beginPosition>2023-06-15T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>2</ns0:sequenceNumber>
+               <ns0:correctionNumber>0</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id83540">
+                     <ns1:beginPosition>2022-02-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:type>CTA</ns0:type>
+               <ns0:designator>EGMORAY003</ns0:designator>
+               <ns0:localType xsi:nil="true" nilReason="unknown" />
+               <ns0:name>MORAY CTA 3</ns0:name>
+               <ns0:designatorICAO>NO</ns0:designatorICAO>
+               <ns0:controlType xsi:nil="true" nilReason="unknown" />
+               <ns0:upperLowerSeparation xsi:nil="true" nilReason="unknown" />
+               <ns0:class>
+                  <ns0:AirspaceLayerClass ns1:id="id62422">
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:classification>E</ns0:classification>
+                  </ns0:AirspaceLayerClass>
+               </ns0:class>
+               <ns0:protectedRoute xsi:nil="true" nilReason="unknown" />
+               <ns0:geometryComponent>
+                  <ns0:AirspaceGeometryComponent ns1:id="id64871">
+                     <ns0:operation>BASE</ns0:operation>
+                     <ns0:operationSequence>1</ns0:operationSequence>
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:theAirspaceVolume>
+                        <ns0:AirspaceVolume ns1:id="id64872">
+                           <ns0:upperLimit uom="FL">195</ns0:upperLimit>
+                           <ns0:upperLimitReference>STD</ns0:upperLimitReference>
+                           <ns0:lowerLimit uom="FL">105</ns0:lowerLimit>
+                           <ns0:lowerLimitReference>STD</ns0:lowerLimitReference>
+                           <ns0:horizontalProjection>
+                              <ns0:Surface srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id64873">
+                                 <ns1:patches>
+                                    <ns1:PolygonPatch interpolation="planar">
+                                       <ns1:exterior>
+                                          <ns1:Ring>
+                                             <ns1:curveMember ns3:type="simple">
+                                                <ns1:Curve ns1:id="id64874">
+                                                   <ns1:segments>
+                                                      <ns1:GeodesicString interpolation="geodesic">
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id64875">
+                                                               <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">59.3240917 -1.2562194</ns1:pos>
+                                                               <ns0:horizontalAccuracy uom="M">30</ns0:horizontalAccuracy>
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id64876">
+                                                               <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">57.5989417 -1.6527972</ns1:pos>
+                                                               <ns0:horizontalAccuracy uom="M">30</ns0:horizontalAccuracy>
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id64877">
+                                                               <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">57.6183000 -1.9600889</ns1:pos>
+                                                               <ns0:horizontalAccuracy uom="M">30</ns0:horizontalAccuracy>
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id64878">
+                                                               <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">59.3441194 -1.5792333</ns1:pos>
+                                                               <ns0:horizontalAccuracy uom="M">30</ns0:horizontalAccuracy>
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                         <ns1:pointProperty ns3:type="simple">
+                                                            <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id64879">
+                                                               <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">59.3240917 -1.2562194</ns1:pos>
+                                                               <ns0:horizontalAccuracy uom="M">30</ns0:horizontalAccuracy>
+                                                               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                                                            </ns0:Point>
+                                                         </ns1:pointProperty>
+                                                      </ns1:GeodesicString>
+                                                   </ns1:segments>
+                                                </ns1:Curve>
+                                             </ns1:curveMember>
+                                          </ns1:Ring>
+                                       </ns1:exterior>
+                                    </ns1:PolygonPatch>
+                                 </ns1:patches>
+                                 <ns0:horizontalAccuracy uom="M">30</ns0:horizontalAccuracy>
+                                 <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                              </ns0:Surface>
+                           </ns0:horizontalProjection>
+                           <ns0:centreline xsi:nil="true" nilReason="unknown" />
+                           <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                        </ns0:AirspaceVolume>
+                     </ns0:theAirspaceVolume>
+                  </ns0:AirspaceGeometryComponent>
+               </ns0:geometryComponent>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id62077">
+                     <ns0:purpose>REMARK</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id62078">
+                           <ns0:note lang="eng">Part of ATS Route Y905 is contained within the CTA.
+
+Class E + TMZ (Transponder Mandatory Zone).
+
+To operate UAS within this area, UAS operators are required to notify NATS via the NATS Non-Standard Flight (NSF) Portal. UAS operators are required to notify NATS at least 14 days before the date of each activity.</ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+            </ns0:AirspaceTimeSlice>
+         </ns0:timeSlice>
+      </ns0:Airspace>
+   </fixtures>

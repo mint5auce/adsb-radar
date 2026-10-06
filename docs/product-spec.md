@@ -82,6 +82,55 @@ Unknown aircraft in the viewed area remain eligible for permitted enrichment eve
 Verify filtering, category ingestion and caching, provenance, selection exceptions, counts, search, boundaries, preferences, and display-only lifecycle effects with focused deterministic checks.
 Inspect sparse and dense native views, including 250-aircraft Demo traffic and airport-like clusters, at normal and minimum window sizes in both update modes.
 
+## Airway visualisation
+
+The design and implementation-ticket breakdown are accepted.
+Implementation is tracked in [ATS routes #10](https://github.com/mint5auce/adsb-radar/issues/10), [controlled airspace #11](https://github.com/mint5auce/adsb-radar/issues/11), [airport markers #12](https://github.com/mint5auce/adsb-radar/issues/12), [flight-level slicing #13](https://github.com/mint5auce/adsb-radar/issues/13), and [map-data updates #14](https://github.com/mint5auce/adsb-radar/issues/14).
+Provide independently switchable layers for airways, wider controlled airspace, and simple airport markers sourced from OurAirports.
+Exclude detailed airport layouts, arrival and departure procedures, and restricted-area overlays from this feature.
+Initially use the UK coverage supplied by NATS, make the dataset extent explicit, and retain normal radar operation outside that extent.
+Allow additional country datasets in future.
+Default to an All levels view of the network, with an optional flight-level slice to reduce overlay clutter.
+The slice filters route and controlled-airspace overlays while aircraft contacts and airport markers remain visible.
+Selecting an airway segment reveals its floor and ceiling.
+Preserve the established phosphor style, with subtle overlay fills and boundaries and brighter aircraft contacts.
+Use the [concept mockup](design/airway-visualisation-concept.png) as a visual reference for contrast, density, and layout.
+Its invented corridor widths and geometry are illustrative; the source-backed representation below governs implementation.
+
+Draw published controlled-airspace boundaries alongside ATS route centrelines.
+The current NATS sample contains route centrelines with unknown widths, so do not invent widths or depict per-route corridor boundaries unsupported by the data.
+Selecting a route highlights its centreline; selecting an airspace region highlights its published boundary.
+Show unknown width explicitly when inspecting a route segment.
+
+Provide a bundled map-data snapshot and a manual Check for map updates control.
+Show the effective date of each dataset, validate downloaded replacements before activation, and retain the previous snapshot if an update fails.
+The map layers work offline from the bundled or last successfully downloaded snapshot.
+
+For a flight-level slice, filter limits that can be directly compared with the selected level.
+Keep regions with incomparable or missing altitude limits dimly visible and show an Uncertain slice status in their inspector.
+Preserve published altitude references and units in the inspector.
+This remains a novelty feature for enjoyment and exploration: uncertainty handling is a small inspector note, without pressure setup, terrain modelling, or warning banners.
+
+Show large and medium airports at normal viewing scales and introduce small airports as the user zooms in.
+Exclude closed airports, heliports, and seaplane bases initially.
+Selecting an airport shows its name, codes, and elevation.
+
+Start with all three layers enabled and remember layer switches and the altitude view between launches.
+Show airport codes and sparse route names, introducing waypoint names and smaller features as the user zooms in.
+Keep aircraft labels visually dominant and always label the selected feature.
+
+Normal clicks prioritise aircraft contacts.
+Clicking overlapping map features opens a short chooser, and a secondary click lists all selectable objects beneath the pointer, including aircraft contacts.
+Use the existing sidebar for one selected object at a time, with published limits specific to the selected segment or region.
+Clear a selected map feature and its inspector when a layer switch or altitude filter hides it.
+
+Provide a compact All levels / At FL control with presets, direct flight-level entry, and small up/down steps.
+Keep altitude uncertainty handling proportionate to the app's novelty purpose.
+
+Verify data import, geometry, altitude-reference handling, layer preferences, selection, and failed-update retention with focused checks.
+Inspect the native app with synthetic traffic at normal and minimum window sizes, including overlapping features, zoom-dependent detail, all-level and sliced views, offline startup, and return to normal aircraft selection.
+See [the data-source investigation](research/aviation-data-sources.md) for verified source capabilities.
+
 ## Application icon
 
 Use the [supplied artwork](design/app-icon-reference.png) as the source for the macOS application icon.

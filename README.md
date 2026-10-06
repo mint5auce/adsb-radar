@@ -34,6 +34,14 @@ When Local or Local + Online is selected, the receiver starts when the app opens
 Its app-owned process stops when switching to Online or Synthetic, closing the last window, or quitting.
 Close other applications using the dongle before retrying reception.
 
+## Airway and airport maps
+
+The map includes offline UK ATS route centrelines, published controlled-airspace boundaries, and OurAirports airport markers.
+Use the independent Routes, Airspace and Airports switches; choose All levels or a flight-level slice to explore the network.
+Click a feature for its details, or secondary-click to choose among aircraft and map features under the pointer.
+The map-data info button shows sources, dates and a manual update action.
+See [data provenance, refresh commands and verification steps](docs/airway-verification.md).
+
 ## Check the application icon
 
 Quit any running copy of ADSB Radar, then build and launch the candidate:

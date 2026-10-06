@@ -7,6 +7,30 @@ Vocabulary for displaying live aircraft information in the style of a vintage ai
 **Radar display**:
 The geographic presentation of live aircraft information in the style of a vintage military tactical display.
 
+**Airway**:
+A published air traffic route through a defined corridor of controlled airspace.
+_Avoid_: Airline route, which describes a connection between airports.
+
+**ATS route**:
+A published route used to channel aircraft traffic for the provision of air traffic services.
+Airways are one kind of ATS route.
+
+**Airway corridor**:
+The airspace occupied by an airway, bounded laterally and by a floor and ceiling.
+
+**Controlled-airspace region**:
+A published volume of controlled airspace with lateral and vertical limits, such as a control area, control zone, or terminal control area.
+Its boundary is distinct from the routes that pass through it.
+
+**Flight-level slice**:
+A horizontal view of airspace at a chosen standard-pressure level.
+
+**Airway segment**:
+A portion of an airway between successive significant points, with its own applicable limits and restrictions.
+
+**Waypoint**:
+A specified geographic location used to define an air traffic route.
+
 **Application icon**:
 The visual mark identifying ADSB Radar in macOS application surfaces such as Finder and the Dock.
 

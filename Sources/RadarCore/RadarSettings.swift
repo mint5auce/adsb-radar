@@ -41,13 +41,14 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var labelMode: AircraftLabelMode = .automatic
     public var trailMode: AircraftTrailMode = .selected
     public var directionVectors: Bool = true
+    public var mapLayers = MapLayerPreferences()
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
-        case labelMode, trailMode, directionVectors, aircraftFilters, localReceiverAttemptLimit
+        case labelMode, trailMode, directionVectors, aircraftFilters, localReceiverAttemptLimit, mapLayers
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -76,6 +77,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         labelMode = try values.decodeIfPresent(AircraftLabelMode.self, forKey: .labelMode) ?? labelMode
         trailMode = try values.decodeIfPresent(AircraftTrailMode.self, forKey: .trailMode) ?? trailMode
         directionVectors = try values.decodeIfPresent(Bool.self, forKey: .directionVectors) ?? directionVectors
+        mapLayers = try values.decodeIfPresent(MapLayerPreferences.self, forKey: .mapLayers) ?? mapLayers
     }
 
     public func validated() -> RadarSettings {
@@ -93,6 +95,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         value.onlineRefreshSeconds = bounded(onlineRefreshSeconds, 5, 1...300)
         value.onlineRadiusNM = bounded(onlineRadiusNM, 250, 1...250)
         value.identityRefreshDays = bounded(identityRefreshDays, 7, (1.0 / 24)...3650)
+        if let level = value.mapLayers.flightLevel, !(0...660).contains(level) { value.mapLayers.flightLevel = nil }
         if value.aircraftFilters.validationMessage != nil { value.aircraftFilters = AircraftViewFilters() }
         if let receiver { value.receiver = GeographicCoordinate(latitude: receiver.latitude, longitude: receiver.longitude) }
         return value

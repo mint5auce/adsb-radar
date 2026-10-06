@@ -1,0 +1,296 @@
+<?xml version='1.0' encoding='utf-8'?>
+<BasicMessage xmlns:ns0="http://www.aixm.aero/schema/5.1" xmlns:ns1="http://www.opengis.net/gml/3.2" xmlns:ns3="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><ns0:RouteSegment ns1:id="id157279">
+         <ns1:identifier codeSpace="urn:uuid:">6326600e-2a55-45b1-ad8b-5c8526403ea2</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:RouteSegmentTimeSlice ns1:id="id133179">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id138430">
+                     <ns1:beginPosition>2026-07-09T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>5</ns0:sequenceNumber>
+               <ns0:correctionNumber>0</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id156377">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:level xsi:nil="true" nilReason="unknown" />
+               <ns0:upperLimit uom="FL">460</ns0:upperLimit>
+               <ns0:upperLimitReference>STD</ns0:upperLimitReference>
+               <ns0:lowerLimit uom="FL">245</ns0:lowerLimit>
+               <ns0:lowerLimitReference>STD</ns0:lowerLimitReference>
+               <ns0:minimumObstacleClearanceAltitude xsi:nil="true" nilReason="unknown" />
+               <ns0:pathType xsi:nil="true" nilReason="unknown" />
+               <ns0:trueTrack>329.1465</ns0:trueTrack>
+               <ns0:magneticTrack>328.0069</ns0:magneticTrack>
+               <ns0:reverseTrueTrack>149.0429</ns0:reverseTrueTrack>
+               <ns0:reverseMagneticTrack>147.9571</ns0:reverseMagneticTrack>
+               <ns0:length uom="NM">9.4008</ns0:length>
+               <ns0:widthLeft xsi:nil="true" nilReason="unknown" />
+               <ns0:widthRight xsi:nil="true" nilReason="unknown" />
+               <ns0:turnDirection xsi:nil="true" nilReason="unknown" />
+               <ns0:signalGap xsi:nil="true" nilReason="unknown" />
+               <ns0:minimumEnrouteAltitude xsi:nil="true" nilReason="unknown" />
+               <ns0:minimumCrossingAtEnd xsi:nil="true" nilReason="unknown" />
+               <ns0:minimumCrossingAtEndReference xsi:nil="true" nilReason="unknown" />
+               <ns0:maximumCrossingAtEnd xsi:nil="true" nilReason="unknown" />
+               <ns0:maximumCrossingAtEndReference xsi:nil="true" nilReason="unknown" />
+               <ns0:navigationType>RNAV</ns0:navigationType>
+               <ns0:requiredNavigationPerformance>5</ns0:requiredNavigationPerformance>
+               <ns0:designatorSuffix xsi:nil="true" nilReason="unknown" />
+               <ns0:start>
+                  <ns0:EnRouteSegmentPoint ns1:id="id133189">
+                     <ns0:reportingATC>ON_REQUEST</ns0:reportingATC>
+                     <ns0:flyOver xsi:nil="true" nilReason="unknown" />
+                     <ns0:waypoint xsi:nil="true" nilReason="unknown" />
+                     <ns0:radarGuidance xsi:nil="true" nilReason="unknown" />
+                     <ns0:pointChoice_fixDesignatedPoint ns3:type="simple" ns3:href="urn:uuid:7a3c1ab9-f4f5-4c87-8d03-75e98c13fffb" />
+                     <ns0:extendedServiceVolume xsi:nil="true" nilReason="unknown" />
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:roleFreeFlight xsi:nil="true" nilReason="unknown" />
+                     <ns0:roleRVSM xsi:nil="true" nilReason="unknown" />
+                     <ns0:turnRadius xsi:nil="true" nilReason="unknown" />
+                     <ns0:roleMilitaryTraining xsi:nil="true" nilReason="unknown" />
+                  </ns0:EnRouteSegmentPoint>
+               </ns0:start>
+               <ns0:routeFormed ns3:type="simple" ns3:href="urn:uuid:10a97867-b89d-446d-af38-c44a3a9fda28" />
+               <ns0:curveExtent>
+                  <ns0:Curve ns1:id="id133180">
+                     <ns1:segments>
+                        <ns1:GeodesicString interpolation="geodesic">
+                           <ns1:pointProperty ns3:type="simple">
+                              <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id133181">
+                                 <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">52.2250000 -0.5632806</ns1:pos>
+                              </ns0:Point>
+                           </ns1:pointProperty>
+                           <ns1:pointProperty ns3:type="simple">
+                              <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id133182">
+                                 <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">52.3592500 -0.6943417</ns1:pos>
+                              </ns0:Point>
+                           </ns1:pointProperty>
+                        </ns1:GeodesicString>
+                     </ns1:segments>
+                  </ns0:Curve>
+               </ns0:curveExtent>
+               <ns0:end>
+                  <ns0:EnRouteSegmentPoint ns1:id="id133190">
+                     <ns0:reportingATC>ON_REQUEST</ns0:reportingATC>
+                     <ns0:flyOver xsi:nil="true" nilReason="unknown" />
+                     <ns0:waypoint xsi:nil="true" nilReason="unknown" />
+                     <ns0:radarGuidance xsi:nil="true" nilReason="unknown" />
+                     <ns0:pointChoice_fixDesignatedPoint ns3:type="simple" ns3:href="urn:uuid:fee3ac8b-a562-4ecb-be69-2b74c1d7cfbc" />
+                     <ns0:extendedServiceVolume xsi:nil="true" nilReason="unknown" />
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                     <ns0:roleFreeFlight xsi:nil="true" nilReason="unknown" />
+                     <ns0:roleRVSM xsi:nil="true" nilReason="unknown" />
+                     <ns0:turnRadius xsi:nil="true" nilReason="unknown" />
+                     <ns0:roleMilitaryTraining xsi:nil="true" nilReason="unknown" />
+                  </ns0:EnRouteSegmentPoint>
+               </ns0:end>
+               <ns0:availability>
+                  <ns0:RouteAvailability ns1:id="id137116">
+                     <ns0:annotation>
+                        <ns0:Note ns1:id="id137117">
+                           <ns0:purpose>OTHER:AIXM45_MAPPING</ns0:purpose>
+                           <ns0:translatedNote>
+                              <ns0:LinguisticNote ns1:id="id137118">
+                                 <ns0:note lang="eng">noSeq:151</ns0:note>
+                              </ns0:LinguisticNote>
+                           </ns0:translatedNote>
+                        </ns0:Note>
+                     </ns0:annotation>
+                     <ns0:direction>FORWARD</ns0:direction>
+                     <ns0:status>OPEN</ns0:status>
+                     <ns0:levels>
+                        <ns0:AirspaceLayer ns1:id="id138060">
+                           <ns0:upperLimit uom="FL">430</ns0:upperLimit>
+                           <ns0:upperLimitReference>STD</ns0:upperLimitReference>
+                           <ns0:lowerLimit uom="FL">260</ns0:lowerLimit>
+                           <ns0:lowerLimitReference>STD</ns0:lowerLimitReference>
+                           <ns0:discreteLevelSeries ns3:type="simple" ns3:href="urn:uuid:635057b1-f3f1-43ea-8a88-0433e7aee80b" />
+                           <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                        </ns0:AirspaceLayer>
+                     </ns0:levels>
+                  </ns0:RouteAvailability>
+               </ns0:availability>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id133183">
+                     <ns0:purpose>OTHER:AIXM45_MAPPING</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id133184">
+                           <ns0:note lang="eng">Lower limit override: 
+Units of measurement [lower limit override]: 
+Reference for [lower limit override]: </ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id133185">
+                     <ns0:purpose>REMARK</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id133186">
+                           <ns0:note lang="eng">Class C.
+
+London ACC
+Freq: 127.880 (FL 295 and above);
+Freq: 127.105 (Below FL 295).</ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id133187">
+                     <ns0:propertyName>minimumEnrouteAltitude</ns0:propertyName>
+                     <ns0:purpose>DESCRIPTION</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id133188">
+                           <ns0:note lang="eng">Reference for minimum limit: </ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+               
+            </ns0:RouteSegmentTimeSlice>
+         </ns0:timeSlice>
+      </ns0:RouteSegment>
+   <ns0:DesignatedPoint ns1:id="id100076">
+         <ns1:identifier codeSpace="urn:uuid:">7a3c1ab9-f4f5-4c87-8d03-75e98c13fffb</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:DesignatedPointTimeSlice ns1:id="id91056">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id97176">
+                     <ns1:beginPosition>2025-10-02T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>4</ns0:sequenceNumber>
+               <ns0:correctionNumber>0</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id98546">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:designator>BEDFO</ns0:designator>
+               <ns0:type>ICAO</ns0:type>
+               <ns0:name>BEDFO</ns0:name>
+               <ns0:location>
+                  <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id91057">
+                     <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">52.2250000 -0.5632806</ns1:pos>
+                     <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                  </ns0:Point>
+               </ns0:location>
+               <ns0:aimingPoint xsi:nil="true" nilReason="unknown" />
+               <ns0:airportHeliport xsi:nil="true" nilReason="unknown" />
+               <ns0:runwayPoint xsi:nil="true" nilReason="unknown" />
+               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+               
+            </ns0:DesignatedPointTimeSlice>
+         </ns0:timeSlice>
+      </ns0:DesignatedPoint>
+   <ns0:Route ns1:id="id105849">
+         <ns1:identifier codeSpace="urn:uuid:">10a97867-b89d-446d-af38-c44a3a9fda28</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:RouteTimeSlice ns1:id="id105426">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id105450">
+                     <ns1:beginPosition>2026-03-19T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>2</ns0:sequenceNumber>
+               <ns0:correctionNumber>0</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id105636">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:designatorPrefix>U</ns0:designatorPrefix>
+               <ns0:designatorSecondLetter>N</ns0:designatorSecondLetter>
+               <ns0:designatorNumber>601</ns0:designatorNumber>
+               <ns0:multipleIdentifier xsi:nil="true" nilReason="unknown" />
+               <ns0:locationDesignator>EUR</ns0:locationDesignator>
+               <ns0:name xsi:nil="true" nilReason="unknown" />
+               <ns0:type>ATS</ns0:type>
+               <ns0:flightRule xsi:nil="true" nilReason="unknown" />
+               <ns0:internationalUse xsi:nil="true" nilReason="unknown" />
+               <ns0:militaryUse xsi:nil="true" nilReason="unknown" />
+               <ns0:militaryTrainingType xsi:nil="true" nilReason="unknown" />
+               <ns0:userOrganisation xsi:nil="true" nilReason="unknown" />
+               <ns0:annotation>
+                  <ns0:Note ns1:id="id105427">
+                     <ns0:purpose>REMARK</ns0:purpose>
+                     <ns0:translatedNote>
+                        <ns0:LinguisticNote ns1:id="id105428">
+                           <ns0:note lang="eng">Two areas of controlled airspace Class C are part of UN601:
+
+(FL 245 - FL 460)
+524757N 0004834W - 524523N 0005538W -
+532003N 0013042W - 532109N 0012904W -
+532012N 0011840W - 531755N 0010606W -
+530016N 0010043W - 524757N 0004834W.
+
+(FL 245 - FL 460)
+522632N 0003702W - 522630N 0002732W -
+524757N 0004834W - 524523N 0005538W -
+522632N 0003702W.
+
+Available H24.</ns0:note>
+                        </ns0:LinguisticNote>
+                     </ns0:translatedNote>
+                  </ns0:Note>
+               </ns0:annotation>
+            </ns0:RouteTimeSlice>
+         </ns0:timeSlice>
+      </ns0:Route>
+   <ns0:DesignatedPoint ns1:id="id99867">
+         <ns1:identifier codeSpace="urn:uuid:">fee3ac8b-a562-4ecb-be69-2b74c1d7cfbc</ns1:identifier>
+         <ns1:boundedBy xsi:nil="true" nilReason="unknown" />
+         <ns0:timeSlice>
+            <ns0:DesignatedPointTimeSlice ns1:id="id92000">
+               <ns1:validTime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id97070">
+                     <ns1:beginPosition>2025-10-02T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns1:validTime>
+               <ns0:interpretation>BASELINE</ns0:interpretation>
+               <ns0:sequenceNumber>4</ns0:sequenceNumber>
+               <ns0:correctionNumber>0</ns0:correctionNumber>
+               <ns0:featureLifetime ns3:type="simple">
+                  <ns1:TimePeriod ns1:id="id98418">
+                     <ns1:beginPosition>2018-05-24T00:00:00Z</ns1:beginPosition>
+                     <ns1:endPosition indeterminatePosition="unknown" />
+                  </ns1:TimePeriod>
+               </ns0:featureLifetime>
+               <ns0:designator>EBOTO</ns0:designator>
+               <ns0:type>ICAO</ns0:type>
+               <ns0:name>EBOTO</ns0:name>
+               <ns0:location>
+                  <ns0:Point srsName="urn:ogc:def:crs:EPSG::4326" ns1:id="id92001">
+                     <ns1:pos srsName="urn:ogc:def:crs:EPSG::4326">52.3592500 -0.6943417</ns1:pos>
+                     <ns0:horizontalAccuracy xsi:nil="true" nilReason="unknown" />
+                     <ns0:annotation xsi:nil="true" nilReason="unknown" />
+                  </ns0:Point>
+               </ns0:location>
+               <ns0:aimingPoint xsi:nil="true" nilReason="unknown" />
+               <ns0:airportHeliport xsi:nil="true" nilReason="unknown" />
+               <ns0:runwayPoint xsi:nil="true" nilReason="unknown" />
+               <ns0:annotation xsi:nil="true" nilReason="unknown" />
+               
+            </ns0:DesignatedPointTimeSlice>
+         </ns0:timeSlice>
+      </ns0:DesignatedPoint>
+   </BasicMessage>

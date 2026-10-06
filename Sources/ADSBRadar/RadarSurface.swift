@@ -7,7 +7,7 @@ struct RadarSurface: View {
     @State private var size = CGSize(width: 800, height: 600)
     @State private var dragOrigin: RadarCamera?
     @State private var showingChooser = false
-    @State private var chooserContactIDs: [String] = []
+    @State private var choices: [RadarObjectChoice] = []
     @State private var tapPoint = CGPoint.zero
     @State private var zoomOrigin: RadarCamera?
     @State private var topOverlayFrame = CGRect.zero
@@ -17,6 +17,8 @@ struct RadarSurface: View {
     var body: some View {
         ZStack {
             GeographyCanvas(paths: model.geography, camera: model.camera, settings: model.displaySettings)
+            MapLayersCanvas(layers: model.mapLayers, camera: model.camera, preferences: model.settings.mapLayers,
+                selected: model.selectedMapFeature?.id, reserved: [topOverlayFrame, bottomOverlayFrame])
             if model.displaySettings.receiver != nil {
                 TimelineView(.animation(minimumInterval: 1 / 30, paused: scenePhase != .active)) { timeline in
                     SweepCanvas(camera: model.camera, angle: SweepTiming.angle(at: timeline.date, startedAt: model.sweepStartedAt, period: model.displaySettings.sweepSeconds))
@@ -51,10 +53,26 @@ struct RadarSurface: View {
         .overlay(alignment: .topLeading) {
             Color.clear.frame(width: 1, height: 1).position(tapPoint)
                 .popover(isPresented: $showingChooser) {
-                    AircraftOverlapChooser(model: model, contactIDs: chooserContactIDs) { address in
-                        model.selectedAddress = address; showingChooser = false
-                    }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("SELECT OBJECT").font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted).padding(8)
+                            ForEach(choices) { choice in
+                                Button { model.selection = choice.id; showingChooser = false } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(choice.title).foregroundStyle(RadarStyle.green)
+                                        Text(choice.detail).font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                                    }.frame(maxWidth: .infinity, alignment: .leading).padding(8).contentShape(Rectangle())
+                                }.buttonStyle(.plain)
+                            }
+                        }.padding(8)
+                    }.frame(width: 310, height: min(380, CGFloat(choices.count * 58 + 50))).background(RadarStyle.panel)
                 }
+        }
+        .overlay {
+            MapSecondaryClick { point in
+                let candidates = model.objectChoices(at: point, secondary: true)
+                if !candidates.isEmpty { tapPoint = point; choices = candidates; showingChooser = true }
+            }.allowsHitTesting(false)
         }
         .accessibilityLabel("Aircraft radar map")
         .accessibilityHint("Drag to pan. Pinch or use zoom buttons. Use Contacts to select an aircraft with the keyboard.")
@@ -125,14 +143,11 @@ struct RadarSurface: View {
     }
 
     private func select(at point: CGPoint) {
-        let candidates = model.aircraftCandidates(at: point)
+        let candidates = model.objectChoices(at: point)
         if candidates.count > 1 {
-            tapPoint = point
-            chooserContactIDs = candidates.map(\.id)
-            showingChooser = true
+            tapPoint = point; choices = candidates; showingChooser = true
         } else {
-            showingChooser = false
-            model.selectedAddress = candidates.first?.id
+            showingChooser = false; model.selection = candidates.first?.id
         }
     }
 }
