@@ -191,10 +191,13 @@ public struct ADSBFiProvider: OnlineAircraftProvider, AircraftIdentityProvider {
         json["now"] = timestamp.doubleValue > 100_000_000_000 ? timestamp.doubleValue / 1000 : timestamp.doubleValue
         json["aircraft"] = aircraft
         let snapshot = try ReceiverSnapshot.decode(JSONSerialization.data(withJSONObject: json))
+        let acceptedAddresses = Set(snapshot.observations.map(\.address))
         let identities = aircraft.compactMap { entry -> AircraftIdentityUpdate? in
             guard let entry = entry as? [String: Any], let address = (entry["hex"] as? String)?.lowercased(),
-                  AircraftIdentityCatalogue.isICAO(address) else { return nil }
-            let update = AircraftIdentityUpdate(address: address, registration: entry["r"] as? String, aircraftType: entry["t"] as? String,
+                  acceptedAddresses.contains(address) else { return nil }
+            let isICAO = AircraftIdentityCatalogue.isICAO(address)
+            let update = AircraftIdentityUpdate(address: address, registration: isICAO ? entry["r"] as? String : nil,
+                aircraftType: isICAO ? entry["t"] as? String : nil,
                 category: AircraftCategory.reported(entry["category"] as? String),
                 updatedAt: Date(timeIntervalSince1970: (json["now"] as? Double) ?? Date.now.timeIntervalSince1970))
             return update.registration == nil && update.aircraftType == nil && update.category == nil ? nil : update

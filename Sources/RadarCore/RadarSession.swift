@@ -19,6 +19,7 @@ public struct RadarSession: Sendable {
     private var history: [String: [PositionSample]] = [:]
     private var presented: [String: AircraftObservation] = [:]
     private var presentedFeeds: [String: AircraftFeed] = [:]
+    private var categories: [String: [AircraftFeed: AircraftCategoryValue]] = [:]
     private var enabledFeeds: Set<AircraftFeed>
     private var lastAdvance: Date
     private let startedAt: Date
@@ -34,8 +35,18 @@ public struct RadarSession: Sendable {
         for id in Array(observations.keys) {
             observations[id] = observations[id]?.filter { feeds.contains($0.key) }
             sourceHistory[id] = sourceHistory[id]?.filter { feeds.contains($0.key) }
+            categories[id] = categories[id]?.filter { feeds.contains($0.key) }
             if observations[id]?.isEmpty != false { remove(id) }
         }
+    }
+
+    /// Received positions include contacts waiting for their first sweep crossing.
+    public var receivedPositionedCount: Int { observations.count }
+
+    /// Category reports retain their own successful timestamp, scoped to the displayed feed.
+    public func reportedCategory(for contactID: String) -> AircraftCategoryValue? {
+        guard let feed = presentedFeeds[contactID] else { return nil }
+        return categories[contactID]?[feed]
     }
 
     public mutating func ingest(_ snapshot: ReceiverSnapshot, from feed: AircraftFeed = .local) {
@@ -45,6 +56,14 @@ public struct RadarSession: Sendable {
             let id = incoming.address.hasPrefix("~") ? "\(feed.rawValue):\(incoming.address)" : incoming.address
             let previous = observations[id]?[feed]
             if incoming.position == nil, previous == nil { continue }
+            let report = snapshot.identities.first { $0.address == incoming.address && $0.category != nil }
+            if let category = report?.category ?? incoming.category {
+                let updatedAt = report?.updatedAt ?? incoming.positionTime ?? .now
+                if categories[id]?[feed].map({ $0.updatedAt <= updatedAt }) ?? true {
+                    categories[id, default: [:]][feed] = AircraftCategoryValue(value: category,
+                        provider: report?.provider ?? incoming.source, updatedAt: updatedAt)
+                }
+            }
             if let incomingTime = incoming.positionTime, let oldTime = previous?.positionTime, incomingTime < oldTime { continue }
             if incoming.position == nil, let previous {
                 observations[id, default: [:]][feed] = AircraftObservation(
@@ -121,6 +140,7 @@ public struct RadarSession: Sendable {
         history.removeValue(forKey: id)
         presented.removeValue(forKey: id)
         presentedFeeds.removeValue(forKey: id)
+        categories.removeValue(forKey: id)
     }
 }
 

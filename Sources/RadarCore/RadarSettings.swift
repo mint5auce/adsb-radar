@@ -98,10 +98,12 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public func altitude(_ altitude: AircraftAltitude?) -> String {
         switch altitude {
         case .ground: return "GROUND"
-        case .feet(let value): return String(format: "%.0f %@", altitudeUnit == .feet ? value : value * 0.3048, altitudeUnit == .feet ? "FT" : "M")
+        case .feet(let value): return String(format: "%.0f %@", altitudeValue(value), altitudeUnit == .feet ? "FT" : "M")
         case nil: return "UNKNOWN"
         }
     }
+
+    public func altitudeValue(_ feet: Double) -> Double { altitudeUnit == .feet ? feet : feet * 0.3048 }
 
     public func speed(_ knots: Double?) -> String {
         guard let knots else { return "UNKNOWN" }

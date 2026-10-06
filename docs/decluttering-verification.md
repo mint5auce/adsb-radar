@@ -90,3 +90,14 @@ It includes airport-like density, coincident markers, Ground, unknown categories
 Fixture preferences persist across relaunches independently of ordinary app preferences.
 To render repeatable native verification images without opening a window, run `'.build/out/Products/Debug/ADSB Radar' --render-preview /tmp/adsb-declutter-verification --preview-declutter` after building debug.
 For a separate 250-aircraft Demo rendering, use `'.build/out/Products/Debug/ADSB Radar' --synthetic --scenario demo --demo-count 250 --render-preview /tmp/adsb-declutter-demo --preview-filters`.
+
+## Verification results (6 October 2026)
+
+Automated validation passed: 79 tests in the full suite, plus the focused label-priority and zoom regression added during final verification.
+The checks include strict distance boundaries, hidden movement/history/expiry, selected-contact expiry, received counts before the first sweep, and source-scoped category retention with report dates independent of position age.
+Debug and release builds passed, and the packaged release passed signature and property-list validation.
+Native previews cover all four presets at 1200 by 800 and 800 by 560 in Immediate and Sweep modes, plus 250-aircraft Demo traffic.
+Interactive native checks covered preset application/relaunch, invalid-distance retention, category choices, Contacts search/clear, overlap selection, panning, explicit Show on map, and kilometre/metre conversion.
+Dense-cluster verification caught selected text crossing markers; selected callouts now find clear space and avoid measured map overlays while retaining all symbols.
+The standards and specification reviews against `ec6083d` have no remaining findings after their fixes and rechecks.
+Live dongle reception and live adsb.fi availability were not rechecked during this change; their decoding, lifecycle, enrichment, and failure handling were exercised with deterministic fixtures.

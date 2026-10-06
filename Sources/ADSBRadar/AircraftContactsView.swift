@@ -12,7 +12,7 @@ struct AircraftContactsView: View {
                     .textFieldStyle(.roundedBorder).accessibilityLabel("Search Contacts")
                 Button("Clear search") { model.contactsSearch = "" }.disabled(model.contactsSearch.isEmpty)
             }
-            Text("\(model.contacts.count) received positioned · \(model.heardWithoutPosition) heard without positions")
+            Text("\(model.receivedPositionedCount) received positioned · \(model.heardWithoutPosition) heard without positions")
                 .font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
             Divider()
             ScrollView {
@@ -35,10 +35,10 @@ struct AircraftContactsView: View {
 
 struct AircraftOverlapChooser: View {
     @Bindable var model: RadarModel
-    let addresses: [String]
+    let contactIDs: [String]
     let choose: (String) -> Void
 
-    private var candidates: [PresentedContact] { model.eligibleContacts.filter { addresses.contains($0.id) } }
+    private var candidates: [PresentedContact] { model.eligibleContacts.filter { contactIDs.contains($0.id) } }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CHOOSE AIRCRAFT").font(.system(size: 12, weight: .semibold, design: .monospaced))

@@ -7,9 +7,11 @@ struct RadarSurface: View {
     @State private var size = CGSize(width: 800, height: 600)
     @State private var dragOrigin: RadarCamera?
     @State private var showingChooser = false
-    @State private var chooserAddresses: [String] = []
+    @State private var chooserContactIDs: [String] = []
     @State private var tapPoint = CGPoint.zero
     @State private var zoomOrigin: RadarCamera?
+    @State private var topOverlayFrame = CGRect.zero
+    @State private var bottomOverlayFrame = CGRect.zero
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -20,7 +22,8 @@ struct RadarSurface: View {
                     SweepCanvas(camera: model.camera, angle: SweepTiming.angle(at: timeline.date, startedAt: model.sweepStartedAt, period: model.displaySettings.sweepSeconds))
                 }
                 .allowsHitTesting(false)
-                AircraftCanvas(contacts: model.eligibleContacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress)
+                AircraftCanvas(contacts: model.eligibleContacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress,
+                    reserved: [topOverlayFrame, bottomOverlayFrame])
                     .allowsHitTesting(false)
             }
             if let coverage = model.onlineCoverage, coverage.limited, let origin = model.origin {
@@ -29,6 +32,7 @@ struct RadarSurface: View {
             overlays
         }
         .background(RadarStyle.background)
+        .coordinateSpace(name: "radar-map")
         .clipped()
         .contentShape(Rectangle())
         .onGeometryChange(for: CGSize.self) { $0.size } action: {
@@ -47,7 +51,7 @@ struct RadarSurface: View {
         .overlay(alignment: .topLeading) {
             Color.clear.frame(width: 1, height: 1).position(tapPoint)
                 .popover(isPresented: $showingChooser) {
-                    AircraftOverlapChooser(model: model, addresses: chooserAddresses) { address in
+                    AircraftOverlapChooser(model: model, contactIDs: chooserContactIDs) { address in
                         model.selectedAddress = address; showingChooser = false
                     }
                 }
@@ -82,6 +86,7 @@ struct RadarSurface: View {
             }
             .padding(6)
             .background(RadarStyle.background)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { topOverlayFrame = $0 }
             Spacer()
             if model.displaySettings.receiver == nil {
                 VStack(alignment: .leading, spacing: 16) {
@@ -109,6 +114,7 @@ struct RadarSurface: View {
                 }
                 .background(RadarStyle.panel).overlay(Rectangle().stroke(RadarStyle.line))
             }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { bottomOverlayFrame = $0 }
         }
         .padding(24)
     }
@@ -122,7 +128,7 @@ struct RadarSurface: View {
         let candidates = model.aircraftCandidates(at: point)
         if candidates.count > 1 {
             tapPoint = point
-            chooserAddresses = candidates.map(\.id)
+            chooserContactIDs = candidates.map(\.id)
             showingChooser = true
         } else {
             showingChooser = false
@@ -200,6 +206,7 @@ struct AircraftCanvas: View {
     let camera: RadarCamera
     let settings: RadarSettings
     let selected: String?
+    var reserved: [CGRect] = []
 
     @State private var labelLayout = AircraftLabelLayout()
 
@@ -233,9 +240,17 @@ struct AircraftCanvas: View {
                     stale: contact.stale, homeDistance: hypot(projected.east, projected.north))
                 return (contact, point, color, text, candidate)
             }
-            let placements = labelLayout.place(rows.map(\.candidate), in: viewport, mode: settings.labelMode)
-            for row in rows {
+            let placements = labelLayout.place(rows.map(\.candidate), in: viewport, mode: settings.labelMode, reserved: reserved)
+            // The selected callout remains legible when All allows other labels to overlap.
+            let labelRows = rows.filter { $0.contact.id != selected } + rows.filter { $0.contact.id == selected }
+            for row in labelRows {
                 if let rect = placements[row.contact.id] {
+                    if row.contact.id == selected {
+                        var leader = Path()
+                        leader.move(to: row.point)
+                        leader.addLine(to: CGPoint(x: min(max(row.point.x, rect.minX), rect.maxX), y: min(max(row.point.y, rect.minY), rect.maxY)))
+                        context.stroke(leader, with: .color(row.color.opacity(0.6)), lineWidth: 0.6)
+                    }
                     context.fill(Path(rect.insetBy(dx: -2, dy: -1)), with: .color(RadarStyle.background.opacity(0.9)))
                     context.draw(row.text, at: rect.origin, anchor: .topLeading)
                 }

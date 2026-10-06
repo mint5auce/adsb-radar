@@ -13,8 +13,8 @@ struct AircraftFiltersView: View {
 
     init(model: RadarModel) {
         self.model = model
-        _minimumText = State(initialValue: model.settings.aircraftFilters.minimumAltitudeFeet.map { Self.number($0 * (model.settings.altitudeUnit == .feet ? 1 : 0.3048)) } ?? "")
-        _maximumText = State(initialValue: model.settings.aircraftFilters.maximumAltitudeFeet.map { Self.number($0 * (model.settings.altitudeUnit == .feet ? 1 : 0.3048)) } ?? "")
+        _minimumText = State(initialValue: Self.altitudeText(model.settings.aircraftFilters.minimumAltitudeFeet, settings: model.settings))
+        _maximumText = State(initialValue: Self.altitudeText(model.settings.aircraftFilters.maximumAltitudeFeet, settings: model.settings))
         _distanceText = State(initialValue: Self.number(model.settings.distanceValue(model.settings.aircraftFilters.homeDistanceNM ?? 50)))
     }
 
@@ -119,10 +119,10 @@ struct AircraftFiltersView: View {
         guard (minBlank || parsed(minimumText)?.isFinite == true), (maxBlank || parsed(maximumText)?.isFinite == true) else {
             error = "Enter a valid reported altitude or leave the limit blank."; return
         }
-        let factor = model.settings.altitudeUnit == .feet ? 1.0 : 0.3048
+        let factor = model.settings.altitudeValue(1)
         var filters = model.settings.aircraftFilters
-        if minimumText == filters.minimumAltitudeFeet.map({ Self.number($0 * factor) }) ?? "",
-           maximumText == filters.maximumAltitudeFeet.map({ Self.number($0 * factor) }) ?? "" { error = nil; return }
+        if minimumText == Self.altitudeText(filters.minimumAltitudeFeet, settings: model.settings),
+           maximumText == Self.altitudeText(filters.maximumAltitudeFeet, settings: model.settings) { error = nil; return }
         filters.minimumAltitudeFeet = minBlank ? nil : parsed(minimumText).map { $0 / factor }
         filters.maximumAltitudeFeet = maxBlank ? nil : parsed(maximumText).map { $0 / factor }
         if let message = filters.validationMessage { error = message; return }
@@ -130,9 +130,8 @@ struct AircraftFiltersView: View {
     }
 
     private func updateAltitudeText() {
-        let factor = model.settings.altitudeUnit == .feet ? 1.0 : 0.3048
-        minimumText = model.settings.aircraftFilters.minimumAltitudeFeet.map { Self.number($0 * factor) } ?? ""
-        maximumText = model.settings.aircraftFilters.maximumAltitudeFeet.map { Self.number($0 * factor) } ?? ""
+        minimumText = Self.altitudeText(model.settings.aircraftFilters.minimumAltitudeFeet, settings: model.settings)
+        maximumText = Self.altitudeText(model.settings.aircraftFilters.maximumAltitudeFeet, settings: model.settings)
     }
 
     private func applyPreset(_ preset: AircraftViewPreset) {
@@ -155,8 +154,11 @@ struct AircraftFiltersView: View {
     private func updateDistanceText() {
         distanceText = Self.number(model.settings.distanceValue(model.settings.aircraftFilters.homeDistanceNM ?? 50))
     }
+    private static func altitudeText(_ feet: Double?, settings: RadarSettings) -> String {
+        feet.map { number(settings.altitudeValue($0)) } ?? ""
+    }
     private static func number(_ value: Double) -> String {
-        String(format: "%.6f", value).replacingOccurrences(of: "\\.?0+$", with: "", options: .regularExpression)
+        String(format: "%.12g", value)
     }
 }
 

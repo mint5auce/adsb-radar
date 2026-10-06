@@ -3,6 +3,25 @@ import Testing
 import RadarCore
 
 struct AircraftCategoryTests {
+    @Test func nonICAOCategoriesUseReportDatesIndependentlyOfOlderPositions() throws {
+        var settings = RadarSettings()
+        settings.source = .online; settings.mode = .immediate
+        settings.receiver = GeographicCoordinate(latitude: 0, longitude: 0)
+        let date = Date(timeIntervalSince1970: 1000)
+        var session = RadarSession(startedAt: date, enabledFeeds: [.online])
+        let first = try ADSBFiProvider.decode(Data(#"{"now":1000,"ac":[{"hex":"~abc123","lat":0,"lon":1,"seen_pos":20,"category":"A5"}]}"#.utf8))
+        session.ingest(first, from: .online)
+        #expect(session.advance(to: date, settings: settings).first?.observation.positionTime == date.addingTimeInterval(-20))
+        #expect(session.reportedCategory(for: "online:~abc123")?.updatedAt == date)
+        let later = try ADSBFiProvider.decode(Data(#"{"now":1001,"ac":[{"hex":"~abc123","lat":0,"lon":2,"seen_pos":100,"category":"A2"}]}"#.utf8))
+        session.ingest(later, from: .online)
+        #expect(session.advance(to: date.addingTimeInterval(1), settings: settings).first?.observation.positionTime == date.addingTimeInterval(-20))
+        #expect(session.reportedCategory(for: "online:~abc123")?.value == .small)
+        #expect(session.reportedCategory(for: "online:~abc123")?.updatedAt == date.addingTimeInterval(1))
+        var catalogue = AircraftIdentityCatalogue()
+        catalogue.merge(first.identities + later.identities)
+        #expect(catalogue.identities.isEmpty)
+    }
     @Test func localReportsDecodeKnownCategoriesWithoutInventingUnknownOnes() throws {
         let data = Data(#"{"now":1000,"aircraft":[{"hex":"abc123","category":"A4"},{"hex":"bbb222","category":"A0"},{"hex":"ccc333","category":"B5"},{"hex":"ddd444","category":"nonsense"}]}"#.utf8)
         let snapshot = try ReceiverSnapshot.decode(data)

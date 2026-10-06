@@ -4,6 +4,39 @@ import RadarCore
 @testable import ADSBRadar
 
 struct AircraftViewModelTests {
+    @Test @MainActor func contactsExposeReceivedTotalBeforeTheFirstSweepCrossing() async throws {
+        var settings = RadarSettings()
+        settings.receiver = GeographicCoordinate(latitude: 0, longitude: 0); settings.sweepSeconds = 30; settings.enrichIdentities = false
+        let source = ViewFixtureSource(observations: [AircraftObservation(address: "abc123", position: GeographicCoordinate(latitude: 0, longitude: -1), positionTime: .now)])
+        let model = RadarModel(source: source, identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.receivedPositionedCount == 1 }
+        #expect(model.contacts.isEmpty && model.listedContacts.isEmpty)
+        await model.shutdown()
+    }
+    @Test @MainActor func nonICAOCategoriesRetainTheirDateAndStayScopedToTheirFeed() async throws {
+        var settings = RadarSettings()
+        settings.source = .combined; settings.receiver = SyntheticSource.exampleLocation
+        settings.mode = .immediate; settings.enrichIdentities = false
+        let date = Date.now
+        let local = ViewFixtureSource(observations: [AircraftObservation(address: "~abc123", position: settings.receiver,
+            positionTime: date, category: .light, source: "LOCAL")])
+        let online = ViewFixtureSource(observations: [AircraftObservation(address: "~abc123", position: settings.receiver,
+            positionTime: date, category: .heavy, source: "adsb.fi")])
+        let model = RadarModel(sources: [.local: local, .online: online], identityStorage: MemoryIdentityStorage(),
+            initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 2 }
+        let localCategory = try #require(model.reportedCategory(for: model.contacts.first { $0.id == "local:~abc123" }!))
+        let onlineCategory = try #require(model.reportedCategory(for: model.contacts.first { $0.id == "online:~abc123" }!))
+        #expect(localCategory.value == .light && onlineCategory.value == .heavy)
+        let later = date.addingTimeInterval(1)
+        await local.setObservations([AircraftObservation(address: "~abc123", position: settings.receiver, positionTime: later, source: "LOCAL")])
+        await online.setObservations([AircraftObservation(address: "~abc123", position: settings.receiver, positionTime: later, source: "adsb.fi")])
+        try await eventually { model.contacts.allSatisfy { $0.observation.positionTime == later } }
+        #expect(model.reportedCategory(for: model.contacts.first { $0.id == "local:~abc123" }!) == localCategory)
+        #expect(model.reportedCategory(for: model.contacts.first { $0.id == "online:~abc123" }!) == onlineCategory)
+        #expect(model.identities.isEmpty)
+        await model.shutdown()
+    }
     @Test @MainActor func homeFiltersKeepReceivedContactsAndSelectionIndependentOfPanning() async throws {
         var settings = RadarSettings()
         settings.receiver = GeographicCoordinate(latitude: 0, longitude: 0)
@@ -18,6 +51,14 @@ struct AircraftViewModelTests {
         model.setAircraftFilters(filters)
         #expect(model.eligibleContacts.map(\.id) == ["aaa111"])
         #expect(model.contacts.count == 2 && model.contactCounts.filtered == 1)
+        let farPosition = try #require(GeographicCoordinate(latitude: 1.6, longitude: 0))
+        await source.setObservations([
+            AircraftObservation(address: "aaa111", position: GeographicCoordinate(latitude: 0.1, longitude: 0), positionTime: .now, altitude: .feet(10000), source: "LOCAL"),
+            AircraftObservation(address: "bbb222", position: farPosition, positionTime: .now, altitude: .feet(21000), source: "LOCAL")
+        ])
+        try await eventually { model.contacts.first { $0.id == "bbb222" }?.observation.position == farPosition }
+        #expect(model.eligibleContacts.map(\.id) == ["aaa111"])
+        #expect(model.contacts.first { $0.id == "bbb222" }?.trail.count == 2)
         model.selectedAddress = "bbb222"
         #expect(model.selectedOutsideFilters)
         #expect(model.eligibleContacts.count == 2 && model.contactCounts.filtered == 0)
@@ -52,6 +93,23 @@ struct AircraftViewModelTests {
         model.clearAircraftFilters()
         #expect(model.camera == camera && model.onlineCoverage?.search == search)
         #expect(model.settings.labelMode == .all && model.settings.trailMode == .none && !model.settings.directionVectors)
+    }
+
+    @Test @MainActor func selectedOutsideFiltersStillExpiresNormally() async throws {
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation; settings.mode = .immediate
+        settings.enrichIdentities = false; settings.staleSeconds = 1; settings.removalSeconds = 2
+        settings.aircraftFilters.minimumAltitudeFeet = 20000
+        let observation = AircraftObservation(address: "abc123", position: settings.receiver, positionTime: .now, altitude: .feet(10000))
+        let model = RadarModel(source: ViewFixtureSource(observations: [observation]), identityStorage: MemoryIdentityStorage(),
+            initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 1 }
+        model.selectedAddress = "abc123"
+        #expect(model.selectedOutsideFilters && model.eligibleContacts.count == 1)
+        try await eventually { model.contacts.first?.stale == true }
+        try await eventually { model.contacts.isEmpty }
+        #expect(model.selectedAddress == nil && model.receivedPositionedCount == 0)
+        await model.shutdown()
     }
 
     @Test @MainActor func altitudeBoundsAreInclusiveAndGroundIsNotNumericZero() async throws {
@@ -192,10 +250,11 @@ struct AircraftViewModelTests {
 }
 
 actor ViewFixtureSource: AircraftDataSource {
-    let observations: [AircraftObservation]?
+    var observations: [AircraftObservation]?
     init(observations: [AircraftObservation]? = nil) { self.observations = observations }
     func start(location: GeographicCoordinate?) async {}
     func stop() async {}
+    func setObservations(_ values: [AircraftObservation]) { observations = values }
     func poll() async -> ReceptionReading {
         ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations ?? [
             AircraftObservation(address: "aaa111", position: GeographicCoordinate(latitude: 0.1, longitude: 0), positionTime: .now, altitude: .feet(10000), source: "LOCAL"),

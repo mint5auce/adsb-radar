@@ -12,6 +12,7 @@ final class RadarModel {
     private(set) var identities: [String: AircraftIdentity] = [:]
     private(set) var statuses: [AircraftFeed: ReceptionStatus] = [:]
     private(set) var heardWithoutPosition = 0
+    private(set) var receivedPositionedCount = 0
     private(set) var geography: GeographyPaths?
     private(set) var mapMessage: String?
     var contactsSearch = ""
@@ -161,13 +162,12 @@ final class RadarModel {
     }
 
     func reportedCategory(for contact: PresentedContact) -> AircraftCategoryValue? {
-        if settings.source == .synthetic {
-            return contact.observation.category.map { AircraftCategoryValue(value: $0, provider: contact.observation.source, updatedAt: contact.observation.positionTime ?? .now) }
+        if contact.observation.address.hasPrefix("~") || settings.source == .synthetic {
+            return session.reportedCategory(for: contact.id)
         }
-        if !contact.observation.address.hasPrefix("~") || contact.id.hasPrefix("local:"),
-           let local = currentLocalCategory(for: contact.observation.address) { return local }
+        if let local = currentLocalCategory(for: contact.observation.address) { return local }
         if let cached = identities[contact.observation.address]?.category { return cached }
-        return contact.observation.category.map { AircraftCategoryValue(value: $0, provider: contact.observation.source, updatedAt: contact.observation.positionTime ?? .now) }
+        return session.reportedCategory(for: contact.id)
     }
     private func currentLocalCategory(for address: String) -> AircraftCategoryValue? {
         guard settings.source.feeds.contains(.local), let category = currentLocalCategories[address],
@@ -346,6 +346,7 @@ final class RadarModel {
 
     private func advanceDisplay() {
         contacts = session.advance(to: .now, settings: displaySettings)
+        receivedPositionedCount = session.receivedPositionedCount
         currentLocalCategories = currentLocalCategories.filter { Date.now.timeIntervalSince($0.value.updatedAt) <= settings.removalSeconds }
         if let selectedAddress, !contacts.contains(where: { $0.id == selectedAddress }) { self.selectedAddress = nil }
     }
@@ -526,6 +527,7 @@ final class RadarModel {
     private func clearContacts() {
         sweepStartedAt = .now
         contacts = []
+        receivedPositionedCount = 0
         currentLocalCategories = [:]
         heardWithoutPosition = 0
         selectedAddress = nil
