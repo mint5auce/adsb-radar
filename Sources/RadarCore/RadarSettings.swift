@@ -36,12 +36,16 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var onlineRadiusNM: Double = 250
     public var enrichIdentities: Bool = true
     public var identityRefreshDays: Double = 7
+    public var labelMode: AircraftLabelMode = .automatic
+    public var trailMode: AircraftTrailMode = .selected
+    public var directionVectors: Bool = true
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
+        case labelMode, trailMode, directionVectors
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -65,6 +69,9 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
         enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
         identityRefreshDays = try values.decodeIfPresent(Double.self, forKey: .identityRefreshDays) ?? identityRefreshDays
+        labelMode = try values.decodeIfPresent(AircraftLabelMode.self, forKey: .labelMode) ?? labelMode
+        trailMode = try values.decodeIfPresent(AircraftTrailMode.self, forKey: .trailMode) ?? trailMode
+        directionVectors = try values.decodeIfPresent(Bool.self, forKey: .directionVectors) ?? directionVectors
     }
 
     public func validated() -> RadarSettings {

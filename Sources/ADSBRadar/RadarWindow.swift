@@ -29,7 +29,8 @@ struct RadarWindow: View {
     }
 
     private var header: some View {
-        HStack(spacing: 24) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ADSB / RADAR").font(.system(size: 19, weight: .semibold, design: .monospaced)).tracking(2)
                 Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : model.settings.source == .combined ? "LOCAL + ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
@@ -37,6 +38,13 @@ struct RadarWindow: View {
                     .foregroundStyle(model.settings.source == .synthetic ? RadarStyle.amber : RadarStyle.muted)
             }
             Spacer(minLength: 8)
+            Button { showingSettings = true } label: { Label("SETTINGS", systemImage: "slider.horizontal.3") }
+                .buttonStyle(.plain)
+                .keyboardShortcut(",", modifiers: .command)
+                .padding(8)
+                .overlay(Rectangle().stroke(RadarStyle.line, lineWidth: 1))
+            }
+            HStack(spacing: 24) {
             if model.settings.source == .synthetic {
                 Button { Task { await model.retry() } } label: { Label("RESTART", systemImage: "arrow.counterclockwise") }
                     .buttonStyle(.plain).disabled(model.retrying)
@@ -51,6 +59,7 @@ struct RadarWindow: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
+            presentationMenu
             Menu {
                 if model.contacts.isEmpty { Text("No positioned contacts") }
                 ForEach(model.contacts) { contact in
@@ -58,15 +67,31 @@ struct RadarWindow: View {
                 }
             } label: { Label("CONTACTS", systemImage: "airplane") }
                 .menuStyle(.borderlessButton).fixedSize()
-            Button { showingSettings = true } label: { Label("SETTINGS", systemImage: "slider.horizontal.3") }
-                .buttonStyle(.plain)
-                .keyboardShortcut(",", modifiers: .command)
-                .padding(8)
-                .overlay(Rectangle().stroke(RadarStyle.line, lineWidth: 1))
+            Spacer(minLength: 0)
+            }
         }
         .padding(.leading, 80)
         .padding(.trailing, 24)
-        .padding(.vertical, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var presentationMenu: some View {
+        Menu {
+            Picker("Labels", selection: Binding(get: { model.settings.labelMode }, set: { value in
+                var settings = model.settings; settings.labelMode = value; model.apply(settings)
+            })) {
+                ForEach(AircraftLabelMode.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            Picker("Trails", selection: Binding(get: { model.settings.trailMode }, set: { value in
+                var settings = model.settings; settings.trailMode = value; model.apply(settings)
+            })) {
+                ForEach(AircraftTrailMode.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            Toggle("Direction vectors", isOn: Binding(get: { model.settings.directionVectors }, set: { value in
+                var settings = model.settings; settings.directionVectors = value; model.apply(settings)
+            }))
+        } label: { Label("VIEW", systemImage: "eye") }
+        .menuStyle(.borderlessButton).fixedSize()
     }
 
     private var status: some View {

@@ -189,36 +189,52 @@ struct AircraftCanvas: View {
     let settings: RadarSettings
     let selected: String?
 
+    @State private var labelLayout = AircraftLabelLayout()
+
     var body: some View {
         Canvas { context, size in
             guard let receiver = settings.receiver else { return }
             let projection = ReceiverProjection(origin: receiver)
-            for contact in contacts {
-                guard let position = contact.observation.position else { continue }
-                let screen = camera.screen(projection.project(position), width: size.width, height: size.height)
+            let viewport = CGRect(origin: .zero, size: size)
+            let rows = contacts.compactMap { contact -> (contact: PresentedContact, point: CGPoint, color: Color, text: GraphicsContext.ResolvedText, candidate: AircraftLabelCandidate)? in
+                guard let position = contact.observation.position else { return nil }
+                let projected = projection.project(position)
+                let screen = camera.screen(projected, width: size.width, height: size.height)
                 let point = CGPoint(x: screen.x, y: screen.y)
                 let color = contact.stale ? RadarStyle.amber.opacity(0.55) : contact.id == selected ? RadarStyle.bright : RadarStyle.green
-                drawTrail(contact, projection: projection, context: context, size: size, color: color)
-                guard CGRect(origin: .zero, size: size).insetBy(dx: -100, dy: -40).contains(point) else { continue }
-                if let heading = contact.observation.directionDegrees {
+                if settings.trailMode.shows(selected: contact.id == selected) {
+                    drawTrail(contact, projection: projection, context: context, size: size, color: color)
+                }
+                guard viewport.insetBy(dx: -100, dy: -40).contains(point) else { return nil }
+                if settings.directionVectors, let heading = contact.observation.directionDegrees {
                     let direction = projection.direction(at: position, headingDegrees: heading)
                     var vector = Path()
                     vector.move(to: point)
                     vector.addLine(to: CGPoint(x: point.x + direction.east * 22, y: point.y - direction.north * 22))
                     context.stroke(vector, with: .color(color), lineWidth: 0.8)
                 }
-                let marker = CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)
-                context.stroke(Path(marker), with: .color(color), lineWidth: 1)
-                if selected == contact.id {
-                    context.stroke(Path(CGRect(x: point.x - 8, y: point.y - 8, width: 16, height: 16)), with: .color(RadarStyle.bright), lineWidth: 0.8)
-                }
                 let callsign = contact.observation.callsign ?? contact.observation.address.uppercased()
                 let label = "\(callsign)\n\(settings.altitude(contact.observation.altitude))"
                 let text = context.resolve(Text(label).font(.system(size: 10, design: .monospaced)).foregroundStyle(color))
-                let labelOrigin = CGPoint(x: point.x + 12, y: point.y - 8)
-                let labelSize = text.measure(in: CGSize(width: 200, height: 40))
-                context.fill(Path(CGRect(origin: labelOrigin, size: labelSize).insetBy(dx: -2, dy: -1)), with: .color(RadarStyle.background.opacity(0.9)))
-                context.draw(text, at: labelOrigin, anchor: .topLeading)
+                let candidate = AircraftLabelCandidate(id: contact.id, point: point,
+                    size: text.measure(in: CGSize(width: 200, height: 40)), selected: contact.id == selected,
+                    stale: contact.stale, homeDistance: hypot(projected.east, projected.north))
+                return (contact, point, color, text, candidate)
+            }
+            let placements = labelLayout.place(rows.map(\.candidate), in: viewport, mode: settings.labelMode)
+            for row in rows {
+                if let rect = placements[row.contact.id] {
+                    context.fill(Path(rect.insetBy(dx: -2, dy: -1)), with: .color(RadarStyle.background.opacity(0.9)))
+                    context.draw(row.text, at: rect.origin, anchor: .topLeading)
+                }
+            }
+            // Every marker is drawn after every label background.
+            for row in rows {
+                let marker = CGRect(x: row.point.x - 3, y: row.point.y - 3, width: 6, height: 6)
+                context.stroke(Path(marker), with: .color(row.color), lineWidth: 1)
+                if selected == row.contact.id {
+                    context.stroke(Path(CGRect(x: row.point.x - 8, y: row.point.y - 8, width: 16, height: 16)), with: .color(RadarStyle.bright), lineWidth: 0.8)
+                }
             }
         }
     }
