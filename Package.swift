@@ -11,6 +11,7 @@ let package = Package(
     targets: [
         .target(name: "RadarCore"),
         .executableTarget(name: "ADSBRadar", dependencies: ["RadarCore"], resources: [.process("Resources")]),
-        .testTarget(name: "RadarCoreTests", dependencies: ["RadarCore"])
+        .testTarget(name: "RadarCoreTests", dependencies: ["RadarCore"]),
+        .testTarget(name: "ADSBRadarTests", dependencies: ["ADSBRadar", "RadarCore"])
     ]
 )

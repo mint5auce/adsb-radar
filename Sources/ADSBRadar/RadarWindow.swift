@@ -32,7 +32,7 @@ struct RadarWindow: View {
         HStack(spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ADSB / RADAR").font(.system(size: 19, weight: .semibold, design: .monospaced)).tracking(2)
-                Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : "LOCAL AIR PICTURE")
+                Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
                     .font(.system(size: 10, design: .monospaced)).tracking(2)
                     .foregroundStyle(model.settings.source == .synthetic ? RadarStyle.amber : RadarStyle.muted)
             }
@@ -78,6 +78,9 @@ struct RadarWindow: View {
                     .disabled(model.retrying)
             }
             Spacer(minLength: 8)
+            if model.settings.source == .online {
+                Link("adsb.fi", destination: URL(string: "https://adsb.fi")!).foregroundStyle(RadarStyle.muted)
+            }
             Text("\(model.contacts.count) POSITIONED").foregroundStyle(RadarStyle.green)
             Text("\(model.heardWithoutPosition) WITHOUT POSITION").foregroundStyle(RadarStyle.muted)
         }
@@ -99,6 +102,15 @@ struct RadarWindow: View {
             case .starting: return "STARTING SYNTHETIC \(model.settings.scenario.rawValue.uppercased())"
             case .waiting, .receiving:
                 return "SYNTHETIC \(model.settings.scenario.rawValue.uppercased()) / GENERATED TRAFFIC"
+            case .failed(let message): return message
+            }
+        }
+        if model.settings.source == .online {
+            switch model.reception {
+            case .stopped: return "ONLINE STOPPED"
+            case .starting: return "CONNECTING TO ADSB.FI"
+            case .waiting: return "ONLINE ACTIVE / WAITING FOR AIRCRAFT"
+            case .receiving: return "ONLINE / ADSB.FI ACTIVE"
             case .failed(let message): return message
             }
         }

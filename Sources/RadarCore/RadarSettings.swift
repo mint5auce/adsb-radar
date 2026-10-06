@@ -4,7 +4,7 @@ public enum UpdateMode: String, Codable, CaseIterable, Sendable { case sweep, im
 public enum AltitudeUnit: String, Codable, CaseIterable, Sendable { case feet, metres }
 public enum SpeedUnit: String, Codable, CaseIterable, Sendable { case knots, kilometresPerHour, milesPerHour }
 public enum DistanceUnit: String, Codable, CaseIterable, Sendable { case nauticalMiles, kilometres, miles }
-public enum AircraftSourceKind: String, Codable, CaseIterable, Sendable { case local, synthetic }
+public enum AircraftSourceKind: String, Codable, CaseIterable, Sendable { case local, online, synthetic }
 
 public struct RadarSettings: Equatable, Codable, Sendable {
     public var receiver: GeographicCoordinate?
@@ -20,12 +20,14 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var source: AircraftSourceKind = .local
     public var scenario: SyntheticScenario = .test
     public var demoCount: Int = 100
+    public var onlineRefreshSeconds: Double = 5
+    public var onlineRadiusNM: Double = 250
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
-        case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount
+        case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -45,6 +47,8 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         source = try values.decodeIfPresent(AircraftSourceKind.self, forKey: .source) ?? source
         scenario = try values.decodeIfPresent(SyntheticScenario.self, forKey: .scenario) ?? scenario
         demoCount = try values.decodeIfPresent(Int.self, forKey: .demoCount) ?? demoCount
+        onlineRefreshSeconds = try values.decodeIfPresent(Double.self, forKey: .onlineRefreshSeconds) ?? onlineRefreshSeconds
+        onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
     }
 
     public func validated() -> RadarSettings {
@@ -58,6 +62,8 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         value.trailSeconds = bounded(trailSeconds, 120, 5...600)
         value.initialRadiusNM = bounded(initialRadiusNM, 100, 5...2000)
         value.demoCount = min(250, max(25, demoCount))
+        value.onlineRefreshSeconds = bounded(onlineRefreshSeconds, 5, 1...300)
+        value.onlineRadiusNM = bounded(onlineRadiusNM, 250, 1...250)
         if let receiver { value.receiver = GeographicCoordinate(latitude: receiver.latitude, longitude: receiver.longitude) }
         return value
     }

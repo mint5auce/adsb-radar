@@ -22,6 +22,7 @@ final class RadarModel {
     @ObservationIgnored private var source: (any AircraftDataSource)?
     @ObservationIgnored private var session: RadarSession
     @ObservationIgnored private var loop: Task<Void, Never>?
+    @ObservationIgnored private var sourceLoop: Task<Void, Never>?
     @ObservationIgnored private var mapTask: Task<Void, Never>?
     @ObservationIgnored private var shuttingDown = false
     @ObservationIgnored private var sourceRevision = 0
@@ -61,8 +62,20 @@ final class RadarModel {
         guard loop == nil, !shuttingDown else { return }
         loadGeography()
         loop = Task {
+            while !Task.isCancelled {
+                contacts = session.advance(to: .now, settings: displaySettings)
+                if let selectedAddress, !contacts.contains(where: { $0.id == selectedAddress }) {
+                    self.selectedAddress = nil
+                }
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { break }
+            }
+        }
+        startSourceLoop()
+    }
+
+    private func startSourceLoop() {
+        sourceLoop = Task {
             var activeRevision: Int?
-            var nextRead = Date.distantPast
             while !Task.isCancelled {
                 if activeRevision != sourceRevision {
                     await source?.stop()
@@ -71,34 +84,23 @@ final class RadarModel {
                     let configured = settings
                     let replacement: any AircraftDataSource = suppliedSource ?? Self.makeSource(configured)
                     source = replacement
-                    sweepStartedAt = .now
-                    session = RadarSession(startedAt: sweepStartedAt)
                     await replacement.start(location: origin)
                     guard !Task.isCancelled else { break }
                     guard revision == sourceRevision else { continue }
                     activeRevision = revision
-                    nextRead = .distantPast
                     retrying = false
                 }
-                let now = Date.now
-                if now >= nextRead {
-                    guard let source else { break }
-                    let reading = await source.poll()
-                    guard !Task.isCancelled else { break }
-                    guard activeRevision == sourceRevision else { continue }
-                    reception = reading.status
-                    if let snapshot = reading.snapshot {
-                        heardWithoutPosition = snapshot.heardWithoutPosition
-                        session.ingest(snapshot)
-                    }
-                    let interval = settings.source == .synthetic ? min(1, settings.staleSeconds / 3) : 1
-                    nextRead = now.addingTimeInterval(interval)
+                guard let source else { break }
+                let reading = await source.poll()
+                guard !Task.isCancelled else { break }
+                guard activeRevision == sourceRevision else { continue }
+                reception = reading.status
+                if let snapshot = reading.snapshot {
+                    heardWithoutPosition = snapshot.heardWithoutPosition
+                    session.ingest(snapshot)
                 }
-                contacts = session.advance(to: now, settings: displaySettings)
-                if let selectedAddress, !contacts.contains(where: { $0.id == selectedAddress }) {
-                    self.selectedAddress = nil
-                }
-                do { try await Task.sleep(for: .milliseconds(100)) } catch { break }
+                let interval = settings.source == .online ? 0.1 : settings.source == .synthetic ? min(1, settings.staleSeconds / 3) : 1
+                do { try await Task.sleep(for: .seconds(interval)) } catch { break }
             }
         }
     }
@@ -112,9 +114,12 @@ final class RadarModel {
         shuttingDown = true
         mapTask?.cancel()
         loop?.cancel()
+        sourceLoop?.cancel()
         await loop?.value
         loop = nil
         await source?.stop()
+        await sourceLoop?.value
+        sourceLoop = nil
         source = nil
     }
 
@@ -128,7 +133,8 @@ final class RadarModel {
             (settings.scenario != previous.scenario || settings.demoCount != previous.demoCount ||
              settings.staleSeconds != previous.staleSeconds || settings.removalSeconds != previous.removalSeconds ||
              settings.sweepSeconds != previous.sweepSeconds)
-        if originChanged || syntheticChanged {
+        if originChanged || syntheticChanged ||
+            (settings.source == .online && (settings.onlineRefreshSeconds != previous.onlineRefreshSeconds || settings.onlineRadiusNM != previous.onlineRadiusNM)) {
             requestRestart()
         }
         if originChanged {
@@ -176,12 +182,22 @@ final class RadarModel {
         sourceRevision += 1
         retrying = true
         reception = .starting
+        sweepStartedAt = .now
         clearContacts()
+        // Cancel slow requests immediately; the replacement loop stops its predecessor first.
+        let previousLoop = sourceLoop
+        previousLoop?.cancel()
+        sourceLoop = Task {
+            await previousLoop?.value
+            guard !Task.isCancelled, !shuttingDown else { return }
+            startSourceLoop()
+        }
     }
 
     private static func makeSource(_ settings: RadarSettings) -> any AircraftDataSource {
         switch settings.source {
         case .local: ReadsbReceiver()
+        case .online: OnlineFeed(interval: settings.onlineRefreshSeconds, radiusNM: settings.onlineRadiusNM)
         case .synthetic: SyntheticSource(scenario: settings.scenario, demoCount: settings.demoCount, timing: settings)
         }
     }

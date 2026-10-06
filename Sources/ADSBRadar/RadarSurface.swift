@@ -63,7 +63,7 @@ struct RadarSurface: View {
             Spacer()
             if model.displaySettings.receiver == nil {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("SET RECEIVER POSITION").font(.system(size: 15, weight: .medium, design: .monospaced))
+                    Text(model.settings.source == .online ? "SET HOME LOCATION" : "SET RECEIVER POSITION").font(.system(size: 15, weight: .medium, design: .monospaced))
                     Text("Choose the geographic origin for\nyour sweep and range rings.").foregroundStyle(RadarStyle.muted)
                     Button("Enter latitude and longitude", action: openSettings).buttonStyle(.bordered)
                 }
@@ -78,7 +78,7 @@ struct RadarSurface: View {
                 }
                 Spacer()
                 HStack(spacing: 0) {
-                    control("Return to receiver", symbol: "location", action: model.returnToReceiver)
+                    control(model.settings.source == .online ? "Return home" : "Return to receiver", symbol: "location", action: model.returnToReceiver)
                         .keyboardShortcut("0", modifiers: .command)
                     control("Zoom out", symbol: "minus") { model.camera = model.camera.zoomed(by: 0.8) }
                         .keyboardShortcut("-", modifiers: .command)

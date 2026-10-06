@@ -6,14 +6,17 @@ import SwiftUI
 /// Offscreen visual verification only. Does not open or control a desktop window.
 @MainActor
 enum PreviewRenderer {
-    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions()) async throws {
+    static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false) async throws {
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
         settings.receiver = syntheticPlayback ? nil : SyntheticSource.exampleLocation
-        settings.source = .synthetic
+        settings.source = online ? .online : .synthetic
         settings.mode = .immediate
-        let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation)
-        let model = RadarModel(source: fixture, initialSettings: settings)
+        let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
+        let suite = "adsb-radar-preview-\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = RadarModel(source: fixture, initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
             if model.geography != nil, !model.contacts.isEmpty { break }
@@ -29,6 +32,14 @@ enum PreviewRenderer {
         try image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
         try image(RadarSettingsView(settings: model.settings, save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
+        if online {
+            model.setMode(.sweep)
+            try await Task.sleep(for: .seconds(4.1))
+            try image(model, to: folder.appendingPathComponent("sweep.png"), width: 1200, height: 800)
+            if let fixture = fixture as? PreviewSource { await fixture.fail() }
+            try await Task.sleep(for: .milliseconds(250))
+            try image(model, to: folder.appendingPathComponent("outage.png"), width: 800, height: 560)
+        }
         await model.shutdown()
         print("Rendered native previews in \(directory)")
     }
@@ -51,10 +62,14 @@ enum PreviewRenderer {
 
 private actor PreviewSource: AircraftDataSource {
     let origin: GeographicCoordinate
-    init(origin: GeographicCoordinate) { self.origin = origin }
+    let source: String
+    var failed = false
+    init(origin: GeographicCoordinate, source: String) { self.origin = origin; self.source = source }
+    func fail() { failed = true }
     func start(location: GeographicCoordinate?) async {}
     func stop() async {}
     func poll() async -> ReceptionReading {
+        if failed { return ReceptionReading(status: .failed("Online unavailable. Retrying automatically.")) }
         let now = Date.now
         let observations: [AircraftObservation] = (0..<8).flatMap { index in
             let latitude = origin.latitude + Double(index - 3) * 0.17
@@ -69,7 +84,7 @@ private actor PreviewSource: AircraftDataSource {
             return AircraftObservation(address: String(format: "abc%03x", index), callsign: "TEST\(101 + index)",
                 position: position, positionTime: now.addingTimeInterval(-age - behind * 10),
                 altitude: .feet(Double(12000 + index * 3000)), speedKnots: Double(280 + index * 18),
-                directionDegrees: Double(index * 43), source: "SYNTHETIC PREVIEW")
+                directionDegrees: Double(index * 43), source: source)
             }
         }
         return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations))

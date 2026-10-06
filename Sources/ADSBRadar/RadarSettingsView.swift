@@ -25,6 +25,7 @@ struct RadarSettingsView: View {
                 Section("Aircraft data") {
                     Picker("Source", selection: $draft.source) {
                         Text("Local receiver").tag(AircraftSourceKind.local)
+                        Text("Online / adsb.fi").tag(AircraftSourceKind.online)
                         Text("Synthetic / offline").tag(AircraftSourceKind.synthetic)
                     }
                     if draft.source == .synthetic {
@@ -42,11 +43,19 @@ struct RadarSettingsView: View {
                         }
                     }
                 }
-                Section("Receiver position") {
+                Section(draft.source == .online ? "Home location" : "Receiver position") {
                     TextField("Latitude", text: $latitude).accessibilityIdentifier("receiver-latitude")
                     TextField("Longitude", text: $longitude).accessibilityIdentifier("receiver-longitude")
                     Text("The sweep and range rings stay anchored here.").foregroundStyle(.secondary)
                     if !locationValid { Text("Enter latitude from -90 to 90 and longitude from -180 to 180.").foregroundStyle(RadarStyle.amber) }
+                }
+                if draft.source == .online {
+                    Section("Online feed") {
+                        Stepper("Refresh: \(Int(draft.onlineRefreshSeconds)) seconds", value: $draft.onlineRefreshSeconds, in: 1...300)
+                        TextField("Search limit (\(draft.distanceSymbol))", value: onlineRadiusBinding, format: .number)
+                        Text("Maximum: \(draft.distance(250)). Shared allowance: one request per second.").foregroundStyle(.secondary)
+                        Link("Aircraft data from adsb.fi", destination: URL(string: "https://adsb.fi")!)
+                    }
                 }
                 Section("Presentation") {
                     Picker("Contact updates", selection: $draft.mode) {
@@ -102,8 +111,12 @@ struct RadarSettingsView: View {
         Binding(get: { draft.distanceValue(draft.initialRadiusNM) }, set: { draft.initialRadiusNM = $0 / draft.distanceValue(1) })
     }
 
+    private var onlineRadiusBinding: Binding<Double> {
+        Binding(get: { draft.distanceValue(draft.onlineRadiusNM) }, set: { draft.onlineRadiusNM = $0 / draft.distanceValue(1) })
+    }
+
     private var locationValid: Bool {
-        if latitude.isEmpty, longitude.isEmpty { return true }
+        if latitude.isEmpty, longitude.isEmpty { return draft.source != .online }
         guard let lat = Double(latitude), let lon = Double(longitude) else { return false }
         return GeographicCoordinate(latitude: lat, longitude: lon) != nil
     }

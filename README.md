@@ -1,10 +1,10 @@
 # ADSB Radar
 
 A personal native macOS aircraft viewer with a vintage military tactical display inspired by [Air Defender](https://airdefendergame.com/).
-The app displays local RTL-SDR reception or generated offline traffic over bundled geography, with aircraft inspection, pan, zoom, trails, and receiver-anchored sweep presentation.
+The app displays local RTL-SDR reception, adsb.fi online traffic, or generated offline traffic over bundled geography, with aircraft inspection, pan, zoom, trails, and receiver-anchored sweep presentation.
 
 The [accepted specification](docs/product-spec.md), [glossary](GLOSSARY.md), and [SwiftUI decision](docs/adr/0001-native-swiftui-for-macos.md) describe the product.
-Online aircraft feeds and a separate Linux interface are future work.
+A separate Linux interface is future work.
 
 ## Build and start
 
@@ -48,6 +48,19 @@ Repeat using `./scripts/build-app.sh release` after quitting the debug copy.
 Both configurations replace the same app bundle.
 If cached artwork persists, quit the app, close the Finder preview or build-directory window, reopen that directory, and double-click the rebuilt ADSB Radar app in Finder.
 Avoid broad system icon-cache resets.
+
+## Online aircraft
+
+Choose Online / adsb.fi in Settings and enter a Home location if none is saved.
+Online mode needs internet access but no receiver or decoder installation.
+The saved location anchors the sweep and range rings, and the location control returns home.
+Configure the refresh interval and search-radius limit in Settings; defaults are five seconds and 250 nautical miles.
+The radius cannot exceed 250 nautical miles and all requests share adsb.fi's one-request-per-second allowance.
+Failed requests retry with increasing delays while contacts continue to age using their original position times.
+
+Aircraft data is supplied by [adsb.fi](https://adsb.fi), using its [public personal-use API](https://github.com/adsbfi/opendata).
+No account, payment, or receiver sharing is enabled.
+For implementation checks and exact manual steps, see [online verification](docs/verification-online.md).
 
 ## Offline Test and Demo scenarios
 
