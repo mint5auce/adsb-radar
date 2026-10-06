@@ -56,7 +56,7 @@ public actor ReadsbReceiver: AircraftDataSource {
             failure = ReceptionReading(status: .failed("readsb is not installed. Install it with Homebrew, then retry."))
             return
         }
-        let output = FileManager.default.temporaryDirectory.appendingPathComponent("adsb-radar-\(UUID().uuidString)")
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("phosphor-\(UUID().uuidString)")
         do {
             try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
             let logURL = output.appendingPathComponent("receiver.log")

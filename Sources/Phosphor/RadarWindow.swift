@@ -138,7 +138,7 @@ private struct RadarHeader: View {
 
     private var brand: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("ADSB / RADAR")
+            Text("PHOSPHOR")
                 .font(.system(size: 16, weight: .semibold, design: .monospaced)).tracking(2)
             Text(model.settings.source == .synthetic ? "SYNTHETIC / \(model.settings.scenario.rawValue.uppercased())" : model.settings.source == .online ? "ONLINE / ADSB.FI" : model.settings.source == .combined ? "LOCAL + ONLINE / ADSB.FI" : "LOCAL AIR PICTURE")
                 .font(.system(size: 9, design: .monospaced)).tracking(1)

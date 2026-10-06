@@ -69,12 +69,12 @@ public final class RadarPreferences {
 
     public func save(_ settings: RadarSettings) {
         let persistent = options.preservingSavedChoices(in: settings.validated(), saved: savedSettings())
-        if let data = try? JSONEncoder().encode(persistent) { defaults.set(data, forKey: "radar-settings") }
+        if let data = try? JSONEncoder().encode(persistent) { defaults.set(data, forKey: "phosphor-settings") }
     }
 
     private func savedSettings() -> RadarSettings {
-        guard defaults.object(forKey: "radar-settings") != nil else { return .firstLaunch }
-        return defaults.data(forKey: "radar-settings")
+        guard defaults.object(forKey: "phosphor-settings") != nil else { return .firstLaunch }
+        return defaults.data(forKey: "phosphor-settings")
             .flatMap { try? JSONDecoder().decode(RadarSettings.self, from: $0) }?.validated() ?? RadarSettings()
     }
 }

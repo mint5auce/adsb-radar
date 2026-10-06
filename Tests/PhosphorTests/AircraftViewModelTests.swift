@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import RadarCore
-@testable import ADSBRadar
+@testable import Phosphor
 
 struct AircraftViewModelTests {
     @Test @MainActor func contactsExposeReceivedTotalBeforeTheFirstSweepCrossing() async throws {

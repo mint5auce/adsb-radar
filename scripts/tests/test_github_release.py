@@ -57,7 +57,7 @@ class GitHubReleaseTests(unittest.TestCase):
     def test_withdrawn_builds_cannot_be_reused(self):
         result = self.run_preflight([
             {"tag_name": "v0.1.0", "draft": False, "prerelease": False,
-             "body": "<!-- adsb-radar-build:5 -->"},
+             "body": "<!-- phosphor-build:5 -->"},
         ])
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("higher", result.stderr)
@@ -65,7 +65,7 @@ class GitHubReleaseTests(unittest.TestCase):
     def test_published_versions_cannot_be_replaced(self):
         result = self.run_preflight([
             {"tag_name": "v0.2.0", "draft": False, "prerelease": False,
-             "body": "<!-- adsb-radar-build:2 -->"},
+             "body": "<!-- phosphor-build:2 -->"},
         ], build=3)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("newer", result.stderr)

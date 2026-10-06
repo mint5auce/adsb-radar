@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  UPDATES_FEED_URL: ${{ vars.UPDATES_FEED_URL || 'https://mint5auce.github.io/adsb-radar/appcast.xml' }}
+  UPDATES_FEED_URL: ${{ vars.UPDATES_FEED_URL || 'https://jon-hadley.com/phosphor/appcast.xml' }}
 
 jobs:
   build:
@@ -78,13 +78,13 @@ jobs:
           security import "$RUNNER_TEMP/signing.p12" -k "$signing_keychain" -P "$SIGNING_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$signing_password" "$signing_keychain" > /dev/null
           security list-keychains -d user -s "$signing_keychain" "$HOME/Library/Keychains/login.keychain-db"
-          xcrun notarytool store-credentials adsb-radar-release --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+          xcrun notarytool store-credentials phosphor-release --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
           printf 'SPARKLE_PRIVATE_KEY_FILE=%s\n' "$RUNNER_TEMP/sparkle-private-key" >> "$GITHUB_ENV"
       - name: Build signed and notarised artifacts
         env:
           DEVELOPER_ID_APPLICATION: ${{ vars.DEVELOPER_ID_APPLICATION }}
           SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
-          NOTARY_KEYCHAIN_PROFILE: adsb-radar-release
+          NOTARY_KEYCHAIN_PROFILE: phosphor-release
         run: |
           ./scripts/package-release.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

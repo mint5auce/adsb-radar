@@ -96,8 +96,8 @@ final class RadarModel {
         let saved = initialSettings ?? preferences.load()
         var configured = saved.validated()
         let env = ProcessInfo.processInfo.environment
-        if initialSettings == nil, let lat = env["ADSB_RADAR_LATITUDE"].flatMap(Double.init),
-           let lon = env["ADSB_RADAR_LONGITUDE"].flatMap(Double.init) {
+        if initialSettings == nil, let lat = env["PHOSPHOR_LATITUDE"].flatMap(Double.init),
+           let lon = env["PHOSPHOR_LONGITUDE"].flatMap(Double.init) {
             configured.receiver = GeographicCoordinate(latitude: lat, longitude: lon)
         }
         settings = configured

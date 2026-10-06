@@ -50,10 +50,10 @@ def main():
     except (OSError, ValueError, ElementTree.ParseError) as error:
         parser.error(str(error))
     info = {
-        "CFBundleIdentifier": "dev.mint5auce.adsb-radar",
-        "CFBundleExecutable": "ADSB Radar",
-        "CFBundleName": "ADSB Radar",
-        "CFBundleDisplayName": "ADSB Radar",
+        "CFBundleIdentifier": "dev.mint5auce.phosphor",
+        "CFBundleExecutable": "Phosphor",
+        "CFBundleName": "Phosphor",
+        "CFBundleDisplayName": "Phosphor",
         "CFBundleIconFile": "AppIcon.icns",
         "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": release["version"],
@@ -61,7 +61,7 @@ def main():
         "LSMinimumSystemVersion": "14.0",
         "NSHighResolutionCapable": True,
         "NSQuitAlwaysKeepsWindows": False,
-        "ADSBUpdatesEnabled": args.distribution,
+        "PhosphorUpdatesEnabled": args.distribution,
     }
     if args.distribution:
         info.update({

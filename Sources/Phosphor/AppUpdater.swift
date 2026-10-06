@@ -42,7 +42,7 @@ final class AppUpdater {
         return AppUpdater()
         #else
         guard Bundle.main.bundleURL.pathExtension == "app",
-              Bundle.main.object(forInfoDictionaryKey: "ADSBUpdatesEnabled") as? Bool == true,
+              Bundle.main.object(forInfoDictionaryKey: "PhosphorUpdatesEnabled") as? Bool == true,
               ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
             return AppUpdater()
         }

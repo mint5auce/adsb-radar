@@ -9,7 +9,7 @@ if [[ "$configuration" != debug && "$configuration" != release ]] || [[ -n "$mod
 fi
 cd "$repo_root"
 build_dir="$repo_root/build"
-build_options=(-c "$configuration" --product 'ADSB Radar')
+build_options=(-c "$configuration" --product 'Phosphor')
 metadata_options=(--configuration "$configuration" --manifest "${RELEASE_MANIFEST:-$repo_root/release.json}")
 if [[ "$mode" == --distribution ]]; then
     : "${DEVELOPER_ID_APPLICATION:?Set DEVELOPER_ID_APPLICATION to the signing identity}"
@@ -17,14 +17,14 @@ if [[ "$mode" == --distribution ]]; then
     build_dir="$repo_root/build/distribution"
     build_options+=(--arch arm64 --arch x86_64 -Xswiftc -g)
     metadata_options+=(--distribution --public-key "$SPARKLE_PUBLIC_KEY"
-                      --feed-url "${UPDATES_FEED_URL:-https://mint5auce.github.io/adsb-radar/appcast.xml}")
+                      --feed-url "${UPDATES_FEED_URL:-https://jon-hadley.com/phosphor/appcast.xml}")
 elif [[ "$configuration" == release ]]; then
     build_dir="$repo_root/build/release"
 fi
 mkdir -p "$build_dir"
 staging="$(mktemp -d "$build_dir/.app-build.XXXXXX")"
-app_dir="$build_dir/ADSB Radar.app"
-candidate="$staging/ADSB Radar.app"
+app_dir="$build_dir/Phosphor.app"
+candidate="$staging/Phosphor.app"
 cleanup() {
     if [[ -d "$staging/previous.app" && ! -e "$app_dir" ]]; then
         mv "$staging/previous.app" "$app_dir"
@@ -37,15 +37,15 @@ python3 scripts/release-metadata.py "${metadata_options[@]}" --output "$candidat
 swift build "${build_options[@]}"
 bin_dir="$(swift build "${build_options[@]}" --show-bin-path)"
 icon_file="$("$repo_root/scripts/generate-app-icon.sh")"
-cp "$bin_dir/ADSB Radar" "$candidate/Contents/MacOS/ADSB Radar"
+cp "$bin_dir/Phosphor" "$candidate/Contents/MacOS/Phosphor"
 cp "$icon_file" "$candidate/Contents/Resources/AppIcon.icns"
-ditto "$bin_dir/ADSB Radar_ADSBRadar.bundle" "$candidate/Contents/Resources/ADSB Radar_ADSBRadar.bundle"
+ditto "$bin_dir/Phosphor_Phosphor.bundle" "$candidate/Contents/Resources/Phosphor_Phosphor.bundle"
 framework="$candidate/Contents/Frameworks/Sparkle.framework"
 ditto "$repo_root/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework" "$framework"
 if [[ "$mode" == --distribution ]]; then
     symbols="$repo_root/build/release-symbols"
     mkdir -p "$symbols"
-    dsymutil "$bin_dir/ADSB Radar" -o "$symbols/ADSB Radar.dSYM"
+    dsymutil "$bin_dir/Phosphor" -o "$symbols/Phosphor.dSYM"
     ditto "$repo_root/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/dSYMs" "$symbols"
     # Sign nested code first, preserving the downloader's sandbox entitlements.
     signing_options=(--force --sign "$DEVELOPER_ID_APPLICATION" --options runtime --timestamp)
@@ -55,7 +55,7 @@ if [[ "$mode" == --distribution ]]; then
     codesign "${signing_options[@]}" "$framework/Versions/B/Updater.app"
     codesign "${signing_options[@]}" "$framework"
     codesign "${signing_options[@]}" "$candidate"
-    architectures="$(lipo "$candidate/Contents/MacOS/ADSB Radar" -archs)"
+    architectures="$(lipo "$candidate/Contents/MacOS/Phosphor" -archs)"
     [[ " $architectures " == *' arm64 '* && " $architectures " == *' x86_64 '* ]] || {
         print -u2 'Distribution executable must contain arm64 and x86_64.'
         exit 1

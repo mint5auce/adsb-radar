@@ -19,6 +19,6 @@ for kind, name in DATASETS.items():
         parts = [geometry['coordinates']] if geometry['type'] == 'LineString' else geometry['coordinates']
         lines.extend([[[round(lon, 5), round(lat, 5)] for lon, lat, *_ in part] for part in parts])
     result[kind] = lines
-output = Path(__file__).resolve().parents[1] / 'Sources' / 'ADSBRadar' / 'Resources' / 'Geography.json'
+output = Path(__file__).resolve().parents[1] / 'Sources' / 'Phosphor' / 'Resources' / 'Geography.json'
 output.write_text(json.dumps(result, separators=(',', ':')) + '\n')
 print(f'Generated {output.name}: {output.stat().st_size:,} bytes')

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import RadarCore
-@testable import ADSBRadar
+@testable import Phosphor
 
 struct RadarModelTests {
     @Test(arguments: [3, 1]) @MainActor
@@ -198,7 +198,7 @@ private actor RecoveringReceiverSource: AircraftDataSource {
 }
 
 @MainActor
-func isolatedDefaults() -> UserDefaults { UserDefaults(suiteName: "adsb-model-tests-\(UUID())")! }
+func isolatedDefaults() -> UserDefaults { UserDefaults(suiteName: "phosphor-model-tests-\(UUID())")! }
 
 @MainActor
 func eventually(timeout: Duration = .milliseconds(3750), _ condition: () async -> Bool) async throws {

@@ -81,7 +81,7 @@ struct OnlineProviderTests {
         let name = "online-settings-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
-        defaults.set(Data(#"{"source":"local","sweepSeconds":6}"#.utf8), forKey: "radar-settings")
+        defaults.set(Data(#"{"source":"local","sweepSeconds":6}"#.utf8), forKey: "phosphor-settings")
         let preferences = RadarPreferences(defaults: defaults)
         var settings = preferences.load()
         #expect(settings.sweepSeconds == 6 && settings.onlineRefreshSeconds == 5 && settings.onlineRadiusNM == 250)

@@ -2,7 +2,7 @@ import AppKit
 import RadarCore
 import SwiftUI
 import Testing
-@testable import ADSBRadar
+@testable import Phosphor
 
 @Suite(.serialized)
 struct ReceptionLayoutTests {

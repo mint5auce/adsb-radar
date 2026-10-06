@@ -1,13 +1,13 @@
 import Foundation
 import Sparkle
 import Testing
-@testable import ADSBRadar
+@testable import Phosphor
 
 @MainActor
 struct AppUpdaterTests {
     @Test func automaticUpdatePreferencesPersistWithoutStartingTheUpdater() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".app")
-        let identifier = "dev.mint5auce.adsb-radar.tests." + UUID().uuidString
+        let identifier = "dev.mint5auce.phosphor.tests." + UUID().uuidString
         defer {
             UserDefaults.standard.removePersistentDomain(forName: identifier)
             try? FileManager.default.removeItem(at: directory)

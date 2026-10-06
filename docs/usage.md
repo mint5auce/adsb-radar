@@ -1,4 +1,4 @@
-# ADSB Radar usage guide
+# Phosphor usage guide
 
 A personal native macOS aircraft viewer with a vintage military tactical display inspired by [Air Defender](https://airdefendergame.com/).
 The app displays local RTL-SDR reception, adsb.fi online traffic, or generated offline traffic over bundled geography, with aircraft inspection, pan, zoom, trails, and receiver-anchored sweep presentation.
@@ -20,10 +20,13 @@ Build the native application and open it:
 
 ```sh
 ./scripts/build-app.sh
-open 'build/ADSB Radar.app'
+open 'build/Phosphor.app'
 ```
 
 A release build is available with `./scripts/build-app.sh release`.
+Phosphor starts with fresh preferences and caches and leaves ADSB Radar's stored data untouched.
+Its bundle identifier is `dev.mint5auce.phosphor`.
+Development location overrides use `PHOSPHOR_LATITUDE` and `PHOSPHOR_LONGITUDE`.
 Both builds include the native application icon, generated locally from the [tracked master artwork](../assets/app-icon/README.md).
 The application uses the installed decoder rather than bundling it.
 It looks in the standard Homebrew locations and the process PATH; set `READSB_PATH` to an executable path when launching from Terminal to use another installation.
@@ -44,18 +47,18 @@ See [data provenance, refresh commands and verification steps](airway-verificati
 
 ## Check the application icon
 
-Quit any running copy of ADSB Radar, then build and launch the candidate:
+Quit any running copy of Phosphor, then build and launch the candidate:
 
 ```sh
 ./scripts/build-app.sh
-open 'build/ADSB Radar.app'
+open 'build/Phosphor.app'
 ```
 
-In Finder, navigate to the repository's `build` directory and inspect ADSB Radar in icon view or Get Info.
+In Finder, navigate to the repository's `build` directory and inspect Phosphor in icon view or Get Info.
 Check that Finder and the running Dock show the dark tile with the green aircraft and three fading trail dashes, with transparent rounded corners and no white square.
 Repeat using `./scripts/build-app.sh release` after quitting the debug copy.
-Both configurations replace the same app bundle.
-If cached artwork persists, quit the app, close the Finder preview or build-directory window, reopen that directory, and double-click the rebuilt ADSB Radar app in Finder.
+Debug builds replace `build/Phosphor.app`; release builds replace `build/release/Phosphor.app`.
+If cached artwork persists, quit the app, close the Finder preview or build-directory window, reopen that directory, and double-click the rebuilt Phosphor app in Finder.
 Avoid broad system icon-cache resets.
 
 ## Online aircraft
@@ -98,13 +101,13 @@ You can also launch either scenario from Terminal after building and quitting an
 
 ```sh
 ./scripts/build-app.sh
-'build/ADSB Radar.app/Contents/MacOS/ADSB Radar' --synthetic --scenario test
+'build/Phosphor.app/Contents/MacOS/Phosphor' --synthetic --scenario test
 ```
 
 For a clean Demo picture with 100 aircraft:
 
 ```sh
-'build/ADSB Radar.app/Contents/MacOS/ADSB Radar' --synthetic --scenario demo
+'build/Phosphor.app/Contents/MacOS/Phosphor' --synthetic --scenario demo
 ```
 
 Use `--demo-count 25` or `--demo-count 250` to change the Demo density, or use the count control in Settings.
@@ -166,7 +169,7 @@ For offscreen native layout inspection, build the debug executable and render sy
 
 ```sh
 swift build
-"$(swift build --show-bin-path)/ADSB Radar" --render-preview /tmp/adsb-radar-preview
+"$(swift build --show-bin-path)/Phosphor" --render-preview /tmp/phosphor-preview
 ```
 
 This debug-only command produces map, contact-inspection, panned, minimum-window, and settings previews with synthetic data.
@@ -175,6 +178,32 @@ The preview renders an offscreen native hosting view, including menus and the sc
 Add `--synthetic --scenario demo --demo-count 250` to that command to render the actual synthetic source and its example origin instead of the static layout fixture.
 
 ## Manual acceptance check
+
+### Phosphor rename
+
+Build and start the rename candidate without receiver hardware:
+
+```sh
+./scripts/build-app.sh
+open build/Phosphor.app --args --synthetic --scenario demo --demo-count 250
+```
+
+Check PHOSPHOR in the header and Phosphor in the window and application menu.
+Open About Phosphor and confirm the aircraft icon and Version 0.2.0 (2).
+Open Settings and confirm development updates are unavailable and a new installation has empty receiver fields.
+Inspect the minimum window size and an open contact inspector for clipping.
+Quit the debug app, build with `./scripts/build-app.sh release`, and repeat using `open build/release/Phosphor.app --args --synthetic --scenario demo --demo-count 25`.
+
+The checkout is now `/Users/jonh/Development/phosphor`.
+The old SwiftPM cache contained absolute paths and is preserved under `build/pre-rename-swiftpm-cache`; a fresh cache was generated and the moved checkout was rebuilt and tested.
+
+Rename verification passed 115 Swift tests, 13 script tests, shell syntax checks, debug/release builds, bundle metadata/resource checks, and ad hoc signature verification.
+Native debug and release launches, application branding, About, fresh settings, and disabled development updates were inspected.
+Offscreen previews covered normal and minimum window sizes and the contact inspector.
+The first full Swift run stalled in the receiver fixture's `Process.waitUntilExit()`; isolated original receiver tests and subsequent full candidate runs passed.
+Signed distribution, notarisation, hardware reception, and live Sparkle installation remain unverified by these rename checks.
+
+### Live reception
 
 1. Build and start using the commands above, connect the dongle, and save the receiver location.
 2. Confirm reception becomes active and actual aircraft appear; inspect a contact and verify unknown fields remain explicit.
@@ -198,7 +227,7 @@ Actual reception depends on hardware availability, antenna placement, and radio 
 6. Try Immediate and Sweep, pan, zoom, return to origin, and change units; confirm the ordinary radar controls still work.
 7. Quit and launch Demo with `--synthetic --scenario demo --demo-count 25`, then repeat with counts of 100 and 250.
    Inspect clean data, movement, layout, and responsiveness; zoom or pan to inspect crowded contacts.
-8. Save a display preference during a flagged launch, quit, and reopen normally with `open 'build/ADSB Radar.app'`.
+8. Save a display preference during a flagged launch, quit, and reopen normally with `open 'build/Phosphor.app'`.
    Confirm the display preference persists while the flagged source/scenario/count choices were temporary.
 9. Switch between Local and Synthetic in Settings; verify prior contacts and selection clear and the app-owned decoder stops in Synthetic.
    With the dongle disconnected, Local must show its existing failure and Retry control rather than generated traffic.

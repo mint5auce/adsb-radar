@@ -32,7 +32,7 @@ A portion of an airway between successive significant points, with its own appli
 A specified geographic location used to define an air traffic route.
 
 **Application icon**:
-The visual mark identifying ADSB Radar in macOS application surfaces such as Finder and the Dock.
+The visual mark identifying Phosphor in macOS application surfaces such as Finder and the Dock.
 
 **Aircraft data source**:
 An origin of live aircraft information supplied to the radar display.

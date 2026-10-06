@@ -1,23 +1,23 @@
-# Building and releasing ADSB Radar
+# Building and releasing Phosphor
 
-ADSB Radar uses Sparkle 2 for updates, GitHub Releases for application archives, and GitHub Pages for its signed update feed.
-The source and downloads use the public `mint5auce/adsb-radar` repository.
-The stable feed URL is `https://mint5auce.github.io/adsb-radar/appcast.xml` unless `UPDATES_FEED_URL` is configured before distribution begins.
+Phosphor uses Sparkle 2 for updates, GitHub Releases for application archives, and GitHub Pages for its signed update feed.
+The source and downloads use the public `mint5auce/phosphor` repository.
+The stable feed URL is `https://jon-hadley.com/phosphor/appcast.xml` unless `UPDATES_FEED_URL` is configured before distribution begins.
 Keep this address working for every previously distributed version.
 
 ## Build modes
 
 ```sh
 ./scripts/build-app.sh
-open 'build/ADSB Radar.app'
+open 'build/Phosphor.app'
 
 ./scripts/build-app.sh release
-open 'build/release/ADSB Radar.app'
+open 'build/release/Phosphor.app'
 ```
 
 These local builds use ad hoc signing and leave the updater disabled.
 Debug previews and tests also leave update startup disabled.
-Distribution builds require a Developer ID Application identity and a Sparkle public key, embed the framework and helpers, and produce a universal app at `build/distribution/ADSB Radar.app`.
+Distribution builds require a Developer ID Application identity and a Sparkle public key, embed the framework and helpers, and produce a universal app at `build/distribution/Phosphor.app`.
 Their symbols are written to `build/release-symbols`.
 The application bundles only its own resources, not test fixtures or the separately installed `readsb` decoder.
 
@@ -35,6 +35,9 @@ Launching directly from a download archive or read-only volume can prevent Spark
 Developer ID signing and notarisation require Apple Developer Program membership.
 The Apple certificate and Sparkle EdDSA key serve different purposes and must both be retained.
 Use a dedicated Sparkle keychain account for this application.
+Phosphor reuses the existing key stored under `dev.mint5auce.adsb-radar`.
+This keychain account is a signing credential label, independent of the new `dev.mint5auce.phosphor` bundle identifier.
+Do not generate a replacement key as part of the rename.
 
 ```sh
 swift package resolve
@@ -49,11 +52,11 @@ This application requires signed feeds and verification before extraction.
 If key rotation becomes necessary, follow [Sparkle's rotation procedure](https://sparkle-project.org/documentation/#rotating-signing-keys); a Developer ID signed DMG may be needed for recovery.
 
 For local notarisation, use a configured `notarytool` keychain profile.
-The existing `wthzd-notary` profile uses the same Developer ID team and can also notarise ADSB Radar.
+The existing `wthzd-notary` profile uses the same Developer ID team and can also notarise Phosphor.
 To configure a new profile using an App Store Connect API key:
 
 ```sh
-xcrun notarytool store-credentials adsb-radar-notary \
+xcrun notarytool store-credentials phosphor-notary \
   --key /secure/path/AuthKey.p8 \
   --key-id '<key ID>' \
   --issuer '<issuer ID>'
@@ -155,7 +158,7 @@ Prepare the older app using `./scripts/build-app.sh release --distribution` with
 Prepare the newer archive using `./scripts/package-release.sh` with the next staging manifest and the same key.
 Publish the newer signed archive and feed to the staging destination only after that publication is authorised.
 
-1. Copy the older app to a writable test installation directory, quit any other ADSB Radar copy, and launch that copy in Synthetic mode.
+1. Copy the older app to a writable test installation directory, quit any other Phosphor copy, and launch that copy in Synthetic mode.
 2. Set a distinctive Home location and presentation preference, save them, and choose Check for Updates from the app menu.
 3. Confirm that the new version and release notes appear, then install and relaunch.
 4. Confirm the new version, retained preferences and cached identities, and normal radar operation.
@@ -165,7 +168,8 @@ Publish the newer signed archive and feed to the staging destination only after 
 8. Inspect the menu, update dialogs and Settings at normal and minimum window sizes.
 
 Development builds should show a disabled Check for Updates menu item and an unavailable-updates note in Settings.
-The first distributed Sparkle-enabled version must be installed manually.
+The first Phosphor version must be installed manually, including for existing ADSB Radar users.
+Phosphor starts with fresh settings and caches and leaves old application data untouched.
 Subsequent versions can update themselves.
 Universal architecture verification does not establish execution on a physical Intel Mac.
 
@@ -186,6 +190,6 @@ Counts include repeated downloads and Sparkle update downloads and do not measur
 The application sends no usage heartbeat or Sparkle system profile.
 
 ```sh
-gh api repos/mint5auce/adsb-radar/releases \
+gh api repos/mint5auce/phosphor/releases \
   --jq '.[] | {version: .tag_name, archives: [.assets[] | select(.name | endswith(".zip")) | {name, download_count}]}'
 ```

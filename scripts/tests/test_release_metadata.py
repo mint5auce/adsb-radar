@@ -65,13 +65,18 @@ class ReleaseMetadataTests(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, str(SCRIPT), "--manifest", str(manifest),
                  "--configuration", "release", "--distribution", "--output", str(output),
-                 "--feed-url", "https://mint5auce.github.io/adsb-radar/appcast.xml",
+                 "--feed-url", "https://jon-hadley.com/phosphor/appcast.xml",
                  "--public-key", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="],
                 capture_output=True, text=True,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             info = plistlib.loads(output.read_bytes())
-            self.assertTrue(info["ADSBUpdatesEnabled"])
+            self.assertEqual(info["CFBundleIdentifier"], "dev.mint5auce.phosphor")
+            self.assertEqual(info["CFBundleExecutable"], "Phosphor")
+            self.assertEqual(info["CFBundleName"], "Phosphor")
+            self.assertEqual(info["CFBundleDisplayName"], "Phosphor")
+            self.assertEqual(info["SUFeedURL"], "https://jon-hadley.com/phosphor/appcast.xml")
+            self.assertTrue(info["PhosphorUpdatesEnabled"])
             self.assertTrue(info["SUVerifyUpdateBeforeExtraction"])
             self.assertTrue(info["SURequireSignedFeed"])
             self.assertFalse(info["SUEnableSystemProfiling"])
@@ -93,7 +98,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             info = plistlib.loads(output.read_bytes())
             self.assertEqual(info["CFBundleShortVersionString"], "0.2.0")
             self.assertEqual(info["CFBundleVersion"], "2")
-            self.assertFalse(info["ADSBUpdatesEnabled"])
+            self.assertFalse(info["PhosphorUpdatesEnabled"])
             self.assertNotIn("SUFeedURL", info)
             self.assertNotIn("SUPublicEDKey", info)
 

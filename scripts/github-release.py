@@ -26,7 +26,7 @@ def preflight(repository, release, allow_existing=False):
         match = re.fullmatch(r"v([0-9]+)\.([0-9]+)\.([0-9]+)", previous["tag_name"])
         if match and tuple(map(int, match.groups())) >= version:
             raise ValueError(f"{tag} must be newer than published release {previous['tag_name']}")
-        build = re.search(r"<!-- adsb-radar-build:([0-9]+) -->", previous["body"] or "")
+        build = re.search(r"<!-- phosphor-build:([0-9]+) -->", previous["body"] or "")
         if match and not build:
             raise ValueError(f"Published release {previous['tag_name']} has no build record; reconcile it before releasing")
         if build and int(build[1]) >= release["build"]:
@@ -46,8 +46,8 @@ def publish(repository, directory, release, source_sha):
     if target["type"] != "commit" or target["sha"] != source_sha:
         raise ValueError("Release tag no longer points to the prepared source commit")
     tag = preflight(repository, release, allow_existing=True)
-    archive = directory / f"ADSB-Radar-{release['version']}.zip"
-    notes = directory / f"ADSB-Radar-{release['version']}.md"
+    archive = directory / f"Phosphor-{release['version']}.zip"
+    notes = directory / f"Phosphor-{release['version']}.md"
     for artifact in (archive, notes, directory / "appcast.xml"):
         if not artifact.is_file() or not artifact.stat().st_size:
             raise ValueError(f"Release artifact missing: {artifact}")
@@ -55,7 +55,7 @@ def publish(repository, directory, release, source_sha):
     existing = next((item for page in releases for item in page if item["tag_name"] == tag), None)
     if existing and existing["prerelease"]:
         raise ValueError("A prerelease already uses this stable release tag; use a new version")
-    body = notes.read_text() + f"\n<!-- adsb-radar-build:{release['build']} -->\n"
+    body = notes.read_text() + f"\n<!-- phosphor-build:{release['build']} -->\n"
     with tempfile.TemporaryDirectory() as temporary:
         body_file = Path(temporary) / "notes.md"
         body_file.write_text(body)
@@ -64,7 +64,7 @@ def publish(repository, directory, release, source_sha):
                 raise ValueError("Existing release does not match the prepared release; use a new version")
         else:
             gh("release", "create", tag, "--repo", repository, "--verify-tag", "--draft",
-               "--title", f"ADSB Radar {release['version']}", "--notes-file", str(body_file))
+               "--title", f"Phosphor {release['version']}", "--notes-file", str(body_file))
         for artifact in (archive, directory / "release.json", directory / "appcast.xml"):
             if existing and any(asset["name"] == artifact.name for asset in existing["assets"]):
                 downloaded = Path(temporary) / artifact.name

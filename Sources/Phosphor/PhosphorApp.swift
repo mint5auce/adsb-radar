@@ -2,7 +2,7 @@ import AppKit
 import RadarCore
 import SwiftUI
 
-struct ADSBRadarApp: App {
+struct PhosphorApp: App {
     @NSApplicationDelegateAdaptor(RadarAppDelegate.self) private var delegate
     @State private var model: RadarModel
     @State private var updater: AppUpdater
@@ -19,7 +19,7 @@ struct ADSBRadarApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("ADSB Radar") {
+        WindowGroup("Phosphor") {
             RadarWindow(model: model, updater: updater)
                 .frame(minWidth: 800, minHeight: 560)
                 .preferredColorScheme(.dark)
@@ -60,7 +60,7 @@ enum RadarLauncher {
             return
         }
         #endif
-        ADSBRadarApp.main()
+        PhosphorApp.main()
     }
 }
 

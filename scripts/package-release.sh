@@ -27,12 +27,12 @@ fi
 if [[ -n "${PREVIOUS_APPCAST:-}" ]]; then
     "$sparkle_bin/sign_update" "${key_options[@]}" --verify "$PREVIOUS_APPCAST"
 fi
-app_dir="$repo_root/build/distribution/ADSB Radar.app"
+app_dir="$repo_root/build/distribution/Phosphor.app"
 bundle_key="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$app_dir/Contents/Info.plist")"
 probe_signature="$("$sparkle_bin/sign_update" "${key_options[@]}" -p "$app_dir/Contents/Info.plist")"
 swift scripts/verify-update.swift "$bundle_key" "$app_dir/Contents/Info.plist" "$probe_signature"
 mkdir -p "$output_dir"
-archive="$output_dir/ADSB-Radar-$version.zip"
+archive="$output_dir/Phosphor-$version.zip"
 ditto -c -k --sequesterRsrc --keepParent "$app_dir" "$archive"
 xcrun notarytool submit "$archive" --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" \
     --wait --timeout 20m --output-format json > "$output_dir/notarisation.json"
@@ -43,12 +43,12 @@ codesign --verify --deep --strict "$app_dir"
 spctl --assess --type execute --verbose "$app_dir"
 # Stapling changes the archive bytes. Recreate it before Sparkle signs it.
 ditto -c -k --sequesterRsrc --keepParent "$app_dir" "$archive"
-cp "$notes" "$output_dir/ADSB-Radar-$version.md"
+cp "$notes" "$output_dir/Phosphor-$version.md"
 cp "$release_manifest" "$output_dir/release.json"
 if [[ -n "${PREVIOUS_APPCAST:-}" ]]; then
     cp "$PREVIOUS_APPCAST" "$output_dir/appcast.xml"
 fi
-repository="${GITHUB_REPOSITORY:-mint5auce/adsb-radar}"
+repository="${GITHUB_REPOSITORY:-mint5auce/phosphor}"
 "$sparkle_bin/generate_appcast" "${key_options[@]}" --maximum-deltas 0 --maximum-versions 0 \
     --download-url-prefix "https://github.com/$repository/releases/download/v$version/" \
     --link "https://github.com/$repository/releases" --embed-release-notes "$output_dir"

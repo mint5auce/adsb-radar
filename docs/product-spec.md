@@ -1,4 +1,4 @@
-# ADSB Radar product specification
+# Phosphor product specification
 
 This is the accepted design for a personal macOS application that displays live aircraft information from an RTL-SDR receiver in the style of a vintage military tactical display.
 The initial hardware is a generic dongle, with compatible RTL-SDR V4 support retained.
@@ -17,11 +17,15 @@ Direct macOS distribution uses signed, notarised application archives on GitHub 
 ## Application updates
 
 Keep the existing SwiftPM workflow and macOS 14 minimum.
-Distribute a universal application for Apple silicon and Intel with the existing bundle identifier.
+Distribute a universal application for Apple silicon and Intel with bundle identifier `dev.mint5auce.phosphor`.
+The Phosphor rename starts a fresh application identity, with no migration of ADSB Radar preferences or caches.
+Leave the old application's local data untouched.
+Use `phosphor-settings` for preferences, `dev.mint5auce.phosphor` for aircraft identities, and `Phosphor/MapData` for downloaded map snapshots.
+Use `PHOSPHOR_LATITUDE` and `PHOSPHOR_LONGITUDE` for development location overrides, without aliases for the former environment variables.
 Use Sparkle's standard update dialogs, an application-menu Check for Updates action, and update preferences in Settings.
 Ask permission for automatic checks and use a daily interval once enabled.
 Allow users to opt into automatic download and installation; leave that choice off initially.
-Update preferences apply immediately and persist through Sparkle rather than the radar-settings draft.
+Update preferences apply immediately and persist through Sparkle rather than the phosphor-settings draft.
 Keep update startup disabled in development builds, previews and tests.
 Update checks and failures must leave normal radar operation usable, including offline operation.
 During update installation, preserve the existing shutdown path so the app-owned decoder stops and cached aircraft identities finish saving before relaunch.
@@ -32,7 +36,9 @@ Publish version-specific downloads on GitHub Releases and the signed appcast on 
 Verify the anonymous archive download before deploying a feed that advertises it.
 Keep build numbers increasing and reject attempts to replace published release assets.
 Start with full archives and one stable update channel.
-Existing copies require one manual installation of a Sparkle-enabled release.
+The first Phosphor release requires manual installation, including for existing ADSB Radar users.
+Keep version `0.2.0`, build `2`, and reuse the configured Developer ID and Sparkle signing keys.
+Prepare the update feed at `https://jon-hadley.com/phosphor/appcast.xml`; deployment and live update verification follow the first signed release.
 Use GitHub Release asset download counts for distribution metrics, with no usage heartbeat or system profiling.
 Document release preparation, credentials, verification and recovery in [the release guide](releasing.md).
 
@@ -168,7 +174,7 @@ Inspect sparse and dense native views, including 250-aircraft Demo traffic and a
 ## Airway visualisation
 
 The design and implementation-ticket breakdown are accepted.
-Implementation is tracked in [ATS routes #10](https://github.com/mint5auce/adsb-radar/issues/10), [controlled airspace #11](https://github.com/mint5auce/adsb-radar/issues/11), [airport markers #12](https://github.com/mint5auce/adsb-radar/issues/12), [flight-level slicing #13](https://github.com/mint5auce/adsb-radar/issues/13), and [map-data updates #14](https://github.com/mint5auce/adsb-radar/issues/14).
+Implementation is tracked in [ATS routes #10](https://github.com/mint5auce/phosphor/issues/10), [controlled airspace #11](https://github.com/mint5auce/phosphor/issues/11), [airport markers #12](https://github.com/mint5auce/phosphor/issues/12), [flight-level slicing #13](https://github.com/mint5auce/phosphor/issues/13), and [map-data updates #14](https://github.com/mint5auce/phosphor/issues/14).
 Provide independently switchable layers for airways, wider controlled airspace, and simple airport markers sourced from OurAirports.
 Exclude detailed airport layouts, arrival and departure procedures, and restricted-area overlays from this feature.
 Initially use the UK coverage supplied by NATS, make the dataset extent explicit, and retain normal radar operation outside that extent.
@@ -289,7 +295,7 @@ Render search-limit notices using the configured radius and distance unit rather
 
 ## Synthetic aircraft data for offline use
 
-Implementation is tracked in [issue #8](https://github.com/mint5auce/adsb-radar/issues/8).
+Implementation is tracked in [issue #8](https://github.com/mint5auce/phosphor/issues/8).
 
 Provide an interactive synthetic aircraft data source that works without a dongle, decoder installation, or network access.
 Use the same radar display, contact lifecycle, selection, trails, units, pan, zoom, and update modes as local reception.

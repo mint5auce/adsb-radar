@@ -1,6 +1,6 @@
 # Application icon artwork
 
-Issue [#9](https://github.com/mint5auce/adsb-radar/issues/9) defines the accepted design.
+Issue [#9](https://github.com/mint5auce/phosphor/issues/9) defines the accepted design.
 The unchanged supplied reference is [app-icon-reference.png](../../docs/design/app-icon-reference.png).
 `master.png` is the cleaned, authored 1254-pixel square RGBA master.
 It preserves the dark tile, aircraft, green glow, and three fading trail dashes, with transparent space replacing the reference's exterior background and presentation shadow.
@@ -24,7 +24,7 @@ To inspect the packaged representations, choose a fresh output directory and run
 
 ```sh
 iconutil --convert iconset --output build/inspect-icon.iconset \
-  'build/ADSB Radar.app/Contents/Resources/AppIcon.icns'
+  'build/Phosphor.app/Contents/Resources/AppIcon.icns'
 ```
 
 Inspect the PNGs at their native sizes on light and dark backgrounds.

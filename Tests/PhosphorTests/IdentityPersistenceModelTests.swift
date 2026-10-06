@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import RadarCore
-@testable import ADSBRadar
+@testable import Phosphor
 
 struct IdentityPersistenceModelTests {
     @Test @MainActor func restartUsesFileCacheOfflineWithRefreshDisabled() async throws {

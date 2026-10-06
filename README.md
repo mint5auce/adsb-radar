@@ -1,12 +1,13 @@
-# ADSB Radar
+# Phosphor
 
 A native macOS aircraft viewer with a vintage military radar display, inspired by [Air Defender](https://airdefendergame.com/).
 Track aircraft from an RTL-SDR receiver, [adsb.fi](https://adsb.fi), or an offline synthetic demo.
 Explore aircraft details, trails, and bundled UK airways, airspace, and airports.
 
-[![ADSB Radar showing aircraft over southern England](assets/demo/preview.jpg)](assets/demo/adsb-radar.mp4)
+![Phosphor showing aircraft over southern England](assets/demo/phosphor-preview.png)
 
-[Watch the 15-second demo: South UK to London](assets/demo/adsb-radar.mp4).
+[Watch the original 15-second demo: South UK to London](assets/demo/adsb-radar.mp4).
+This historical recording shows the former ADSB Radar branding.
 
 ## Build and start
 
@@ -17,7 +18,7 @@ Requires macOS 14+ and Swift 6 developer tools.
 
 ```sh
 ./scripts/build-app.sh
-open 'build/ADSB Radar.app'
+open 'build/Phosphor.app'
 ```
 
 In Settings, save your home coordinates and choose a source:
@@ -35,14 +36,16 @@ Use Command-0 to return home.
 Quit any running copy, then launch:
 
 ```sh
-'build/ADSB Radar.app/Contents/MacOS/ADSB Radar' --synthetic --scenario demo
+'build/Phosphor.app/Contents/MacOS/Phosphor' --synthetic --scenario demo
 ```
 
 ## Development
 
-Use `./scripts/build-app.sh release` for a release build in `build/release/ADSB Radar.app` and `swift test` to run the tests.
+Use `./scripts/build-app.sh release` for a release build in `build/release/Phosphor.app` and `swift test` to run the tests.
 See the [usage guide](docs/usage.md) for settings, receiver setup, and manual checks, or the [product specification](docs/product-spec.md) for the accepted design.
 Signed distribution builds, Sparkle updates, and the GitHub release workflow are covered in the [release guide](docs/releasing.md).
+Phosphor uses a fresh application identity and does not migrate settings or caches from ADSB Radar.
+Historical verification records retain the names and commands used at the time; use this README and the usage guide for current build commands.
 
 Aircraft data: [adsb.fi](https://adsb.fi) ([personal-use API](https://github.com/adsbfi/opendata)).
 Map data: [Natural Earth](https://www.naturalearthdata.com/) and [UK aviation / airport sources](docs/airway-verification.md).

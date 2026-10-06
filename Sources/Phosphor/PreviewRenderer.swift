@@ -15,7 +15,7 @@ enum PreviewRenderer {
         settings.mode = .immediate
         let denseFixture = CommandLine.arguments.contains("--preview-declutter")
         let fixture: (any AircraftDataSource)? = denseFixture ? DensePreviewSource() : syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
-        let suite = "adsb-radar-preview-\(UUID())"
+        let suite = "phosphor-preview-\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let localFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")
@@ -99,13 +99,13 @@ enum PreviewRenderer {
     }
 
     static func interactiveModel(options: RadarLaunchOptions) -> RadarModel {
-        let defaults = UserDefaults(suiteName: "adsb-radar-ui-verification")!
+        let defaults = UserDefaults(suiteName: "phosphor-ui-verification")!
         var settings = RadarPreferences(defaults: defaults, options: options).load()
         settings.source = .synthetic
         settings.receiver = settings.receiver ?? SyntheticSource.exampleLocation
-        let maps = MapLayerModel(store: MapSnapshotStore(directory: URL.temporaryDirectory.appendingPathComponent("adsb-radar-ui-map-data")),
+        let maps = MapLayerModel(store: MapSnapshotStore(directory: URL.temporaryDirectory.appendingPathComponent("phosphor-ui-map-data")),
             updater: CommandLine.arguments.contains("--map-offline") ? MapUpdateService(download: { _ in throw URLError(.notConnectedToInternet) }) : MapUpdateService())
-        return RadarModel(source: DensePreviewSource(), identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("adsb-radar-ui-verification-identities.json")),
+        return RadarModel(source: DensePreviewSource(), identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("phosphor-ui-verification-identities.json")),
             mapLayers: maps, initialSettings: settings, options: options, defaults: defaults)
     }
 
@@ -133,7 +133,7 @@ enum PreviewRenderer {
         let folder = URL(fileURLWithPath: directory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let storage = FileAircraftIdentityStorage(url: folder.appendingPathComponent("restart-identities-\(UUID()).json"))
-        let suite = "adsb-cache-preview-\(UUID())"
+        let suite = "phosphor-cache-preview-\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         var settings = RadarSettings()

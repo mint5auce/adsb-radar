@@ -16,7 +16,7 @@ public actor FileAircraftIdentityStorage: AircraftIdentityStorage {
     public init(url: URL = FileAircraftIdentityStorage.defaultURL) { self.url = url }
 
     public static var defaultURL: URL {
-        URL.applicationSupportDirectory.appendingPathComponent("dev.mint5auce.adsb-radar", isDirectory: true)
+        URL.applicationSupportDirectory.appendingPathComponent("dev.mint5auce.phosphor", isDirectory: true)
             .appendingPathComponent("aircraft-identities.json")
     }
 

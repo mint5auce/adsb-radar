@@ -82,7 +82,7 @@ struct LabelLayoutTests {
         let name = "label-preferences-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
-        defaults.set(Data(#"{"mode":"immediate","trailSeconds":90}"#.utf8), forKey: "radar-settings")
+        defaults.set(Data(#"{"mode":"immediate","trailSeconds":90}"#.utf8), forKey: "phosphor-settings")
         let preferences = RadarPreferences(defaults: defaults)
         var settings = preferences.load()
         #expect(settings.labelMode == .automatic && settings.trailMode == .selected && settings.directionVectors)

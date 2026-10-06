@@ -4,7 +4,7 @@ import Foundation
 public actor MapSnapshotStore {
     private let directory: URL
     public init(directory: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("ADSB Radar/MapData")) { self.directory = directory }
+        .appendingPathComponent("Phosphor/MapData")) { self.directory = directory }
 
     public func cached(_ provider: MapProvider) throws -> MapSnapshot? {
         let file = directory.appendingPathComponent(provider.rawValue + ".json")

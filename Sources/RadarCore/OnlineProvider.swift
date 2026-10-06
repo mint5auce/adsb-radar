@@ -44,7 +44,7 @@ public struct URLSessionOnlineTransport: OnlineHTTPTransport {
 
     public func get(_ url: URL) async throws -> OnlineHTTPResponse {
         var request = URLRequest(url: url)
-        request.setValue("ADSB-Radar/0.1 (personal aircraft viewer)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Phosphor/0.1 (personal aircraft viewer)", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw OnlineProviderError.invalidResponse }
         let retryAfter = Self.retryDate(http.value(forHTTPHeaderField: "Retry-After"), now: .now)

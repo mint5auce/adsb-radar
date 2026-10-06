@@ -4,10 +4,10 @@ import RadarCore
 
 struct PreferencesTests {
     @Test @MainActor func legacyPresentationSurvivesAndVisibilityChoicePersists() throws {
-        let name = "adsb-legacy-\(UUID())"
+        let name = "phosphor-legacy-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
-        defaults.set(Data(#"{"initialRadiusNM":75}"#.utf8), forKey: "radar-settings")
+        defaults.set(Data(#"{"initialRadiusNM":75}"#.utf8), forKey: "phosphor-settings")
         let preferences = RadarPreferences(defaults: defaults)
         var settings = preferences.load()
         #expect(settings.labelMode == .automatic && settings.trailMode == .selected)
@@ -22,7 +22,7 @@ struct PreferencesTests {
     }
 
     @Test @MainActor func firstLaunchUsesAnUnadornedMapAndAllAircraftDetail() throws {
-        let name = "adsb-startup-\(UUID())"
+        let name = "phosphor-startup-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         let preferences = RadarPreferences(defaults: defaults)
@@ -34,12 +34,12 @@ struct PreferencesTests {
     }
 
     @Test @MainActor func missingReceiverAttemptLimitDefaultsMigratesAndPersists() throws {
-        let name = "adsb-radar-tests-\(UUID())"
+        let name = "phosphor-tests-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         let preferences = RadarPreferences(defaults: defaults)
         #expect(preferences.load().localReceiverAttemptLimit == 3)
-        defaults.set(Data(#"{"mode":"immediate"}"#.utf8), forKey: "radar-settings")
+        defaults.set(Data(#"{"mode":"immediate"}"#.utf8), forKey: "phosphor-settings")
         var settings = preferences.load()
         #expect(settings.localReceiverAttemptLimit == 3 && settings.mode == .immediate)
         settings.localReceiverAttemptLimit = 5
@@ -51,7 +51,7 @@ struct PreferencesTests {
     }
 
     @Test @MainActor func syntheticLaunchDoesNotReplaceTheFirstLaunchLocalDefault() throws {
-        let name = "adsb-radar-tests-\(UUID().uuidString)"
+        let name = "phosphor-tests-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         let options = try RadarLaunchOptions(arguments: ["--synthetic"])
@@ -82,7 +82,7 @@ struct PreferencesTests {
     }
 
     @Test @MainActor func launchOverridesStayTemporaryWhenDisplaySettingsAreSaved() throws {
-        let name = "adsb-radar-tests-\(UUID().uuidString)"
+        let name = "phosphor-tests-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         let normal = RadarPreferences(defaults: defaults)
