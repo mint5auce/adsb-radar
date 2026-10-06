@@ -26,12 +26,13 @@ public struct AircraftObservation: Equatable, Sendable {
     public let altitude: AircraftAltitude?
     public let speedKnots: Double?
     public let directionDegrees: Double?
+    public let category: AircraftCategory?
     public let source: String
 
     public init(address: String, callsign: String? = nil, position: GeographicCoordinate? = nil,
                 positionTime: Date? = nil, altitude: AircraftAltitude? = nil,
                 speedKnots: Double? = nil, directionDegrees: Double? = nil,
-                source: String = "LOCAL RTL-SDR") {
+                category: AircraftCategory? = nil, source: String = "LOCAL RTL-SDR") {
         self.address = address
         self.callsign = callsign
         self.position = position
@@ -39,6 +40,7 @@ public struct AircraftObservation: Equatable, Sendable {
         self.altitude = altitude
         self.speedKnots = speedKnots
         self.directionDegrees = directionDegrees
+        self.category = category
         self.source = source
     }
 }
@@ -88,10 +90,15 @@ public struct ReceiverSnapshot: Sendable {
             return AircraftObservation(
                 address: address.lowercased(), callsign: callsign?.isEmpty == false ? callsign : nil,
                 position: coordinate, positionTime: positionTime, altitude: altitude,
-                speedKnots: speed, directionDegrees: track
+                speedKnots: speed, directionDegrees: track, category: AircraftCategory.reported(entry["category"] as? String)
             )
         }
-        return ReceiverSnapshot(observations: observations)
+        let identities = observations.compactMap { observation -> AircraftIdentityUpdate? in
+            guard let category = observation.category else { return nil }
+            return AircraftIdentityUpdate(address: observation.address, category: category,
+                provider: observation.source, updatedAt: Date(timeIntervalSince1970: now))
+        }
+        return ReceiverSnapshot(observations: observations, identities: identities)
     }
 
     private static func number(_ value: Any?) -> Double? {

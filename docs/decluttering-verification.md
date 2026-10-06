@@ -39,3 +39,15 @@ Home-distance model checks passed with retained contacts, selected exceptions, o
 6. Combine Home distance and altitude criteria and confirm both must match, with the explicit selected-aircraft exception retained.
 
 Deterministic altitude checks passed for exact bounds, missing altitude, explicit Ground, numeric zero, and invalid range retention.
+
+## Reported categories (#23)
+
+1. Select Local or Combined traffic and inspect Reported category, Category from, and Category updated.
+2. Confirm a current Local category takes priority even when an old Local position has fallen back to Online.
+3. Disable Enrich aircraft details online and confirm categories from ordinary reception still appear.
+4. Relaunch with enrichment disabled or the provider unavailable and verify known cached categories and their dates remain available.
+5. Enter Synthetic and confirm generated categories appear with Synthetic provenance and no real cached identities.
+6. Confirm missing category reports do not turn a known category into Unknown or advance its successful update date.
+
+Category parsing, known-value retention, file restart, and independent Local precedence have deterministic checks.
+The existing cache format accepts older entries with no category and refreshes encountered incomplete details under the existing configurable refresh/backoff policy.

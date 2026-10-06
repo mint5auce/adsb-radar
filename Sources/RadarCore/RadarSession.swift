@@ -53,7 +53,7 @@ public struct RadarSession: Sendable {
                     altitude: incoming.altitude ?? previous.altitude,
                     speedKnots: incoming.speedKnots ?? previous.speedKnots,
                     directionDegrees: incoming.directionDegrees ?? previous.directionDegrees,
-                    source: previous.source
+                    category: incoming.category ?? previous.category, source: previous.source
                 )
             } else { observations[id, default: [:]][feed] = incoming }
             if let position = incoming.position, let time = incoming.positionTime {

@@ -78,6 +78,23 @@ struct AircraftViewModelTests {
         await model.shutdown()
     }
 
+    @Test @MainActor func currentLocalCategoryWinsEvenWhenThePositionFallsBackOnline() async throws {
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation; settings.source = .combined; settings.mode = .immediate; settings.enrichIdentities = false
+        let local = AircraftObservation(address: "abc123", position: SyntheticSource.exampleLocation,
+            positionTime: Date.now.addingTimeInterval(-20), category: .light, source: "LOCAL")
+        let online = AircraftObservation(address: "abc123", position: SyntheticSource.exampleLocation,
+            positionTime: .now, category: .heavy, source: "adsb.fi")
+        let model = RadarModel(sources: [.local: ViewFixtureSource(observations: [local]), .online: ViewFixtureSource(observations: [online])],
+            identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
+        model.start(); try await eventually { model.contacts.count == 1 && model.identities["abc123"]?.category != nil }
+        let contact = try #require(model.contacts.first)
+        #expect(contact.observation.source == "adsb.fi")
+        #expect(model.reportedCategory(for: contact)?.value == .light)
+        #expect(model.reportedCategory(for: contact)?.provider == "LOCAL")
+        await model.shutdown()
+    }
+
 }
 
 actor ViewFixtureSource: AircraftDataSource {

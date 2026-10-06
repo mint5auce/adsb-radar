@@ -8,6 +8,7 @@ import SwiftUI
 final class RadarModel {
     private(set) var settings: RadarSettings
     private(set) var contacts: [PresentedContact] = []
+    private(set) var currentLocalCategories: [String: AircraftCategoryValue] = [:]
     private(set) var identities: [String: AircraftIdentity] = [:]
     private(set) var statuses: [AircraftFeed: ReceptionStatus] = [:]
     private(set) var heardWithoutPosition = 0
@@ -125,13 +126,59 @@ final class RadarModel {
         return parts.isEmpty ? "Unrestricted aircraft" : parts.joined(separator: " · ")
     }
 
+    func reportedCategory(for contact: PresentedContact) -> AircraftCategoryValue? {
+        if settings.source == .synthetic {
+            return contact.observation.category.map { AircraftCategoryValue(value: $0, provider: contact.observation.source, updatedAt: contact.observation.positionTime ?? .now) }
+        }
+        if !contact.observation.address.hasPrefix("~") || contact.id.hasPrefix("local:"),
+           let local = currentLocalCategory(for: contact.observation.address) { return local }
+        if let cached = identities[contact.observation.address]?.category { return cached }
+        return contact.observation.category.map { AircraftCategoryValue(value: $0, provider: contact.observation.source, updatedAt: contact.observation.positionTime ?? .now) }
+    }
+    private func currentLocalCategory(for address: String) -> AircraftCategoryValue? {
+        guard settings.source.feeds.contains(.local), let category = currentLocalCategories[address],
+              Date.now.timeIntervalSince(category.updatedAt) <= settings.staleSeconds else { return nil }
+        return category
+    }
+    private func preferringLocalCategories(_ updates: [AircraftIdentityUpdate]) -> [AircraftIdentityUpdate] {
+        updates.map { update in
+            AircraftIdentityUpdate(address: update.address, registration: update.registration, aircraftType: update.aircraftType,
+                category: currentLocalCategory(for: update.address) == nil ? update.category : nil,
+                provider: update.provider, updatedAt: update.updatedAt)
+        }
+    }
+    private func receiveIdentity(_ snapshot: ReceiverSnapshot, from feed: AircraftFeed) {
+        guard feed != .synthetic else { return }
+        var updates = snapshot.identities
+        for observation in snapshot.observations {
+            guard let category = observation.category,
+                  !updates.contains(where: { $0.address == observation.address && $0.category != nil }) else { continue }
+            updates.append(AircraftIdentityUpdate(address: observation.address, category: category,
+                provider: observation.source, updatedAt: .now))
+        }
+        if feed == .local {
+            for update in updates {
+                if let category = update.category {
+                    let previous = currentLocalCategories[update.address]
+                    if previous.map({ $0.updatedAt <= update.updatedAt }) ?? true {
+                        currentLocalCategories[update.address] = AircraftCategoryValue(value: category, provider: update.provider, updatedAt: update.updatedAt)
+                    }
+                }
+            }
+            catalogue.merge(updates)
+        } else { catalogue.merge(preferringLocalCategories(updates)) }
+        identities = catalogue.identities
+    }
+
     var selectedContact: PresentedContact? { contacts.first { $0.id == selectedAddress } }
     var selectedIdentity: AircraftIdentity? {
         guard settings.source != .synthetic, let contact = selectedContact else { return nil }
         return identities[contact.observation.address]
     }
     var showsOnlineAttribution: Bool {
-        settings.source != .synthetic && (settings.source.usesOnline || settings.enrichIdentities || !identities.isEmpty)
+        settings.source != .synthetic && (settings.source.usesOnline || settings.enrichIdentities || identities.values.contains {
+            [$0.registration?.provider, $0.aircraftType?.provider, $0.category?.provider].contains("adsb.fi")
+        })
     }
     var retrying: Bool { statuses.values.contains(.starting) }
     var reception: ReceptionStatus {
@@ -247,7 +294,7 @@ final class RadarModel {
                             let updates = try await withTaskCancellationHandler { try await request.value }
                                 onCancel: { request.cancel() }
                             if revision == identityRevision, !Task.isCancelled, settings.enrichIdentities, settings.source != .synthetic {
-                                catalogue.finish(batch, updates: updates, at: .now, refreshAge: settings.identityRefreshDays * 86400)
+                                catalogue.finish(batch, updates: preferringLocalCategories(updates), at: .now, refreshAge: settings.identityRefreshDays * 86400)
                                 identities = catalogue.identities
                             } else { catalogue.cancel(batch) }
                         } catch {
@@ -265,6 +312,7 @@ final class RadarModel {
 
     private func advanceDisplay() {
         contacts = session.advance(to: .now, settings: displaySettings)
+        currentLocalCategories = currentLocalCategories.filter { Date.now.timeIntervalSince($0.value.updatedAt) <= settings.removalSeconds }
         if let selectedAddress, !contacts.contains(where: { $0.id == selectedAddress }) { self.selectedAddress = nil }
     }
 
@@ -326,10 +374,7 @@ final class RadarModel {
             if let snapshot = reading.snapshot {
                 if feed == .local || feed == .synthetic { heardWithoutPosition = snapshot.heardWithoutPosition }
                 session.ingest(snapshot, from: feed)
-                if feed != .synthetic, !snapshot.identities.isEmpty {
-                    catalogue.merge(snapshot.identities)
-                    identities = catalogue.identities
-                }
+                receiveIdentity(snapshot, from: feed)
             }
             if feed == .local {
                 if case .failed = reading.status {
@@ -447,6 +492,7 @@ final class RadarModel {
     private func clearContacts() {
         sweepStartedAt = .now
         contacts = []
+        currentLocalCategories = [:]
         heardWithoutPosition = 0
         selectedAddress = nil
         session = RadarSession(startedAt: sweepStartedAt, enabledFeeds: settings.source.feeds)

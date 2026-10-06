@@ -90,6 +90,7 @@ struct IdentityPersistenceModelTests {
 
     private func cachedIdentity(updatedAt: Date) -> AircraftIdentity {
         AircraftIdentity(registration: AircraftIdentityValue(value: "G-CACHED", provider: "adsb.fi", updatedAt: updatedAt),
-                         aircraftType: AircraftIdentityValue(value: "A319", provider: "adsb.fi", updatedAt: updatedAt))
+                         aircraftType: AircraftIdentityValue(value: "A319", provider: "adsb.fi", updatedAt: updatedAt),
+                         category: AircraftCategoryValue(value: .large, provider: "adsb.fi", updatedAt: updatedAt))
     }
 }

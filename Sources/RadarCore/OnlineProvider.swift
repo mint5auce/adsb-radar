@@ -194,13 +194,15 @@ public struct ADSBFiProvider: OnlineAircraftProvider, AircraftIdentityProvider {
         let identities = aircraft.compactMap { entry -> AircraftIdentityUpdate? in
             guard let entry = entry as? [String: Any], let address = (entry["hex"] as? String)?.lowercased(),
                   AircraftIdentityCatalogue.isICAO(address) else { return nil }
-            let update = AircraftIdentityUpdate(address: address, registration: entry["r"] as? String, aircraftType: entry["t"] as? String)
-            return update.registration == nil && update.aircraftType == nil ? nil : update
+            let update = AircraftIdentityUpdate(address: address, registration: entry["r"] as? String, aircraftType: entry["t"] as? String,
+                category: AircraftCategory.reported(entry["category"] as? String),
+                updatedAt: Date(timeIntervalSince1970: (json["now"] as? Double) ?? Date.now.timeIntervalSince1970))
+            return update.registration == nil && update.aircraftType == nil && update.category == nil ? nil : update
         }
         return ReceiverSnapshot(observations: snapshot.observations.map {
             AircraftObservation(address: $0.address, callsign: $0.callsign, position: $0.position,
                 positionTime: $0.positionTime, altitude: $0.altitude, speedKnots: $0.speedKnots,
-                directionDegrees: $0.directionDegrees, source: "adsb.fi")
+                directionDegrees: $0.directionDegrees, category: $0.category, source: "adsb.fi")
         }, identities: identities)
     }
 }

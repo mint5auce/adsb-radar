@@ -13,7 +13,7 @@ struct RadarWindow: View {
             HStack(spacing: 0) {
                 RadarSurface(model: model, openSettings: { showingSettings = true })
                 if let contact = model.selectedContact {
-                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
+                    ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, category: model.reportedCategory(for: contact), outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
                         .frame(width: 256)
                 }
             }
@@ -162,6 +162,7 @@ struct ContactInspector: View {
     let contact: PresentedContact
     let identity: AircraftIdentity?
     let settings: RadarSettings
+    var category: AircraftCategoryValue? = nil
     var outsideFilters: Bool = false
     let dismiss: () -> Void
 
@@ -190,6 +191,11 @@ struct ContactInspector: View {
                     field("DETAILS UPDATED", identity.lastUpdated?.formatted(date: .abbreviated, time: .shortened) ?? "UNKNOWN")
                         .help("The oldest successful update of the known identity fields. Missing fields retain their previous dates.")
                     field("DETAILS FROM", Array(Set([identity.registration?.provider, identity.aircraftType?.provider].compactMap { $0 })).sorted().joined(separator: ", "))
+                }
+                field("REPORTED CATEGORY", category.map { "\($0.value.title) / \($0.value.rawValue)" } ?? "UNKNOWN")
+                if let category {
+                    field("CATEGORY FROM", category.provider)
+                    field("CATEGORY UPDATED", category.updatedAt.formatted(date: .abbreviated, time: .shortened))
                 }
                 field("ALTITUDE", settings.altitude(contact.observation.altitude))
                 field("GROUND SPEED", settings.speed(contact.observation.speedKnots))

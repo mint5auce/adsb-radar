@@ -188,7 +188,7 @@ private actor PreviewSource: AircraftDataSource {
             return AircraftObservation(address: String(format: "abc%03x", index), callsign: "TEST\(101 + index)",
                 position: position, positionTime: now.addingTimeInterval(-age - behind * 10),
                 altitude: .feet(Double(12000 + index * 3000)), speedKnots: Double(280 + index * 18),
-                directionDegrees: Double(index * 43), source: source)
+                directionDegrees: Double(index * 43), category: [.large, .small, .light, .heavy, .highVortexLarge, .helicopter, .highPerformance, .glider][index], source: source)
             }
         }
         return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations))
@@ -205,7 +205,7 @@ private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentity
     func positions(in search: OnlineSearch) async throws -> ReceiverSnapshot { ReceiverSnapshot(observations: []) }
     func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] {
         if failing { throw URLError(.notConnectedToInternet) }
-        return addresses.map { AircraftIdentityUpdate(address: $0, registration: registration, aircraftType: aircraftType, updatedAt: updatedAt) }
+        return addresses.map { AircraftIdentityUpdate(address: $0, registration: registration, aircraftType: aircraftType, category: .large, updatedAt: updatedAt) }
     }
 }
 #endif

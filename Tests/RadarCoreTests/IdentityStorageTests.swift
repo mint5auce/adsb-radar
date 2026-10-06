@@ -42,8 +42,8 @@ struct IdentityStorageTests {
 
     @Test func refreshAgeUsesOldestKnownFieldAndQueriesOnlyEncounteredIdentities() {
         var catalogue = AircraftIdentityCatalogue()
-        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-TEST", aircraftType: "A320", updatedAt: epoch),
-            AircraftIdentityUpdate(address: "aaa111", registration: "UNSEEN", aircraftType: "B738", updatedAt: epoch)])
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-TEST", aircraftType: "A320", category: .large, updatedAt: epoch),
+            AircraftIdentityUpdate(address: "aaa111", registration: "UNSEEN", aircraftType: "B738", category: .large, updatedAt: epoch)])
         #expect(catalogue.begin(visible: ["abc123"], selected: nil, at: epoch.addingTimeInterval(9), refreshAge: 10).isEmpty)
         #expect(catalogue.begin(visible: [], selected: nil, at: epoch.addingTimeInterval(100), refreshAge: 10).isEmpty)
         #expect(catalogue.begin(visible: [], selected: "abc123", at: epoch.addingTimeInterval(10), refreshAge: 10) == ["abc123"])
@@ -51,7 +51,7 @@ struct IdentityStorageTests {
 
     @Test func partialAndFailedRefreshesPreserveOldFieldsAndBackOffEvenWithCompleteCache() {
         var catalogue = AircraftIdentityCatalogue()
-        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-TEST", aircraftType: "A320", updatedAt: epoch)])
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-TEST", aircraftType: "A320", category: .large, updatedAt: epoch)])
         let refresh = epoch.addingTimeInterval(100)
         let batch = catalogue.begin(visible: ["abc123"], selected: nil, at: refresh, refreshAge: 10)
         catalogue.finish(batch, updates: [AircraftIdentityUpdate(address: "abc123", aircraftType: "A321", updatedAt: refresh)], at: refresh, refreshAge: 10)

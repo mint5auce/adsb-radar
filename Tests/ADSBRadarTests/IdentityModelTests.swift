@@ -114,7 +114,7 @@ actor IdentityFixtureProvider: OnlineAircraftProvider, AircraftIdentityProvider 
             catch { cancellations += 1; throw error }
         }
         if failing { throw URLError(.notConnectedToInternet) }
-        return (addresses + ["fff000"]).map { AircraftIdentityUpdate(address: $0, registration: "G-TEST", aircraftType: "A320") }
+        return (addresses + ["fff000"]).map { AircraftIdentityUpdate(address: $0, registration: "G-TEST", aircraftType: "A320", category: .large) }
     }
 }
 

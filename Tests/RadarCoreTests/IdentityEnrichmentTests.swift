@@ -22,14 +22,14 @@ struct IdentityEnrichmentTests {
         #expect(catalogue.begin(visible: batch, selected: nil, at: epoch.addingTimeInterval(29)).isEmpty)
         #expect(catalogue.begin(visible: batch, selected: nil, at: epoch.addingTimeInterval(30)).count == 2)
         catalogue.cancel(batch)
-        catalogue.merge([AircraftIdentityUpdate(address: "aaa111", aircraftType: "A320", updatedAt: epoch.addingTimeInterval(31))])
+        catalogue.merge([AircraftIdentityUpdate(address: "aaa111", aircraftType: "A320", category: .large, updatedAt: epoch.addingTimeInterval(31))])
         #expect(catalogue.begin(visible: ["aaa111"], selected: nil, at: epoch.addingTimeInterval(100)).isEmpty)
         #expect(catalogue.identities["aaa111"]?.registration?.value == "G-TEST")
     }
 
     @Test func partialAndOlderResponsesRetainUsefulValuesAndProvenance() {
         var catalogue = AircraftIdentityCatalogue()
-        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-NEW", aircraftType: "A320", updatedAt: epoch)])
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-NEW", aircraftType: "A320", category: .large, updatedAt: epoch)])
         catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-OLD", updatedAt: epoch.addingTimeInterval(-1)),
             AircraftIdentityUpdate(address: "abc123", registration: " ", updatedAt: epoch.addingTimeInterval(10))])
         #expect(catalogue.identities["abc123"]?.registration?.value == "G-NEW")

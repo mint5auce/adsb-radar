@@ -50,6 +50,7 @@ public actor SyntheticSource: AircraftDataSource {
                 position: unpositioned ? nil : position, positionTime: unpositioned ? nil : positionDate,
                 altitude: unknown ? nil : .feet(Double(10000 + (index * 1700) % 29000)),
                 speedKnots: unknown ? nil : speed(index: index), directionDegrees: unknown ? nil : heading(from: position, to: next),
+                category: unknown ? nil : [.light, .small, .large, .highVortexLarge, .heavy, .highPerformance, .helicopter, .glider][index % 8],
                 source: scenario == .demo ? "SYNTHETIC DEMO" : "SYNTHETIC TEST")
         }
         return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations))
