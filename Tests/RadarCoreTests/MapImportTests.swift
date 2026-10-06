@@ -14,7 +14,8 @@ struct MapImportTests {
         #expect(route.lower.description == "FL 245")
         #expect(route.upper.description == "FL 460")
         #expect(route.details.contains { $0.title == "WIDTH" && $0.value == "UNKNOWN" })
-        #expect(route.details.contains { $0.title == "FROM" && $0.value != "UNKNOWN" })
+        #expect(route.routeEndpoints?.map(\.name) == ["BEDFO", "EBOTO"])
+        #expect(route.routeEndpoints?.first?.coordinate == route.paths.first?.first)
     }
     @Test func publishedRegionsRetainClosedCurvedBoundaries() throws {
         let url = try #require(Bundle.module.url(forResource: "nats-airspace", withExtension: "xml"))

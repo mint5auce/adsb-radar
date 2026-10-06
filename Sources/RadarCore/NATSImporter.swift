@@ -42,7 +42,8 @@ public enum NATSImporter {
             if let l = left?.value, let r = right?.value {
                 width = "L \(l) \(left?.attributes["uom"] ?? "") / R \(r) \(right?.attributes["uom"] ?? "")"
             } else { width = "UNKNOWN" }
-            item.details = [MapDetail("FROM", start.0), MapDetail("TO", end.0), MapDetail("WIDTH", width)]
+            item.routeEndpoints = [MapRouteEndpoint(name: start.0, coordinate: start.1), MapRouteEndpoint(name: end.0, coordinate: end.1)]
+            item.details = [MapDetail("WIDTH", width)]
             result.append(item)
         }
         for feature in document.features where feature.name == "Airspace" {

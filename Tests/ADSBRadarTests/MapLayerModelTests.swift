@@ -79,6 +79,29 @@ struct MapLayerModelTests {
         #expect(restarted.snapshots == old)
     }
 
+    @Test @MainActor func rowBoundaryTruncationCannotReplaceTheAirportSnapshot() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let csv = """
+        id,ident,type,name,latitude_deg,longitude_deg,elevation_ft,iso_country,icao_code,iata_code,gps_code,local_code
+        1,GB-1,small_airport,Partial field,52,-1,,GB,,,,ABC
+        """
+        let service = MapUpdateService(download: { url in
+            url.pathExtension == "csv" ? Data(csv.utf8) : Data("<a href='/EG_AIP_DS_20261001_XML.zip'>dataset</a>".utf8)
+        })
+        let store = MapSnapshotStore(directory: folder)
+        let maps = MapLayerModel(store: store, updater: service)
+        await maps.load(origin: SyntheticSource.exampleLocation)
+        let old = maps.snapshots
+        for snapshot in old { try await store.install(snapshot) }
+        await maps.checkForUpdates()
+        #expect(maps.snapshots == old)
+        #expect(maps.messages[.ourAirports]?.contains("unexpectedly incomplete") == true)
+        let restarted = MapLayerModel(store: store)
+        await restarted.load(origin: SyntheticSource.exampleLocation)
+        #expect(restarted.snapshots == old)
+    }
+
     @Test @MainActor func airportHitTestingTracksProjectionPanAndZoom() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let maps = MapLayerModel(store: MapSnapshotStore(directory: folder))

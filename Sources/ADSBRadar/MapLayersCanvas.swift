@@ -94,16 +94,19 @@ struct MapLayersCanvas: View {
                 context.fill(Path(rect.insetBy(dx: -3, dy: -2)), with: .color(RadarStyle.background.opacity(0.86)))
                 context.draw(text, at: rect.origin, anchor: .topLeading)
                 occupied.append(rect); labelled.insert(item.feature.label); labelCounts[item.feature.kind, default: 0] += 1
-                if item.feature.kind == .route, camera.radiusNM <= 55 || active {
-                    for (index, endpoint) in item.endpoints.enumerated() {
-                        let title = index == 0 ? "FROM" : "TO"
-                        guard let name = item.feature.details.first(where: { $0.title == title })?.value else { continue }
-                        let label = context.resolve(Text(name).font(.system(size: 9, design: .monospaced)).foregroundStyle(color))
-                        let position = endpoint.applying(transform)
-                        let box = CGRect(origin: CGPoint(x: position.x + 5, y: position.y + 5), size: label.measure(in: CGSize(width: 120, height: 20)))
-                        guard viewport.contains(box), !occupied.contains(where: { $0.intersects(box.insetBy(dx: -5, dy: -4)) }) else { continue }
-                        context.draw(label, at: box.origin, anchor: .topLeading); occupied.append(box)
-                    }
+            }
+            var labelledWaypoints: Set<String> = []
+            for item in ordered.reversed() where item.feature.kind == .route && (camera.radiusNM <= 55 || item.feature.id == selected) {
+                let color = item.feature.id == selected ? RadarStyle.bright : RadarStyle.green.opacity(0.5)
+                for (index, endpoint) in item.endpoints.enumerated() {
+                    guard let endpoints = item.feature.routeEndpoints, endpoints.indices.contains(index) else { continue }
+                    let name = endpoints[index].name
+                    guard !labelledWaypoints.contains(name) else { continue }
+                    let label = context.resolve(Text(name).font(.system(size: 9, design: .monospaced)).foregroundStyle(color))
+                    let position = endpoint.applying(transform)
+                    let box = CGRect(origin: CGPoint(x: position.x + 5, y: position.y + 5), size: label.measure(in: CGSize(width: 120, height: 20)))
+                    guard viewport.contains(box), !occupied.contains(where: { $0.intersects(box.insetBy(dx: -5, dy: -4)) }) else { continue }
+                    context.draw(label, at: box.origin, anchor: .topLeading); occupied.append(box); labelledWaypoints.insert(name)
                 }
             }
         }

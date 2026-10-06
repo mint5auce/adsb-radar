@@ -125,7 +125,7 @@ struct MapFeatureInspector: View {
                     field("FLOOR", feature.lower.description); field("CEILING", feature.upper.description)
                     if feature.slice(at: preferences.flightLevel) == .uncertain { field("SLICE STATUS", "Uncertain") }
                 }
-                ForEach(Array(feature.details.enumerated()), id: \.offset) { _, detail in field(detail.title, detail.value) }
+                ForEach(Array(feature.inspectionDetails.enumerated()), id: \.offset) { _, detail in field(detail.title, detail.value) }
                 if let snapshot {
                     field("SOURCE", snapshot.provider.title)
                     field(snapshot.provider == .nats ? "EFFECTIVE" : "SNAPSHOT", snapshot.date)

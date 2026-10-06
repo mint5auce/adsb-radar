@@ -16,6 +16,7 @@ public actor MapSnapshotStore {
     }
     public func install(_ snapshot: MapSnapshot) throws {
         try snapshot.validate()
+        if let previous = try? cached(snapshot.provider) { try snapshot.validateReplacement(of: previous) }
         let data = try JSONEncoder().encode(snapshot)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: directory.appendingPathComponent(snapshot.provider.rawValue + ".json"), options: .atomic)

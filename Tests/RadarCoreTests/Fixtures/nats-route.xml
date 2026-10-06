@@ -123,8 +123,8 @@
                      <ns0:purpose>OTHER:AIXM45_MAPPING</ns0:purpose>
                      <ns0:translatedNote>
                         <ns0:LinguisticNote ns1:id="id133184">
-                           <ns0:note lang="eng">Lower limit override: 
-Units of measurement [lower limit override]: 
+                           <ns0:note lang="eng">Lower limit override:
+Units of measurement [lower limit override]:
 Reference for [lower limit override]: </ns0:note>
                         </ns0:LinguisticNote>
                      </ns0:translatedNote>
@@ -155,7 +155,7 @@ Freq: 127.105 (Below FL 295).</ns0:note>
                      </ns0:translatedNote>
                   </ns0:Note>
                </ns0:annotation>
-               
+
             </ns0:RouteSegmentTimeSlice>
          </ns0:timeSlice>
       </ns0:RouteSegment>
@@ -193,7 +193,7 @@ Freq: 127.105 (Below FL 295).</ns0:note>
                <ns0:airportHeliport xsi:nil="true" nilReason="unknown" />
                <ns0:runwayPoint xsi:nil="true" nilReason="unknown" />
                <ns0:annotation xsi:nil="true" nilReason="unknown" />
-               
+
             </ns0:DesignatedPointTimeSlice>
          </ns0:timeSlice>
       </ns0:DesignatedPoint>
@@ -289,7 +289,7 @@ Available H24.</ns0:note>
                <ns0:airportHeliport xsi:nil="true" nilReason="unknown" />
                <ns0:runwayPoint xsi:nil="true" nilReason="unknown" />
                <ns0:annotation xsi:nil="true" nilReason="unknown" />
-               
+
             </ns0:DesignatedPointTimeSlice>
          </ns0:timeSlice>
       </ns0:DesignatedPoint>

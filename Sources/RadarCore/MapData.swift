@@ -25,6 +25,11 @@ public struct MapDetail: Codable, Equatable, Sendable {
     public init(_ title: String, _ value: String) { self.title = title; self.value = value }
 }
 
+public struct MapRouteEndpoint: Codable, Equatable, Sendable {
+    public let name: String
+    public let coordinate: GeographicCoordinate
+}
+
 /// A source-backed geographic object ready for projection, independent of live traffic.
 /// Polygon paths consist of one exterior ring followed by any interior rings.
 public struct MapFeature: Codable, Equatable, Identifiable, Sendable {
@@ -37,6 +42,11 @@ public struct MapFeature: Codable, Equatable, Identifiable, Sendable {
     public var upper: MapAltitude = .unknown
     public var details: [MapDetail] = []
     public var smallAirport = false
+    public var routeEndpoints: [MapRouteEndpoint]?
+    public var inspectionDetails: [MapDetail] {
+        guard let routeEndpoints, routeEndpoints.count == 2 else { return details }
+        return [MapDetail("FROM", routeEndpoints[0].name), MapDetail("TO", routeEndpoints[1].name)] + details
+    }
 }
 
 public struct MapSnapshot: Codable, Equatable, Sendable {
@@ -56,6 +66,12 @@ public struct MapSnapshot: Codable, Equatable, Sendable {
                   provider == .nats ? feature.kind != .airport : feature.kind == .airport else {
                 throw MapDataError.invalid("Invalid map feature")
             }
+            if feature.kind == .route {
+                guard let endpoints = feature.routeEndpoints, endpoints.count == 2,
+                      endpoints.allSatisfy({ !$0.name.isEmpty && GeographicCoordinate(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) != nil }) else {
+                    throw MapDataError.invalid("Missing route endpoint metadata")
+                }
+            }
             guard feature.lower.value?.isFinite != false, feature.upper.value?.isFinite != false else {
                 throw MapDataError.invalid("Invalid vertical limit")
             }
@@ -68,6 +84,20 @@ public struct MapSnapshot: Codable, Equatable, Sendable {
                     throw MapDataError.invalid("Invalid geometry for \(feature.name)")
                 }
                 if feature.kind == .airspace, path.first != path.last { throw MapDataError.invalid("Unclosed airspace boundary") }
+            }
+        }
+    }
+
+    /// A parseable fragment is not a safe replacement for an established dataset.
+    /// Large legitimate coverage changes need a reviewed bundled snapshot first.
+    public func validateReplacement(of previous: MapSnapshot) throws {
+        try validate()
+        guard provider == previous.provider, date >= previous.date else { throw MapDataError.invalid("Map replacement has the wrong provider or an older date") }
+        for kind in [MapFeatureKind.route, .airspace, .airport] {
+            let oldCount = previous.features.filter { $0.kind == kind }.count
+            let newCount = features.filter { $0.kind == kind }.count
+            guard oldCount == 0 || Double(newCount) >= Double(oldCount) * 0.8 else {
+                throw MapDataError.invalid("The downloaded \(kind.rawValue) layer is unexpectedly incomplete (\(newCount) of \(oldCount) records).")
             }
         }
     }

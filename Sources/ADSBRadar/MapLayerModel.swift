@@ -80,6 +80,7 @@ struct ProjectedMapFeature {
             messages[provider] = "Checking…"
             do {
                 if let snapshot = try await updater.fetch(provider, currentDate: snapshots.first(where: { $0.provider == provider })?.date) {
+                    if let previous = snapshots.first(where: { $0.provider == provider }) { try snapshot.validateReplacement(of: previous) }
                     try await store.install(snapshot)
                     snapshots.removeAll { $0.provider == provider }; snapshots.append(snapshot)
                     revision += 1

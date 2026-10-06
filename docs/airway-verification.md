@@ -43,6 +43,8 @@ swift run MapDataTool refresh /tmp/adsb-map-download
 Review those files before replacing the corresponding resources in `Sources/ADSBRadar/Resources`.
 Do not manually edit the generated JSON.
 The app's Check for map updates uses the same importers and validates NATS checksums before activation.
+Incoming replacements must retain at least 80% of the previous feature count in each included layer, so a parseable CSV fragment cannot wipe out airport coverage.
+A larger legitimate coverage change requires reviewing and replacing the bundled snapshot.
 Each provider is stored atomically under `~/Library/Application Support/ADSB Radar/MapData`.
 NATS routes and regions share a single generation.
 Startup uses the newer valid cached or bundled snapshot, falling back to the bundle for a corrupt, older or future-dated cache.
@@ -104,6 +106,7 @@ swift run 'ADSB Radar' --render-preview /tmp/adsb-map-preview --preview-airspace
 ## Verification record: 6 October 2026
 
 The full `swift test` run passed: 69 RadarCore tests and 31 app tests, with no failures.
+After review fixes, the 12 affected import, update, storage and map-model tests passed, including a new truncated-CSV retention regression.
 Focused checks cover real route reference resolution and unknown widths; polygon/arc/circle imports and signed arc direction; unsupported geometry; CSV exclusions and missing codes; inclusive altitude bounds and uncertainty; preference compatibility; projection hit testing; selection priority and clearing; checksum/reference/parse failures; atomic storage and restart; and failed refresh retention.
 Native interaction verified preset/custom/invalid flight levels, stepping, airport overlap selection, layer-driven deselection, primary aircraft priority, secondary mixed-object choices, return to the aircraft inspector, pan/zoom, successful updates, and offline restart with retained preferences and failed-update feedback.
 The live NATS download, checksum verification and full import also succeeded through MapDataTool.

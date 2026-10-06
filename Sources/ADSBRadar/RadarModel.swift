@@ -28,7 +28,7 @@ final class RadarModel {
     }
     func mapChoices(at point: CGPoint) -> [RadarObjectChoice] {
         mapLayers.candidates(at: point, camera: camera, size: CGSize(width: viewportWidth, height: viewportHeight), preferences: settings.mapLayers).map {
-            let endpoints = $0.details.filter { ["FROM", "TO"].contains($0.title) }.map(\.value).joined(separator: " → ")
+            let endpoints = ($0.routeEndpoints ?? []).map(\.name).joined(separator: " → ")
             let limits = "\($0.lower.description) / \($0.upper.description)"
             return RadarObjectChoice(id: .map($0.id), title: $0.name,
                 detail: $0.kind == .airport ? $0.label : endpoints.isEmpty ? limits : endpoints + " · " + limits)
