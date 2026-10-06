@@ -6,7 +6,15 @@ struct ADSBRadarApp: App {
     @NSApplicationDelegateAdaptor(RadarAppDelegate.self) private var delegate
     @State private var model: RadarModel
 
-    init() { _model = State(initialValue: RadarModel(options: RadarLauncher.options)) }
+    init() {
+        #if DEBUG
+        if CommandLine.arguments.contains("--ui-fixture") {
+            _model = State(initialValue: PreviewRenderer.interactiveModel(options: RadarLauncher.options))
+            return
+        }
+        #endif
+        _model = State(initialValue: RadarModel(options: RadarLauncher.options))
+    }
 
     var body: some Scene {
         WindowGroup("ADSB Radar") {

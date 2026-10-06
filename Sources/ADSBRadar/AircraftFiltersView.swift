@@ -24,9 +24,16 @@ struct AircraftFiltersView: View {
             HStack {
                 Text("AIRCRAFT FILTERS").font(.system(size: 13, weight: .semibold, design: .monospaced))
                 Spacer()
-                Button("Clear filters") { error = nil; model.clearAircraftFilters() }
+                Button("Clear filters") { applyPreset(.overview) }
             }
             Text(model.filterSummary).foregroundStyle(RadarStyle.muted).font(.system(size: 11, design: .monospaced))
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(AircraftViewPreset.allCases, id: \.self) { preset in
+                    Button(preset.title) { applyPreset(preset) }
+                        .buttonStyle(.bordered).frame(maxWidth: .infinity)
+                        .tint(model.settings.aircraftFilters == preset.filters ? RadarStyle.green : RadarStyle.muted)
+                }
+            }
             Divider()
             if let error { Text(error).foregroundStyle(RadarStyle.amber).font(.system(size: 11, design: .monospaced)) }
             distanceControls
@@ -114,6 +121,8 @@ struct AircraftFiltersView: View {
         }
         let factor = model.settings.altitudeUnit == .feet ? 1.0 : 0.3048
         var filters = model.settings.aircraftFilters
+        if minimumText == filters.minimumAltitudeFeet.map({ Self.number($0 * factor) }) ?? "",
+           maximumText == filters.maximumAltitudeFeet.map({ Self.number($0 * factor) }) ?? "" { error = nil; return }
         filters.minimumAltitudeFeet = minBlank ? nil : parsed(minimumText).map { $0 / factor }
         filters.maximumAltitudeFeet = maxBlank ? nil : parsed(maximumText).map { $0 / factor }
         if let message = filters.validationMessage { error = message; return }
@@ -126,19 +135,29 @@ struct AircraftFiltersView: View {
         maximumText = model.settings.aircraftFilters.maximumAltitudeFeet.map { Self.number($0 * factor) } ?? ""
     }
 
+    private func applyPreset(_ preset: AircraftViewPreset) {
+        model.applyAircraftPreset(preset)
+        updateDistanceText(); updateAltitudeText()
+        error = nil
+        distanceFocused = false; altitudeFocused = nil
+    }
+
     private func commitDistance(enable: Bool = false) {
         guard model.settings.receiver != nil, enable || model.settings.aircraftFilters.homeDistanceNM != nil else { return }
         guard let entered = Double(distanceText), entered.isFinite, entered > 0 else {
             error = "Enter a positive Home distance."; return
         }
         var filters = model.settings.aircraftFilters
+        if let current = filters.homeDistanceNM, distanceText == Self.number(model.settings.distanceValue(current)) { error = nil; return }
         filters.homeDistanceNM = entered / model.settings.distanceValue(1)
         model.setAircraftFilters(filters); error = nil
     }
     private func updateDistanceText() {
         distanceText = Self.number(model.settings.distanceValue(model.settings.aircraftFilters.homeDistanceNM ?? 50))
     }
-    private static func number(_ value: Double) -> String { String(format: "%.4g", value) }
+    private static func number(_ value: Double) -> String {
+        String(format: "%.6f", value).replacingOccurrences(of: "\\.?0+$", with: "", options: .regularExpression)
+    }
 }
 
 struct AircraftCategoryControls: View {

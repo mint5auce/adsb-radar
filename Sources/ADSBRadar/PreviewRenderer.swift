@@ -10,10 +10,11 @@ enum PreviewRenderer {
         if cachePreview { try await renderCacheSequence(to: directory); return }
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
-        settings.receiver = syntheticPlayback && !CommandLine.arguments.contains("--preview-filters") ? nil : SyntheticSource.exampleLocation
+        settings.receiver = syntheticPlayback && !CommandLine.arguments.contains("--preview-filters") && !CommandLine.arguments.contains("--preview-declutter") ? nil : SyntheticSource.exampleLocation
         settings.source = localEnrichment ? .local : combined ? .combined : online ? .online : .synthetic
         settings.mode = .immediate
-        let fixture: (any AircraftDataSource)? = syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
+        let denseFixture = CommandLine.arguments.contains("--preview-declutter")
+        let fixture: (any AircraftDataSource)? = denseFixture ? DensePreviewSource() : syntheticPlayback ? nil : PreviewSource(origin: SyntheticSource.exampleLocation, source: online ? "adsb.fi" : "SYNTHETIC PREVIEW")
         let suite = "adsb-radar-preview-\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -89,8 +90,38 @@ enum PreviewRenderer {
                 to: folder.appendingPathComponent("categories.png"), width: 400, height: 250)
             try await image(AircraftFiltersView(model: model), to: folder.appendingPathComponent("filters.png"), width: 400, height: 460)
         }
+        if denseFixture { try await renderDecluttering(model, folder: folder) }
         await model.shutdown()
         print("Rendered native previews in \(directory)")
+    }
+
+    static func interactiveModel(options: RadarLaunchOptions) -> RadarModel {
+        let defaults = UserDefaults(suiteName: "adsb-radar-ui-verification")!
+        var settings = RadarPreferences(defaults: defaults, options: options).load()
+        settings.source = .synthetic
+        settings.receiver = settings.receiver ?? SyntheticSource.exampleLocation
+        return RadarModel(source: DensePreviewSource(), identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("adsb-radar-ui-verification-identities.json")),
+            initialSettings: settings, options: options, defaults: defaults)
+    }
+
+    private static func renderDecluttering(_ model: RadarModel, folder: URL) async throws {
+        model.returnToReceiver()
+        model.selectedAddress = model.contacts.first?.id
+        for mode in UpdateMode.allCases {
+            model.setMode(mode)
+            if mode == .sweep { try await Task.sleep(for: .seconds(4.1)) }
+            for preset in AircraftViewPreset.allCases {
+                model.applyAircraftPreset(preset)
+                try await image(model, to: folder.appendingPathComponent("\(mode.rawValue)-\(preset.rawValue).png"), width: 1200, height: 800)
+                try await image(model, to: folder.appendingPathComponent("\(mode.rawValue)-\(preset.rawValue)-minimum.png"), width: 800, height: 560)
+            }
+        }
+        model.applyAircraftPreset(.largerNearHome)
+        try await image(AircraftFiltersView(model: model), to: folder.appendingPathComponent("preset-panel.png"), width: 400, height: 460)
+        model.camera.offset = RadarPoint(east: 500, north: 0)
+        try await image(model, to: folder.appendingPathComponent("offscreen-selection.png"), width: 800, height: 560)
+        model.showSelectedOnMap()
+        try await image(model, to: folder.appendingPathComponent("show-on-map.png"), width: 800, height: 560)
     }
 
     private static func renderCacheSequence(to directory: String) async throws {
@@ -211,6 +242,31 @@ private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentity
     func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] {
         if failing { throw URLError(.notConnectedToInternet) }
         return addresses.map { AircraftIdentityUpdate(address: $0, registration: registration, aircraftType: aircraftType, category: .large, updatedAt: updatedAt) }
+    }
+}
+#endif
+
+#if DEBUG
+/// Includes an airport-like cluster, coincident plots, Ground, unknowns, and stale positions.
+private actor DensePreviewSource: AircraftDataSource {
+    private var origin = SyntheticSource.exampleLocation
+    func start(location: GeographicCoordinate?) async { origin = location ?? SyntheticSource.exampleLocation }
+    func stop() async {}
+    func poll() async -> ReceptionReading {
+        let now = Date.now
+        let projection = ReceiverProjection(origin: origin)
+        let categories: [AircraftCategory?] = [.light, .small, .large, .highVortexLarge, .heavy, .highPerformance, .helicopter, .glider, nil]
+        let observations = (0..<251).map { index in
+            let coincident = index < 2
+            let point = coincident ? RadarPoint(east: 10, north: 10) : RadarPoint(east: Double(index % 20 - 10) * 3, north: Double(index / 20 - 6) * 3)
+            return AircraftObservation(address: String(format: "f%05x", index + 1), callsign: "DENSE\(index + 1)",
+                position: index == 250 ? nil : projection.coordinate(at: point),
+                positionTime: index == 250 ? nil : now.addingTimeInterval(index >= 245 ? -20 : 0),
+                altitude: index < 6 ? .ground : index % 9 == 8 ? nil : .feet(Double(500 + index * 150)),
+                speedKnots: index < 6 ? 0 : 250, directionDegrees: Double(index * 17 % 360),
+                category: categories[index % categories.count], source: "SYNTHETIC FIXTURE")
+        }
+        return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: observations))
     }
 }
 #endif

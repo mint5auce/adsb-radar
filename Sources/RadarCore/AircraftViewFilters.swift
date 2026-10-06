@@ -48,3 +48,26 @@ public struct AircraftViewFilters: Equatable, Codable, Sendable {
         return true
     }
 }
+
+public enum AircraftViewPreset: String, CaseIterable, Sendable {
+    case overview, nearHome, largerNearHome, higherTraffic
+    public var title: String {
+        switch self {
+        case .overview: "Overview"
+        case .nearHome: "Near Home"
+        case .largerNearHome: "Larger near Home"
+        case .higherTraffic: "Higher traffic"
+        }
+    }
+    public var filters: AircraftViewFilters {
+        var filters = AircraftViewFilters()
+        switch self {
+        case .overview: break
+        case .nearHome: filters.homeDistanceNM = 50; filters.hideGround = true
+        case .largerNearHome:
+            filters.homeDistanceNM = 50; filters.categories = AircraftCategoryGroup.largerAircraft; filters.hideGround = true
+        case .higherTraffic: filters.minimumAltitudeFeet = 10000; filters.hideGround = true
+        }
+        return filters
+    }
+}

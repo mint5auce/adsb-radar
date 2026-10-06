@@ -74,3 +74,19 @@ Category checks cover A2-A5, high-performance and helicopter exclusion, unknown 
 7. Compare the Contacts panel and chooser at normal and minimum window sizes in both display modes.
 
 Model checks cover all search fields, independent map counts, filtered hit candidates, explicit centring, and Home preservation.
+
+## Presets and full native verification (#26)
+
+1. Open Filters and compare Overview, Near Home, Larger near Home, and Higher traffic.
+2. Confirm Near Home uses 50 NM and hides Ground; Larger near Home additionally selects A2-A5.
+3. Confirm Higher traffic uses a minimum reported altitude of 10,000 FT and hides Ground.
+4. Edit each preset, change distance/altitude units, and relaunch to confirm the resulting physical criteria persist.
+5. Keep an aircraft selected while applying a preset that excludes it; check Outside filters without automatic panning.
+6. Pan offscreen and use Show on map, confirming Home and the active criteria remain unchanged.
+
+For isolated interactive native checks, build debug and start with `open 'build/ADSB Radar.app' --args --ui-fixture`.
+This debug-only fixture uses a separate preference domain and cache, with 250 positioned generated contacts plus one heard without a position.
+It includes airport-like density, coincident markers, Ground, unknown categories and altitudes, and stale contacts.
+Fixture preferences persist across relaunches independently of ordinary app preferences.
+To render repeatable native verification images without opening a window, run `'.build/out/Products/Debug/ADSB Radar' --render-preview /tmp/adsb-declutter-verification --preview-declutter` after building debug.
+For a separate 250-aircraft Demo rendering, use `'.build/out/Products/Debug/ADSB Radar' --synthetic --scenario demo --demo-count 250 --render-preview /tmp/adsb-declutter-demo --preview-filters`.

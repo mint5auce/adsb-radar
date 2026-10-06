@@ -140,6 +140,7 @@ final class RadarModel {
         changed.aircraftFilters = filters
         apply(changed)
     }
+    func applyAircraftPreset(_ preset: AircraftViewPreset) { setAircraftFilters(preset.filters) }
     func clearAircraftFilters() { setAircraftFilters(AircraftViewFilters()) }
     var filterSummary: String {
         let filters = settings.aircraftFilters

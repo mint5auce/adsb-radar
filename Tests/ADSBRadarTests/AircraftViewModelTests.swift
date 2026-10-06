@@ -160,6 +160,35 @@ struct AircraftViewModelTests {
         await model.shutdown()
     }
 
+    @Test @MainActor func presetsAreEditableAtomicCriteriaAndPreserveTheViewAcrossRelaunch() throws {
+        let name = "preset-tests-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation; settings.distanceUnit = .kilometres; settings.altitudeUnit = .metres
+        settings.labelMode = .selectedOnly; settings.trailMode = .none; settings.directionVectors = false
+        let model = RadarModel(identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: defaults)
+        model.camera.offset = RadarPoint(east: 80, north: 60); model.camera.radiusNM = 200
+        let camera = model.camera
+        model.applyAircraftPreset(.largerNearHome)
+        #expect(model.settings.aircraftFilters.homeDistanceNM == 50)
+        #expect(model.settings.aircraftFilters.categories == [.small, .large, .heavy])
+        #expect(model.settings.aircraftFilters.hideGround)
+        #expect(abs(model.settings.distanceValue(model.settings.aircraftFilters.homeDistanceNM!) - 92.6) < 0.000000001)
+        #expect(model.camera == camera && model.settings.labelMode == .selectedOnly && !model.settings.directionVectors)
+        model.applyAircraftPreset(.higherTraffic)
+        #expect(model.settings.aircraftFilters.homeDistanceNM == nil && model.settings.aircraftFilters.minimumAltitudeFeet == 10000)
+        #expect(model.settings.aircraftFilters.maximumAltitudeFeet == nil && model.settings.aircraftFilters.includeUnknownAltitude)
+        var filters = model.settings.aircraftFilters; filters.minimumAltitudeFeet = 12000; filters.includeUnknownCategory = false
+        model.setAircraftFilters(filters)
+        #expect(RadarPreferences(defaults: defaults).load().aircraftFilters == filters)
+        model.applyAircraftPreset(.overview)
+        #expect(!model.settings.aircraftFilters.isActive && !model.settings.aircraftFilters.hideGround)
+        model.applyAircraftPreset(.nearHome)
+        #expect(model.settings.aircraftFilters.homeDistanceNM == 50 && model.settings.aircraftFilters.minimumAltitudeFeet == nil)
+        #expect(model.settings.aircraftFilters.categories == Set(AircraftCategoryGroup.allCases))
+    }
+
 }
 
 actor ViewFixtureSource: AircraftDataSource {
