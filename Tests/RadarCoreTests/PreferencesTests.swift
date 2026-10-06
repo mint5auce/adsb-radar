@@ -3,6 +3,23 @@ import Testing
 import RadarCore
 
 struct PreferencesTests {
+    @Test @MainActor func missingReceiverAttemptLimitDefaultsMigratesAndPersists() throws {
+        let name = "adsb-radar-tests-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = RadarPreferences(defaults: defaults)
+        #expect(preferences.load().localReceiverAttemptLimit == 3)
+        defaults.set(Data(#"{"mode":"immediate"}"#.utf8), forKey: "radar-settings")
+        var settings = preferences.load()
+        #expect(settings.localReceiverAttemptLimit == 3 && settings.mode == .immediate)
+        settings.localReceiverAttemptLimit = 5
+        preferences.save(settings)
+        #expect(preferences.load().localReceiverAttemptLimit == 5)
+        settings.localReceiverAttemptLimit = 0
+        preferences.save(settings)
+        #expect(preferences.load().localReceiverAttemptLimit == 1)
+    }
+
     @Test @MainActor func syntheticLaunchDoesNotReplaceTheFirstLaunchLocalDefault() throws {
         let name = "adsb-radar-tests-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))

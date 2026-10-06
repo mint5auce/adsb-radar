@@ -32,6 +32,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var source: AircraftSourceKind = .local
     public var scenario: SyntheticScenario = .test
     public var demoCount: Int = 100
+    public var localReceiverAttemptLimit: Int = 3
     public var onlineRefreshSeconds: Double = 5
     public var onlineRadiusNM: Double = 250
     public var enrichIdentities: Bool = true
@@ -46,7 +47,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
-        case labelMode, trailMode, directionVectors, aircraftFilters
+        case labelMode, trailMode, directionVectors, aircraftFilters, localReceiverAttemptLimit
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -66,6 +67,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         source = try values.decodeIfPresent(AircraftSourceKind.self, forKey: .source) ?? source
         scenario = try values.decodeIfPresent(SyntheticScenario.self, forKey: .scenario) ?? scenario
         demoCount = try values.decodeIfPresent(Int.self, forKey: .demoCount) ?? demoCount
+        localReceiverAttemptLimit = try values.decodeIfPresent(Int.self, forKey: .localReceiverAttemptLimit) ?? localReceiverAttemptLimit
         onlineRefreshSeconds = try values.decodeIfPresent(Double.self, forKey: .onlineRefreshSeconds) ?? onlineRefreshSeconds
         onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
         enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
@@ -87,6 +89,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         value.trailSeconds = bounded(trailSeconds, 120, 5...600)
         value.initialRadiusNM = bounded(initialRadiusNM, 100, 5...2000)
         value.demoCount = min(250, max(25, demoCount))
+        value.localReceiverAttemptLimit = max(1, localReceiverAttemptLimit)
         value.onlineRefreshSeconds = bounded(onlineRefreshSeconds, 5, 1...300)
         value.onlineRadiusNM = bounded(onlineRadiusNM, 250, 1...250)
         value.identityRefreshDays = bounded(identityRefreshDays, 7, (1.0 / 24)...3650)

@@ -4,6 +4,39 @@ import RadarCore
 @testable import ADSBRadar
 
 struct RadarModelTests {
+    @Test(arguments: [3, 1]) @MainActor
+    func missingDongleStopsAtTheAttemptLimitAndSettingsRetryRecovers(limit: Int) async throws {
+        let local = MissingDongleSource()
+        let online = ControlledSource(addresses: ["abc123"], source: "adsb.fi")
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation
+        settings.source = .combined
+        settings.mode = .immediate
+        settings.enrichIdentities = false
+        settings.localReceiverAttemptLimit = limit
+        let model = RadarModel(sources: [.local: local, .online: online], identityStorage: MemoryIdentityStorage(),
+                               initialSettings: settings, defaults: isolatedDefaults())
+        model.start()
+        try await eventually(timeout: .seconds(12)) { model.localReceptionPaused }
+        #expect(await local.starts == limit)
+        #expect(model.statuses[.local] == .failed("No RTL-SDR receiver found. Connect the dongle and retry."))
+        let pollsAtPause = await local.polls
+        settings.labelMode = .selectedOnly
+        model.apply(settings)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(await local.polls == pollsAtPause)
+        #expect(await local.starts == limit && model.localReceptionPaused)
+        #expect(model.statuses[.online] == .receiving && model.contacts.count == 1)
+        #expect(await online.starts == 1)
+        await local.connect()
+        await model.retry(feed: .local)
+        try await eventually { model.statuses[.local] == .receiving && model.contacts.count == 2 }
+        #expect(!model.localReceptionPaused)
+        #expect(await local.starts == limit + 1)
+        #expect(await online.starts == 1)
+        await model.shutdown()
+    }
+
     @Test @MainActor func slowPollingDoesNotFreezeAgeingAndSwitchingStopsTheOldSource() async throws {
         let fixture = SlowSource()
         var settings = RadarSettings()
@@ -130,6 +163,27 @@ struct RadarModelTests {
 
 }
 
+private actor MissingDongleSource: AircraftDataSource {
+    private(set) var starts = 0
+    private(set) var polls = 0
+    private var firstPoll = true
+    private var connected = false
+    func connect() { connected = true }
+    func start(location: GeographicCoordinate?) async { starts += 1; firstPoll = true }
+    func stop() async {}
+    func poll() async -> ReceptionReading {
+        polls += 1
+        if connected {
+            return ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: [
+                AircraftObservation(address: "aaa111", position: SyntheticSource.exampleLocation, positionTime: .now, source: "LOCAL")
+            ]))
+        }
+        // A decoder may publish an empty startup snapshot before reporting missing hardware.
+        if firstPoll { firstPoll = false; return ReceptionReading(status: .waiting) }
+        return ReceptionReading(status: .failed("No RTL-SDR receiver found. Connect the dongle and retry."), failureReason: .receiverNotFound)
+    }
+}
+
 private actor RecoveringReceiverSource: AircraftDataSource {
     private var starts = 0
     private var recovered = false
@@ -147,12 +201,13 @@ private actor RecoveringReceiverSource: AircraftDataSource {
 func isolatedDefaults() -> UserDefaults { UserDefaults(suiteName: "adsb-model-tests-\(UUID())")! }
 
 @MainActor
-func eventually(_ condition: () async -> Bool) async throws {
-    for _ in 0..<150 {
+func eventually(timeout: Duration = .milliseconds(3750), _ condition: () async -> Bool) async throws {
+    let deadline = ContinuousClock.now + timeout
+    while ContinuousClock.now < deadline {
         if await condition() { return }
         try await Task.sleep(for: .milliseconds(25))
     }
-    Issue.record("Condition did not become true within 3.75 seconds")
+    Issue.record("Condition did not become true before the timeout")
 }
 
 private actor SlowSource: AircraftDataSource {

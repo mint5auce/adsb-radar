@@ -24,7 +24,7 @@ struct RadarWindow: View {
         .font(RadarStyle.mono)
         .tint(RadarStyle.green)
         .sheet(isPresented: $showingSettings) {
-            RadarSettingsView(settings: model.settings, save: model.apply)
+            RadarSettingsView(model: model, save: model.apply)
         }
     }
 
@@ -117,7 +117,7 @@ private struct RadarReceptionStatus: View {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(model.feedHealth) { health in
                     FeedStatusIndicator(feed: health.feed, status: health.status,
-                        scenario: model.settings.scenario) { Task { await model.retry(feed: health.feed) } }
+                        scenario: model.settings.scenario, localReceptionPaused: model.localReceptionPaused)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -142,36 +142,29 @@ private struct FeedStatusIndicator: View {
     let feed: AircraftFeed
     let status: ReceptionStatus
     let scenario: SyntheticScenario
-    let retry: () -> Void
+    let localReceptionPaused: Bool
 
     var body: some View {
         HStack(spacing: 12) {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(text).lineLimit(2).foregroundStyle(color).help(text)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button("RETRY", action: retry)
-                .opacity(hasFailed ? 1 : 0)
-                .disabled(!hasFailed)
-                .accessibilityHidden(!hasFailed)
         }
         .frame(height: 28)
-    }
-    private var hasFailed: Bool {
-        if case .failed = status { return true }
-        return false
     }
     private var color: Color {
         if case .failed = status { return RadarStyle.amber }
         return status == .receiving ? RadarStyle.green : RadarStyle.muted
     }
     private var text: String {
+        if feed == .local, localReceptionPaused { return "LOCAL: No dongle found.\nRetry in Settings." }
         let name = feed == .local ? "LOCAL" : feed == .online ? "ONLINE / ADSB.FI" : "SYNTHETIC \(scenario.rawValue.uppercased())"
         switch status {
         case .stopped: return "\(name) STOPPED"
         case .starting: return "STARTING \(name)"
         case .waiting: return "\(name) ACTIVE / WAITING FOR AIRCRAFT"
         case .receiving: return feed == .synthetic ? "\(name) / GENERATED TRAFFIC" : "\(name) ACTIVE"
-        case .failed(let message): return "\(name): \(message)"
+        case .failed(let message): return "\(name): \(message) Retry in Settings."
         }
     }
 

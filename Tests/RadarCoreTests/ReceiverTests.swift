@@ -19,6 +19,7 @@ struct ReceiverTests {
             reading = await source.poll()
         }
         #expect(reading.status == .failed("No RTL-SDR receiver found. Connect the dongle and retry."))
+        #expect(reading.failureReason == .receiverNotFound)
         await source.stop()
     }
 

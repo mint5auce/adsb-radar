@@ -48,7 +48,11 @@ Keep verification proportionate to an asset and packaging change.
 
 When local reception is selected, the application starts the installed `readsb` decoder when it opens and stops the process it started when it quits or switches to synthetic aircraft data.
 A one-time receiver software setup is acceptable.
-If the dongle is missing or busy, keep the interface usable and show a clear reception status with a retry control.
+If the dongle is missing or busy, keep the interface usable and show a clear reception status with Retry in Settings.
+Stop automatic Local reception attempts when a missing dongle reaches the configured attempt limit, defaulting to three attempts including the initial start.
+Show the missing-dongle status in orange with a direction to retry in Settings.
+Retry in Settings starts a fresh attempt budget without restarting a working Online feed.
+Empty decoder startup snapshots do not reset the missing-dongle attempt count.
 
 Only plot aircraft contacts when a position is available.
 Show a count of aircraft heard without positions in reception status.
@@ -78,6 +82,7 @@ Expose position age in the selected contact's details.
 | Contact removal threshold | Position age of 60 seconds |
 | Trail duration | 2 minutes during the current session |
 | Initial viewing radius | 100 nautical miles |
+| Missing receiver attempt limit | 3 attempts, including the initial start |
 
 All settings in this table are configurable.
 The stale and removal thresholds are both measured from the last available position observation.

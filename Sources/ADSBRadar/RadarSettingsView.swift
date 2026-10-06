@@ -6,12 +6,15 @@ struct RadarSettingsView: View {
     @State private var draft: RadarSettings
     @State private var latitude: String
     @State private var longitude: String
+    let model: RadarModel
     let save: (RadarSettings) -> Void
 
-    init(settings: RadarSettings, save: @escaping (RadarSettings) -> Void) {
+    init(model: RadarModel, save: @escaping (RadarSettings) -> Void) {
+        let settings = model.settings
         draft = settings
         latitude = settings.receiver.map { String($0.latitude) } ?? ""
         longitude = settings.receiver.map { String($0.longitude) } ?? ""
+        self.model = model
         self.save = save
     }
 
@@ -22,12 +25,23 @@ struct RadarSettingsView: View {
                 Spacer()
             }.padding(24)
             Form {
+                if model.settings.source != .synthetic {
+                    Section("Reception") { ReceptionSettingsControls(model: model) }
+                }
                 Section("Aircraft data") {
                     Picker("Source", selection: $draft.source) {
                         Text("Local receiver").tag(AircraftSourceKind.local)
                         Text("Online / adsb.fi").tag(AircraftSourceKind.online)
                         Text("Local + Online").tag(AircraftSourceKind.combined)
                         Text("Synthetic / offline").tag(AircraftSourceKind.synthetic)
+                    }
+                    if draft.source.feeds.contains(.local) {
+                        TextField("Missing receiver attempts", value: $draft.localReceiverAttemptLimit, format: .number)
+                        Text("Includes the initial attempt. After this many missing-dongle failures, reception waits for Retry here.")
+                            .foregroundStyle(.secondary)
+                        if draft.localReceiverAttemptLimit < 1 {
+                            Text("Enter at least one receiver attempt.").foregroundStyle(RadarStyle.amber)
+                        }
                     }
                     if draft.source != .synthetic {
                         Toggle("Enrich aircraft details online", isOn: $draft.enrichIdentities)
@@ -102,7 +116,8 @@ struct RadarSettingsView: View {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                     .buttonStyle(.plain).padding(8).overlay(Rectangle().stroke(RadarStyle.line))
                 Spacer()
-                Button("Save settings", action: saveSettings).keyboardShortcut(.defaultAction).disabled(!locationValid || !countValid)
+                Button("Save settings", action: saveSettings).keyboardShortcut(.defaultAction)
+                    .disabled(!locationValid || !countValid || (draft.source.feeds.contains(.local) && draft.localReceiverAttemptLimit < 1))
                     .buttonStyle(.plain).padding(8).background(RadarStyle.green.opacity(0.12))
                     .overlay(Rectangle().stroke(RadarStyle.line))
             }.padding(24)
@@ -139,5 +154,43 @@ struct RadarSettingsView: View {
         } else { draft.receiver = nil }
         save(draft)
         dismiss()
+    }
+}
+
+private struct ReceptionSettingsControls: View {
+    let model: RadarModel
+
+    var body: some View {
+        ForEach(model.feedHealth) { health in
+            VStack(alignment: .leading, spacing: 8) {
+                Text(health.feed == .local ? "Local receiver" : "Online / adsb.fi")
+                Text(message(health.status))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(hasFailed(health.status) ? RadarStyle.amber : RadarStyle.muted)
+                if health.feed == .local, model.localReceptionPaused {
+                    Text("Automatic attempts stopped.").foregroundStyle(RadarStyle.amber)
+                }
+                Button(health.feed == .local ? "Retry Local receiver" : "Retry Online feed") {
+                    Task { await model.retry(feed: health.feed) }
+                }
+                .disabled(!hasFailed(health.status))
+            }
+        }
+        Text("Save settings to apply source or attempt-limit changes.").foregroundStyle(.secondary)
+    }
+
+    private func hasFailed(_ status: ReceptionStatus) -> Bool {
+        if case .failed = status { return true }
+        return false
+    }
+
+    private func message(_ status: ReceptionStatus) -> String {
+        switch status {
+        case .stopped: "Stopped"
+        case .starting: "Starting reception"
+        case .waiting: "Active / waiting for aircraft"
+        case .receiving: "Active"
+        case .failed(let message): message
+        }
     }
 }

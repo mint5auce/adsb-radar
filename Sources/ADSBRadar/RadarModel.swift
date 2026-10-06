@@ -11,6 +11,7 @@ final class RadarModel {
     private(set) var currentLocalCategories: [String: AircraftCategoryValue] = [:]
     private(set) var identities: [String: AircraftIdentity] = [:]
     private(set) var statuses: [AircraftFeed: ReceptionStatus] = [:]
+    private(set) var localReceptionPaused = false
     private(set) var heardWithoutPosition = 0
     private(set) var receivedPositionedCount = 0
     private(set) var geography: GeographyPaths?
@@ -363,7 +364,7 @@ final class RadarModel {
             runs.removeValue(forKey: feed)
             run.task?.cancel()
             statuses.removeValue(forKey: feed)
-            if feed == .local { heardWithoutPosition = 0 }
+            if feed == .local { heardWithoutPosition = 0; localReceptionPaused = false }
         }
         let preceding = transition
         transition = Task {
@@ -386,6 +387,7 @@ final class RadarModel {
     private func poll(feed: AircraftFeed, run: FeedRun) async {
         var restart = true
         var retry = OnlineRefreshPolicy()
+        var missingReceiverAttempts = 0
         while !Task.isCancelled {
             if restart {
                 if Date.now < retry.nextAttempt {
@@ -419,9 +421,21 @@ final class RadarModel {
             }
             if feed == .local {
                 if case .failed = reading.status {
+                    if reading.failureReason == .receiverNotFound {
+                        missingReceiverAttempts += 1
+                        if missingReceiverAttempts >= settings.localReceiverAttemptLimit {
+                            await run.source.stop()
+                            guard isCurrent(feed: feed, run: run) else { break }
+                            localReceptionPaused = true
+                            return
+                        }
+                    } else { missingReceiverAttempts = 0 }
                     retry.failed(at: .now, interval: 1)
                     restart = true
                 } else if reading.status == .waiting || reading.status == .receiving {
+                    // Empty startup snapshots can precede a missing-dongle failure.
+                    // Actual aircraft reception confirms recovery and resets the missing-device budget.
+                    if reading.status == .receiving { missingReceiverAttempts = 0 }
                     retry.succeeded(at: .now, interval: 1)
                 }
             }
@@ -472,6 +486,7 @@ final class RadarModel {
         identityLoop = nil
         loop = nil
         statuses = [:]
+        localReceptionPaused = false
     }
 
     func apply(_ value: RadarSettings) {

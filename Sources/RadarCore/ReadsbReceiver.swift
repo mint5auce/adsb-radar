@@ -10,13 +10,19 @@ public enum ReceptionStatus: Equatable, Sendable {
     case failed(String)
 }
 
+public enum ReceptionFailureReason: Equatable, Sendable {
+    case receiverNotFound
+}
+
 public struct ReceptionReading: Sendable {
     public let status: ReceptionStatus
     public let snapshot: ReceiverSnapshot?
+    public let failureReason: ReceptionFailureReason?
 
-    public init(status: ReceptionStatus, snapshot: ReceiverSnapshot? = nil) {
+    public init(status: ReceptionStatus, snapshot: ReceiverSnapshot? = nil, failureReason: ReceptionFailureReason? = nil) {
         self.status = status
         self.snapshot = snapshot
+        self.failureReason = failureReason
     }
 }
 
@@ -33,7 +39,7 @@ public actor ReadsbReceiver: AircraftDataSource {
     private var directory: URL?
     private var log: FileHandle?
     private var startedAt: Date?
-    private var failure: String?
+    private var failure: ReceptionReading?
     private var generation = 0
 
     public init(executable: URL? = nil) {
@@ -47,7 +53,7 @@ public actor ReadsbReceiver: AircraftDataSource {
         guard request == generation else { return }
         failure = nil
         guard let executable = executableOverride ?? Self.findExecutable() else {
-            failure = "readsb is not installed. Install it with Homebrew, then retry."
+            failure = ReceptionReading(status: .failed("readsb is not installed. Install it with Homebrew, then retry."))
             return
         }
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("adsb-radar-\(UUID().uuidString)")
@@ -71,19 +77,19 @@ public actor ReadsbReceiver: AircraftDataSource {
             try child.run()
             startedAt = .now
         } catch {
-            failure = "Cannot start reception: \(error.localizedDescription)"
+            failure = ReceptionReading(status: .failed("Cannot start reception: \(error.localizedDescription)"))
             await stopOwnedProcess()
         }
     }
 
     public func poll() async -> ReceptionReading {
-        if let failure { return ReceptionReading(status: .failed(failure), snapshot: nil) }
+        if let failure { return failure }
         guard let process, let directory else { return ReceptionReading(status: .stopped, snapshot: nil) }
         guard process.isRunning else {
             let diagnostic = Self.readDiagnostic(directory.appendingPathComponent("receiver.log"))
-            let message = Self.failureMessage(diagnostic)
-            failure = message
-            return ReceptionReading(status: .failed(message), snapshot: nil)
+            let reading = Self.failureReading(diagnostic)
+            failure = reading
+            return reading
         }
         let file = directory.appendingPathComponent("aircraft.json")
         guard FileManager.default.fileExists(atPath: file.path) else {
@@ -141,15 +147,15 @@ public actor ReadsbReceiver: AircraftDataSource {
         return lines.suffix(3).joined(separator: " · ")
     }
 
-    private static func failureMessage(_ diagnostic: String) -> String {
+    private static func failureReading(_ diagnostic: String) -> ReceptionReading {
         let text = diagnostic.lowercased()
         if text.contains("no supported devices") {
-            return "No RTL-SDR receiver found. Connect the dongle and retry."
+            return ReceptionReading(status: .failed("No RTL-SDR receiver found. Connect the dongle and retry."), failureReason: .receiverNotFound)
         }
         if text.contains("usb_claim_interface") || text.contains("resource busy") {
-            return "RTL-SDR receiver is busy. Close other SDR applications and retry."
+            return ReceptionReading(status: .failed("RTL-SDR receiver is busy. Close other SDR applications and retry."))
         }
-        return diagnostic.isEmpty ? "Receiver stopped. Check the dongle and retry." : "Receiver stopped: \(diagnostic)"
+        return ReceptionReading(status: .failed(diagnostic.isEmpty ? "Receiver stopped. Check the dongle and retry." : "Receiver stopped: \(diagnostic)"))
     }
 
     private static func findExecutable() -> URL? {

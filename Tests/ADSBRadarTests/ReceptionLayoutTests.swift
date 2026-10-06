@@ -13,6 +13,7 @@ struct ReceptionLayoutTests {
         settings.receiver = SyntheticSource.exampleLocation
         settings.source = source
         settings.enrichIdentities = false
+        settings.localReceiverAttemptLimit = 1
         let model = RadarModel(sources: [.local: local, .online: ControlledSource(addresses: [], source: "adsb.fi")],
                                identityStorage: MemoryIdentityStorage(), initialSettings: settings, defaults: isolatedDefaults())
         let host = NSHostingView(rootView: RadarWindow(model: model).preferredColorScheme(.dark))
@@ -24,7 +25,7 @@ struct ReceptionLayoutTests {
         host.layoutSubtreeIfNeeded()
         let startingHeight = model.viewportHeight
         await local.fail()
-        try await eventually { if case .failed = model.statuses[.local] { return true }; return false }
+        try await eventually { model.localReceptionPaused }
         try await Task.sleep(for: .milliseconds(100))
         host.layoutSubtreeIfNeeded()
         #expect(model.viewportHeight == startingHeight, "Receiver failure must not change the map frame")
@@ -40,6 +41,7 @@ private actor ReceptionLayoutSource: AircraftDataSource {
     func start(location: GeographicCoordinate?) async {}
     func stop() async {}
     func poll() async -> ReceptionReading {
-        ReceptionReading(status: failed ? .failed("No RTL-SDR receiver found. Connect the dongle and retry.") : .starting)
+        ReceptionReading(status: failed ? .failed("No RTL-SDR receiver found. Connect the dongle and retry.") : .starting,
+                         failureReason: failed ? .receiverNotFound : nil)
     }
 }
