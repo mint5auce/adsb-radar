@@ -28,6 +28,9 @@ if [[ -n "${PREVIOUS_APPCAST:-}" ]]; then
     "$sparkle_bin/sign_update" "${key_options[@]}" --verify "$PREVIOUS_APPCAST"
 fi
 app_dir="$repo_root/build/distribution/ADSB Radar.app"
+bundle_key="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$app_dir/Contents/Info.plist")"
+probe_signature="$("$sparkle_bin/sign_update" "${key_options[@]}" -p "$app_dir/Contents/Info.plist")"
+swift scripts/verify-update.swift "$bundle_key" "$app_dir/Contents/Info.plist" "$probe_signature"
 mkdir -p "$output_dir"
 archive="$output_dir/ADSB-Radar-$version.zip"
 ditto -c -k --sequesterRsrc --keepParent "$app_dir" "$archive"
@@ -50,4 +53,26 @@ repository="${GITHUB_REPOSITORY:-mint5auce/adsb-radar}"
     --download-url-prefix "https://github.com/$repository/releases/download/v$version/" \
     --link "https://github.com/$repository/releases" --embed-release-notes "$output_dir"
 "$sparkle_bin/sign_update" "${key_options[@]}" --verify "$output_dir/appcast.xml"
+archive_signature="$(python3 - "$output_dir/appcast.xml" "$archive" "$release_manifest" "$repository" <<'PY'
+import json, sys
+from pathlib import Path
+from xml.etree import ElementTree
+feed, archive, manifest, repository = sys.argv[1:]
+release = json.loads(Path(manifest).read_text())
+namespace = '{http://www.andymatuschak.org/xml-namespaces/sparkle}'
+items = [item for item in ElementTree.parse(feed).findall('.//item')
+         if item.findtext(namespace + 'version') == str(release['build'])]
+if len(items) != 1:
+    sys.exit('Generated feed must contain exactly one entry for the candidate build')
+enclosure = items[0].find('enclosure')
+expected_url = f"https://github.com/{repository}/releases/download/v{release['version']}/{Path(archive).name}"
+if enclosure is None or enclosure.get('url') != expected_url or enclosure.get('length') != str(Path(archive).stat().st_size):
+    sys.exit('Generated enclosure URL or size does not match the candidate archive')
+signature = enclosure.get(namespace + 'edSignature')
+if not signature:
+    sys.exit('Generated enclosure has no archive signature')
+print(signature)
+PY
+)"
+swift scripts/verify-update.swift "$bundle_key" "$archive" "$archive_signature"
 printf '%s\n' "$output_dir"

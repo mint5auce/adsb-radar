@@ -115,6 +115,7 @@ The first release may bootstrap from a feed HTTP 404 only when no release has ye
 
 The workflow builds the universal app, signs nested helpers before the outer app, notarises it, staples the app's ticket, and creates the final ZIP.
 It then generates the appcast with archive and feed signatures, embeds the release notes, and verifies the feed signature.
+Packaging rejects mismatched signing keys before notarisation and independently verifies the archive signature using the app's embedded public key.
 The `release-candidate` artifact holds the ZIP, appcast, release notes and release manifest for inspection before approving the publish job.
 The separate symbols artifact supports crash diagnosis.
 
