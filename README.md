@@ -4,7 +4,7 @@ A native macOS aircraft viewer with a vintage military radar display, inspired b
 Track aircraft from an RTL-SDR receiver, [adsb.fi](https://adsb.fi), or an offline synthetic demo.
 Explore aircraft details, trails, and bundled UK airways, airspace, and airports.
 
-![Phosphor showing aircraft over southern England](assets/demo/phosphor-preview.png)
+![Phosphor showing live aircraft over southern England with map overlays off](assets/demo/phosphor-preview.png)
 
 [Watch the original 15-second demo: South UK to London](assets/demo/adsb-radar.mp4).
 This historical recording shows the former ADSB Radar branding.
