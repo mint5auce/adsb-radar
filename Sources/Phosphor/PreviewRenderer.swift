@@ -22,7 +22,10 @@ enum PreviewRenderer {
         let localFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")
         let onlineFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "adsb.fi")
         let sources: [AircraftFeed: any AircraftDataSource] = combined ? [.local: localFixture, .online: onlineFixture] : localEnrichment ? [.local: localFixture] : [:]
-        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), routeProvider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL(fileURLWithPath: directory).appendingPathComponent("preview-identities.json")), initialSettings: settings, defaults: defaults)
+        let identityPreview = CommandLine.arguments.contains("--preview-identities")
+        let identityProvider = identityPreview ? PreviewIdentityProvider(aircraftType: "B77W", modelDescription: "BOEING 777-300ER",
+            ownerOperator: "Example Airline and Aircraft Leasing Company Limited") : PreviewIdentityProvider()
+        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: identityProvider, routeProvider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL(fileURLWithPath: directory).appendingPathComponent("preview-identities.json")), initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
             if model.geography != nil, !model.mapLayers.projected.isEmpty, !model.contacts.isEmpty { break }
@@ -48,6 +51,11 @@ enum PreviewRenderer {
         model.camera = model.camera.panned(dx: 180, dy: -90, width: 944, height: 680).zoomed(by: 1.5)
         try await image(model, to: folder.appendingPathComponent("panned.png"), width: 1000, height: 640)
         try await image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
+        if identityPreview {
+            try await image(AircraftContactsView(model: model), to: folder.appendingPathComponent("contacts.png"), width: 440, height: 460)
+            try await image(AircraftOverlapChooser(model: model, contactIDs: Array(model.eligibleContacts.prefix(3).map(\.id)), choose: { _ in }),
+                to: folder.appendingPathComponent("chooser.png"), width: 340, height: 320)
+        }
         try await image(RadarSettingsView(model: model, updater: AppUpdater(), save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         if CommandLine.arguments.contains("--preview-identifiers") {
@@ -302,12 +310,15 @@ private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentity
     func route(for callsign: String) async throws -> FlightRoute? { nil }
     var registration = "G-TEST"
     var aircraftType = "A320"
+    var modelDescription: String? = nil
+    var ownerOperator: String? = nil
     var updatedAt = Date.now
     var failing = false
     func positions(in search: OnlineSearch) async throws -> ReceiverSnapshot { ReceiverSnapshot(observations: []) }
     func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] {
         if failing { throw URLError(.notConnectedToInternet) }
-        return addresses.map { AircraftIdentityUpdate(address: $0, registration: registration, aircraftType: aircraftType, category: .large, updatedAt: updatedAt) }
+        return addresses.map { AircraftIdentityUpdate(address: $0, registration: registration, aircraftType: aircraftType,
+            modelDescription: modelDescription, ownerOperator: ownerOperator, category: .large, updatedAt: updatedAt) }
     }
 }
 #endif

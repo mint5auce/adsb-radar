@@ -13,7 +13,8 @@ struct IdentityStorageTests {
         #expect(try await storage.load().isEmpty)
         var catalogue = AircraftIdentityCatalogue()
         catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-TEST", provider: "first", updatedAt: epoch),
-            AircraftIdentityUpdate(address: "abc123", aircraftType: "A320", provider: "second", updatedAt: epoch.addingTimeInterval(20))])
+            AircraftIdentityUpdate(address: "abc123", aircraftType: "A320", modelDescription: "AIRBUS A320", provider: "second", updatedAt: epoch.addingTimeInterval(20)),
+            AircraftIdentityUpdate(address: "abc123", ownerOperator: "Example Airways", provider: "third", updatedAt: epoch.addingTimeInterval(30))])
         var saved = catalogue.identities
         saved["~abc123"] = saved["abc123"]
         try await storage.save(saved)
@@ -23,6 +24,20 @@ struct IdentityStorageTests {
         #expect(Set(document.keys) == ["version", "identities"])
         #expect(restored["abc123"]?.registration?.updatedAt == epoch)
         #expect(restored["abc123"]?.aircraftType?.provider == "second")
+        #expect(restored["abc123"]?.aircraftLabel == "Airbus A320")
+        #expect(restored["abc123"]?.ownerOperator?.provider == "third")
+        #expect(restored["abc123"]?.ownerOperator?.updatedAt == epoch.addingTimeInterval(30))
+    }
+
+    @Test func existingVersionOneCachesDecodeWithoutDescriptionOrOwner() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("identities.json")
+        try Data(#"{"version":1,"identities":{"abc123":{"registration":{"value":"G-TEST","provider":"adsb.fi","updatedAt":0},"aircraftType":{"value":"B77W","provider":"adsb.fi","updatedAt":0}}}}"#.utf8).write(to: url)
+        let restored = try await FileAircraftIdentityStorage(url: url).load()
+        #expect(restored["abc123"]?.aircraftLabel == "B77W")
+        #expect(restored["abc123"]?.modelDescription == nil && restored["abc123"]?.ownerOperator == nil)
     }
 
     @Test func corruptUnknownVersionAndUnwritableStorageReportErrors() async throws {
@@ -71,9 +86,14 @@ struct IdentityStorageTests {
         catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-NEW", updatedAt: epoch)])
         let old = AircraftIdentityValue(value: "G-OLD", provider: "cached", updatedAt: epoch.addingTimeInterval(-1))
         let type = AircraftIdentityValue(value: "A320", provider: "cached", updatedAt: epoch.addingTimeInterval(-1))
-        catalogue.restore(["abc123": AircraftIdentity(registration: old, aircraftType: type), "invalid": AircraftIdentity(registration: old)])
+        let description = AircraftIdentityValue(value: "AIRBUS A320", provider: "cached", updatedAt: epoch.addingTimeInterval(-1))
+        let owner = AircraftIdentityValue(value: "Example Airways", provider: "cached", updatedAt: epoch.addingTimeInterval(-1))
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", modelDescription: "AIRBUS A320neo", updatedAt: epoch)])
+        catalogue.restore(["abc123": AircraftIdentity(registration: old, aircraftType: type, modelDescription: description, ownerOperator: owner), "invalid": AircraftIdentity(registration: old)])
         #expect(catalogue.identities["abc123"]?.registration?.value == "G-NEW")
         #expect(catalogue.identities["abc123"]?.aircraftType == type)
+        #expect(catalogue.identities["abc123"]?.modelDescription?.value == "AIRBUS A320neo")
+        #expect(catalogue.identities["abc123"]?.ownerOperator == owner)
         #expect(catalogue.identities["invalid"] == nil)
     }
 

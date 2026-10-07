@@ -8,7 +8,7 @@ struct AircraftContactsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CONTACTS").font(.system(size: 13, weight: .semibold, design: .monospaced))
             HStack {
-                TextField("Callsign, ICAO, registration, or model", text: $model.contactsSearch)
+                TextField("Callsign, ICAO, registration, model, or owner", text: $model.contactsSearch)
                     .textFieldStyle(.roundedBorder).accessibilityLabel("Search Contacts")
                 Button("Clear search") { model.contactsSearch = "" }.disabled(model.contactsSearch.isEmpty)
             }
@@ -75,8 +75,15 @@ private struct AircraftContactRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(identifiers.primary)
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
-                Text((identifiers.secondary + [identity?.aircraftType?.value].compactMap { $0 }).joined(separator: " · "))
+                Text(identifiers.secondary.joined(separator: " · "))
                     .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                if let aircraft = identity?.aircraftLabel {
+                    Text(aircraft).font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                }
+                if let owner = identity?.ownerOperator?.value {
+                    Text("Owner / Operator: \(owner)")
+                        .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted)
+                }
                 if outsideFilters || outsideView {
                     Text([outsideFilters ? "Outside filters" : nil, outsideView ? "Outside view" : nil].compactMap { $0 }.joined(separator: " · "))
                         .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.amber)

@@ -17,6 +17,14 @@ struct IdentityModelTests {
         model.selectedAddress = "abc123"
         try await eventually { model.selectedIdentity?.aircraftType?.value == "A320" }
         #expect(model.selectedIdentity?.registration?.value == "G-TEST")
+        #expect(model.selectedIdentity?.aircraftLabel == "Airbus A320")
+        #expect(model.selectedIdentity?.ownerOperator?.value == "Example Airways")
+        for query in ["Airbus", "A320", "Example Airways"] {
+            model.contactsSearch = query
+            #expect(model.listedContacts.map(\.id) == ["abc123"])
+        }
+        model.contactsSearch = "no such owner"
+        #expect(model.listedContacts.isEmpty)
         #expect(model.contacts.count == 1 && model.contacts.first?.observation == original)
         #expect(model.identities["fff000"] == nil)
         #expect(await provider.positionRequests == 0)
@@ -36,6 +44,8 @@ struct IdentityModelTests {
         try await eventually { model.identities["abc123"] != nil && !model.contacts.isEmpty }
         model.selectedAddress = "abc123"
         #expect(model.selectedIdentity?.registration?.value == "G-SNAP")
+        #expect(model.selectedIdentity?.aircraftLabel == "Boeing 737-800")
+        #expect(model.selectedIdentity?.ownerOperator?.value == "Example Leasing Limited")
         #expect(await provider.requests.isEmpty)
         await model.shutdown()
     }
@@ -114,7 +124,8 @@ actor IdentityFixtureProvider: OnlineAircraftProvider, AircraftIdentityProvider 
             catch { cancellations += 1; throw error }
         }
         if failing { throw URLError(.notConnectedToInternet) }
-        return (addresses + ["fff000"]).map { AircraftIdentityUpdate(address: $0, registration: "G-TEST", aircraftType: "A320", category: .large) }
+        return (addresses + ["fff000"]).map { AircraftIdentityUpdate(address: $0, registration: "G-TEST", aircraftType: "A320",
+            modelDescription: "AIRBUS A320", ownerOperator: "Example Airways", category: .large) }
     }
 }
 
@@ -124,7 +135,8 @@ private actor IdentitySnapshotSource: AircraftDataSource {
     func poll() async -> ReceptionReading {
         ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: [
             AircraftObservation(address: "abc123", position: SyntheticSource.exampleLocation, positionTime: .now, source: "adsb.fi")
-        ], identities: [AircraftIdentityUpdate(address: "abc123", registration: "G-SNAP", aircraftType: "B738")]))
+        ], identities: [AircraftIdentityUpdate(address: "abc123", registration: "G-SNAP", aircraftType: "B738",
+            modelDescription: "BOEING 737-800", ownerOperator: "Example Leasing Limited")]))
     }
 }
 

@@ -190,23 +190,7 @@ public struct ADSBFiProvider: OnlineAircraftProvider, AircraftIdentityProvider {
         // ADSBexchange-compatible timestamps are milliseconds; tolerate seconds too.
         json["now"] = timestamp.doubleValue > 100_000_000_000 ? timestamp.doubleValue / 1000 : timestamp.doubleValue
         json["aircraft"] = aircraft
-        let snapshot = try ReceiverSnapshot.decode(JSONSerialization.data(withJSONObject: json))
-        let acceptedAddresses = Set(snapshot.observations.map(\.address))
-        let identities = aircraft.compactMap { entry -> AircraftIdentityUpdate? in
-            guard let entry = entry as? [String: Any], let address = (entry["hex"] as? String)?.lowercased(),
-                  acceptedAddresses.contains(address) else { return nil }
-            let isICAO = AircraftIdentityCatalogue.isICAO(address)
-            let update = AircraftIdentityUpdate(address: address, registration: isICAO ? entry["r"] as? String : nil,
-                aircraftType: isICAO ? entry["t"] as? String : nil,
-                category: AircraftCategory.reported(entry["category"] as? String),
-                updatedAt: Date(timeIntervalSince1970: (json["now"] as? Double) ?? Date.now.timeIntervalSince1970))
-            return update.registration == nil && update.aircraftType == nil && update.category == nil ? nil : update
-        }
-        return ReceiverSnapshot(observations: snapshot.observations.map {
-            AircraftObservation(address: $0.address, callsign: $0.callsign, position: $0.position,
-                positionTime: $0.positionTime, altitude: $0.altitude, speedKnots: $0.speedKnots,
-                directionDegrees: $0.directionDegrees, category: $0.category, source: "adsb.fi")
-        }, identities: identities)
+        return try ReceiverSnapshot.decode(JSONSerialization.data(withJSONObject: json), source: "adsb.fi")
     }
 }
 

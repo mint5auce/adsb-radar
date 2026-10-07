@@ -89,9 +89,14 @@ Fresh local positions take precedence; when they become stale, fresh online posi
 Local reception resumes precedence when fresh observations return, without duplicating matching ICAO aircraft.
 
 Enrich aircraft details online is enabled by default, including in Local mode.
-It adds optional registration and aircraft type to the inspector using visible aircraft and selected-contact lookups.
+It adds optional registration, readable aircraft model, and owner/operator details using visible aircraft and selected-contact lookups.
+Contacts, aircraft choosers, and the inspector prefer descriptions such as Boeing 777-300ER, with the ICAO type code retained in the inspector and used as a fallback.
+Contact search accepts both model descriptions and type codes, as well as owner/operator names.
+Owner / Operator shows the source's reported owner or operator, which may be a leasing company or registered owner rather than the airline operating the flight.
+These fields are also accepted from the local decoder when available.
 Disable it in Settings to stop dedicated identity and route requests; ordinary Online responses can still supply identity details.
 Known identities survive relaunches in a local Application Support cache, including while offline or enrichment is disabled.
+Older cached identities retain their type-code labels until a normal source response or due enrichment refresh supplies the readable description.
 Set the identity refresh age separately in Settings; the default is seven days and fractional days are supported.
 Only encountered visible or selected aircraft trigger dedicated refreshes, and their details show the provider and successful update date.
 Missing details and network failures leave known values, their previous update dates, and aircraft movement intact.

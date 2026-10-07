@@ -159,3 +159,42 @@ swift build
 
 This uses actual identity-file saves and loads across model lifecycles with deterministic source/provider fixtures.
 It does not disable the computer's network or physically disconnect a receiver.
+
+## Readable aircraft names and owner/operator details
+
+On 7 October 2026, a live [adsb.fi geographic response](https://opendata.adsb.fi/api/v3/lat/51.5/lon/-0.1/dist/100) returned 215 aircraft near London.
+205 entries included `desc` model descriptions, including `BOEING 777-300ER` for `B77W`, and 10 included `ownOp` owner/operator details.
+The implementation reuses these fields from normal position responses and existing identity lookups without adding another service or request stream.
+The local decoder accepts the same optional database fields when present.
+Source-reported owner/operator information is not treated as proof of the airline operating a flight.
+
+All 149 Swift tests pass, including decoding optional and malformed fields, non-ICAO exclusion, code fallback, corrected type codes, model/owner search, partial-response retention, provenance, cache round trips, and compatibility with older version-one caches.
+Debug application packaging, release compilation, and `git diff --check` pass.
+Offscreen native previews were inspected for Contacts, the overlap chooser, and the inspector at normal and minimum window sizes, using a long owner/operator name to verify wrapping.
+The inspector remains scrollable when its details exceed the window height.
+Interactive live UI exercise and physical receiver reception were not repeated for this change.
+
+Build and start the candidate after quitting any running copy:
+
+```sh
+./scripts/build-app.sh
+open build/Phosphor.app
+```
+
+1. Choose Online, or Local with Enrich aircraft details online enabled, and select a received aircraft.
+2. Confirm Aircraft type uses its readable model description when available, ICAO type retains the code, and Owner / Operator shows the source's value or UNKNOWN.
+3. Open Contacts and search by a readable model name, ICAO type code, or available owner/operator name.
+4. Check a long name at the minimum window size, scroll the inspector to its remaining details, and exercise the aircraft overlap chooser.
+5. Quit and relaunch to confirm known descriptions and owners remain cached; switch to Synthetic to confirm real identities disappear.
+
+Older cached identities use their type codes until an ordinary source response or due enrichment refresh supplies the new optional details.
+Missing descriptions or owners do not cause extra requests for otherwise fresh identities.
+
+Render repeatable native layouts without internet or receiver hardware:
+
+```sh
+./scripts/build-app.sh
+build/Phosphor.app/Contents/MacOS/Phosphor --render-local-enrichment-preview /tmp/phosphor-friendly-identities-preview --preview-identities
+```
+
+These previews use isolated preferences and an isolated identity cache.

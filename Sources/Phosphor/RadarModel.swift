@@ -46,7 +46,8 @@ final class RadarModel {
         let identity = identity(for: contact)
         let identifiers = AircraftIdentifiers(observation: contact.observation, identity: identity, preferred: settings.aircraftIdentifier)
         return RadarObjectChoice(id: .aircraft(contact.id), title: identifiers.primary,
-            detail: (identifiers.secondary + [settings.altitude(contact.observation.altitude), identity?.aircraftType?.value].compactMap { $0 }).joined(separator: " / "))
+            detail: (identifiers.secondary + [settings.altitude(contact.observation.altitude), identity?.aircraftLabel,
+                identity?.ownerOperator?.value].compactMap { $0 }).joined(separator: " / "))
     }
     /// Keep an open chooser's candidates stable while displaying their current aircraft details.
     func refreshedChoice(_ choice: RadarObjectChoice) -> RadarObjectChoice? {
@@ -144,7 +145,8 @@ final class RadarModel {
         return eligibleContacts.filter { contact in
             guard !query.isEmpty else { return true }
             let identity = identity(for: contact)
-            return [contact.observation.callsign, contact.observation.address, identity?.registration?.value, identity?.aircraftType?.value]
+            return [contact.observation.callsign, contact.observation.address, identity?.registration?.value,
+                identity?.aircraftType?.value, identity?.aircraftLabel, identity?.ownerOperator?.value]
                 .compactMap { $0 }.contains { $0.localizedStandardContains(query) }
         }
     }
@@ -227,6 +229,7 @@ final class RadarModel {
     private func preferringLocalCategories(_ updates: [AircraftIdentityUpdate]) -> [AircraftIdentityUpdate] {
         updates.map { update in
             AircraftIdentityUpdate(address: update.address, registration: update.registration, aircraftType: update.aircraftType,
+                modelDescription: update.modelDescription, ownerOperator: update.ownerOperator,
                 category: currentLocalCategory(for: update.address) == nil ? update.category : nil,
                 provider: update.provider, updatedAt: update.updatedAt)
         }
@@ -261,7 +264,7 @@ final class RadarModel {
     }
     var showsOnlineAttribution: Bool {
         settings.source != .synthetic && (settings.source.usesOnline || settings.enrichIdentities || identities.values.contains {
-            [$0.registration?.provider, $0.aircraftType?.provider, $0.category?.provider].contains("adsb.fi")
+            ($0.detailFields.map(\.provider) + [$0.category?.provider].compactMap { $0 }).contains("adsb.fi")
         })
     }
     var retrying: Bool { statuses.values.contains(.starting) }

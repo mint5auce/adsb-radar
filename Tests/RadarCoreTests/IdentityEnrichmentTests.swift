@@ -5,6 +5,68 @@ import Testing
 struct IdentityEnrichmentTests {
     let epoch = Date(timeIntervalSince1970: 1000)
 
+    @Test func readableModelsAndOwnersAreOptionalIdentityFieldsInBothPayloadFormats() throws {
+        for key in ["ac", "aircraft"] {
+            let snapshot = try ADSBFiProvider.decode(Data("""
+            {"now":1000000,"\(key)":[
+              {"hex":"ABC123","t":"B77W","desc":" BOEING 777-300ER ","ownOp":" Example Airways "},
+              {"hex":"abc456","desc":false,"ownOp":" "},
+              {"hex":"aaa111","ownOp":"Aircraft Leasing Limited"},
+              {"hex":"~abc123","desc":"OTHER","ownOp":"OTHER"}]}
+            """.utf8))
+            #expect(snapshot.identities.count == 2)
+            let update = try #require(snapshot.identities.first)
+            #expect(update.modelDescription == "BOEING 777-300ER" && update.ownerOperator == "Example Airways")
+            #expect(update.provider == "adsb.fi" && update.updatedAt == Date(timeIntervalSince1970: 1000000))
+            #expect(snapshot.identities.last?.ownerOperator == "Aircraft Leasing Limited")
+            #expect(snapshot.observations.allSatisfy { $0.position == nil })
+        }
+    }
+
+    @Test func labelsPreferDescriptionsPreserveDesignatorsAndFallBackToCodes() {
+        func identity(_ description: String?, code: String? = "B77W") -> AircraftIdentity {
+            AircraftIdentity(aircraftType: code.map { AircraftIdentityValue(value: $0, provider: "test", updatedAt: epoch) },
+                modelDescription: description.map { AircraftIdentityValue(value: $0, provider: "test", updatedAt: epoch) })
+        }
+        #expect(identity("BOEING 777-300ER").aircraftLabel == "Boeing 777-300ER")
+        #expect(identity("AIRBUS A321neo").aircraftLabel == "Airbus A321neo")
+        #expect(identity("ATR ATR-72-600").aircraftLabel == "ATR ATR-72-600")
+        #expect(identity("AGUSTAWESTLAND AW-159 Super Lynx").aircraftLabel == "AgustaWestland AW-159 Super Lynx")
+        #expect(identity(nil).aircraftLabel == "B77W")
+        #expect(identity("Unknown manufacturer Model X", code: nil).aircraftLabel == "Unknown manufacturer Model X")
+        #expect(AircraftIdentity().aircraftLabel == nil)
+    }
+
+    @Test func correctedTypeCodesDoNotDisplayDescriptionsOfThePreviousModel() {
+        var catalogue = AircraftIdentityCatalogue()
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", aircraftType: "B77W", modelDescription: "BOEING 777-300ER", updatedAt: epoch)])
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", aircraftType: "B772", updatedAt: epoch.addingTimeInterval(10))])
+        #expect(catalogue.identities["abc123"]?.aircraftLabel == "B772")
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", aircraftType: "B77W", modelDescription: "BOEING 777-300ER", updatedAt: epoch)])
+        #expect(catalogue.identities["abc123"]?.aircraftLabel == "B772")
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", aircraftType: "B772", modelDescription: "BOEING 777-200", updatedAt: epoch.addingTimeInterval(20))])
+        #expect(catalogue.identities["abc123"]?.aircraftLabel == "Boeing 777-200")
+    }
+
+    @Test func partialOrOlderResponsesKeepModelAndOwnerWithTheirOriginalProvenance() {
+        var catalogue = AircraftIdentityCatalogue()
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", registration: "G-TEST", aircraftType: "B77W",
+            modelDescription: "BOEING 777-300ER", ownerOperator: "Example Airways", category: .heavy, updatedAt: epoch)])
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", modelDescription: "OLD MODEL", ownerOperator: "OLD OWNER",
+            provider: "old", updatedAt: epoch.addingTimeInterval(-1)),
+            AircraftIdentityUpdate(address: "abc123", modelDescription: " ", ownerOperator: " ", updatedAt: epoch.addingTimeInterval(10))])
+        let identity = catalogue.identities["abc123"]
+        #expect(identity?.aircraftLabel == "Boeing 777-300ER" && identity?.ownerOperator?.value == "Example Airways")
+        #expect(identity?.modelDescription?.provider == "adsb.fi" && identity?.ownerOperator?.updatedAt == epoch)
+        #expect(identity?.lastUpdated == epoch)
+        catalogue.merge([AircraftIdentityUpdate(address: "abc123", ownerOperator: "New Owner", provider: "new", updatedAt: epoch.addingTimeInterval(20))])
+        #expect(catalogue.identities["abc123"]?.ownerOperator?.provider == "new")
+        #expect(catalogue.identities["abc123"]?.modelDescription == identity?.modelDescription)
+        // Owner and description availability must not turn otherwise fresh identities into repeated lookups.
+        catalogue.merge([AircraftIdentityUpdate(address: "aaa111", registration: "G-OTHER", aircraftType: "ZZZZ", category: .light, updatedAt: epoch)])
+        #expect(catalogue.begin(visible: ["aaa111"], selected: nil, at: epoch.addingTimeInterval(1)).isEmpty)
+    }
+
     @Test func identityUsesRegistrationAndAirframeTypeWithoutRequiringAPosition() throws {
         let snapshot = try ADSBFiProvider.decode(Data(#"{"now":1000,"ac":[{"hex":"ABC123","r":" G-TEST ","t":"A320","type":"adsb_icao"},{"hex":"abc456","r":null,"t":" "},{"hex":"~abc123","r":"OTHER"}]}"#.utf8))
         #expect(snapshot.identities.count == 1)

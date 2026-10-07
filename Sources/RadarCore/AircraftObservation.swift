@@ -58,7 +58,7 @@ public struct ReceiverSnapshot: Sendable {
         observations.filter { $0.position == nil }.count
     }
 
-    public static func decode(_ data: Data) throws -> ReceiverSnapshot {
+    public static func decode(_ data: Data, source: String = "LOCAL RTL-SDR") throws -> ReceiverSnapshot {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let now = number(json["now"]),
               let aircraft = json["aircraft"] as? [Any] else {
@@ -90,13 +90,21 @@ public struct ReceiverSnapshot: Sendable {
             return AircraftObservation(
                 address: address.lowercased(), callsign: callsign?.isEmpty == false ? callsign : nil,
                 position: coordinate, positionTime: positionTime, altitude: altitude,
-                speedKnots: speed, directionDegrees: track, category: AircraftCategory.reported(entry["category"] as? String)
+                speedKnots: speed, directionDegrees: track, category: AircraftCategory.reported(entry["category"] as? String), source: source
             )
         }
-        let identities = observations.compactMap { observation -> AircraftIdentityUpdate? in
-            guard let category = observation.category else { return nil }
-            return AircraftIdentityUpdate(address: observation.address, category: category,
-                provider: observation.source, updatedAt: Date(timeIntervalSince1970: now))
+        let acceptedAddresses = Set(observations.map(\.address))
+        let identities = aircraft.compactMap { entry -> AircraftIdentityUpdate? in
+            guard let entry = entry as? [String: Any], let address = (entry["hex"] as? String)?.lowercased(),
+                  acceptedAddresses.contains(address) else { return nil }
+            let isICAO = AircraftIdentityCatalogue.isICAO(address)
+            let update = AircraftIdentityUpdate(address: address,
+                registration: isICAO ? entry["r"] as? String : nil, aircraftType: isICAO ? entry["t"] as? String : nil,
+                modelDescription: isICAO ? entry["desc"] as? String : nil, ownerOperator: isICAO ? entry["ownOp"] as? String : nil,
+                category: AircraftCategory.reported(entry["category"] as? String),
+                provider: source, updatedAt: Date(timeIntervalSince1970: now))
+            return update.registration == nil && update.aircraftType == nil && update.modelDescription == nil &&
+                update.ownerOperator == nil && update.category == nil ? nil : update
         }
         return ReceiverSnapshot(observations: observations, identities: identities)
     }

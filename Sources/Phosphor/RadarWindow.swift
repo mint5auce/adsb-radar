@@ -320,11 +320,16 @@ struct ContactInspector: View {
                 if settings.source != .synthetic {
                     FlightRouteInspector(state: route)
                 }
-                field("AIRCRAFT TYPE", identity?.aircraftType?.value ?? "UNKNOWN")
+                field("AIRCRAFT TYPE", identity?.aircraftLabel ?? "UNKNOWN")
+                if identity?.modelDescription != nil, let code = identity?.aircraftType?.value {
+                    field("ICAO TYPE", code)
+                }
+                field("OWNER / OPERATOR", identity?.ownerOperator?.value ?? "UNKNOWN")
+                    .help("Owner or operator reported by the aircraft data source. This may be a registered owner rather than the airline operating this flight.")
                 if let identity {
                     field("DETAILS UPDATED", identity.lastUpdated?.formatted(date: .abbreviated, time: .shortened) ?? "UNKNOWN")
                         .help("The oldest successful update of the known identity fields. Missing fields retain their previous dates.")
-                    field("DETAILS FROM", Array(Set([identity.registration?.provider, identity.aircraftType?.provider].compactMap { $0 })).sorted().joined(separator: ", "))
+                    field("DETAILS FROM", Array(Set(identity.detailFields.map(\.provider))).sorted().joined(separator: ", "))
                 }
                 field("REPORTED CATEGORY", category.map { "\($0.value.title) / \($0.value.rawValue)" } ?? "UNKNOWN")
                 if let category {
@@ -357,6 +362,7 @@ struct ContactInspector: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.system(size: 10, design: .monospaced)).tracking(1).foregroundStyle(RadarStyle.muted)
             Text(value).font(.system(size: 13, design: .monospaced)).foregroundStyle(RadarStyle.green)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

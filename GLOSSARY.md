@@ -51,7 +51,7 @@ Aircraft information supplied by an online service, either on its own or alongsi
 The choice of aircraft data sources supplying live positions to the radar display, independently of optional identity enrichment.
 
 **Identity enrichment**:
-Registration, model, and reported-category information associated with an aircraft contact, independently of its position and movement.
+Registration, model, owner/operator, and reported-category information associated with an aircraft contact, independently of its position and movement.
 
 **Receiver location**:
 The geographic location of the user's radio receiver, which is also the home location when using local reception.

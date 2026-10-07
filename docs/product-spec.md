@@ -375,12 +375,18 @@ Continue applying the configured stale and removal thresholds to genuine positio
 Network activity must not block local reception, display updates, or contact ageing.
 
 Include registration and aircraft type when supplied by the online feed, including for contacts whose active position comes from local reception.
+Prefer the source's readable model description, such as Boeing 777-300ER, over the ICAO type code in Contacts, aircraft choosers, and the inspector.
+Retain the ICAO type code in the inspector and support searching by either the code or readable model name.
+Show available source-reported owner/operator details in Contacts and the inspector, and include them in contact searches.
+Label this information Owner / Operator because a registered owner may differ from the airline operating the flight.
+Use the same optional identity fields when supplied by the local decoder, and retain the type-code fallback and explicit unknown inspector values when details are unavailable.
 Keep identity enrichment independent of position selection and position age.
 Provide an Enrich aircraft details online setting, enabled by default, that permits adsb.fi lookups in Local mode.
 Disabling this setting stops dedicated enrichment requests while leaving online position requests governed by the selected source mode.
 Enrich visible contacts, prioritising the selected aircraft, reusing identity information from normal online position responses and batching missing lookups where supported.
 Enrichment requests must share the provider's request allowance without delaying position updates.
-Cache registration, aircraft type, and reported category between launches, with a configurable refresh age defaulting to seven days.
+Cache registration, aircraft type, model description, owner/operator, and reported category between launches, with a configurable refresh age defaulting to seven days.
+Missing optional model descriptions and owner/operator details do not trigger extra requests for otherwise fresh identities.
 Refresh due identity information when the contact is encountered again rather than querying the entire stored cache in the background.
 If a refresh fails, retain cached details and make their last-updated date available in the contact inspector.
 Local mode continues to obtain its live aircraft positions solely from local reception, even when an enrichment response contains online positions.
