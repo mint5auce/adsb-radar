@@ -99,6 +99,12 @@ struct RadarSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Presentation") {
+                    Picker("Aircraft identifier", selection: $draft.aircraftIdentifier) {
+                        ForEach(AircraftIdentifierPreference.allCases, id: \.self) { preference in
+                            Text(preference.title).tag(preference)
+                        }
+                    }
+                    Text("Uses the other identifier when unavailable, then the ICAO address.").foregroundStyle(.secondary)
                     Picker("Contact updates", selection: $draft.mode) {
                         Text("Sweep-timed").tag(UpdateMode.sweep)
                         Text("Immediate").tag(UpdateMode.immediate)

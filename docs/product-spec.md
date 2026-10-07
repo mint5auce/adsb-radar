@@ -45,7 +45,15 @@ Document release preparation, credentials, verification and recovery in [the rel
 ## Visual direction and exploration
 
 Use [Air Defender](https://airdefendergame.com/) as the visual reference: a rectangular tactical map with a black background, fine green geography, compact monospaced labels, aircraft direction vectors, and trails.
-Use callsign and altitude for aircraft labels, subject to the chosen label mode and automatic decluttering.
+Use the preferred aircraft identifier and altitude for aircraft labels, subject to the chosen label mode and automatic decluttering.
+Default to registration, falling back to callsign and then the uppercase aircraft address when unavailable.
+Offer Registration and Callsign under Settings > Presentation > Aircraft identifier, applying the choice through Save settings and remembering it between launches.
+Callsign preference reverses the first two fallback steps.
+Use registration as the default for both new installations and older saved preferences without this choice.
+Apply the same identifier preference to map labels, the inspector heading, Contacts, and aircraft choosers.
+Update headings when identity information becomes available, without changing contact selection or movement.
+Keep explicit REGISTRATION and CALLSIGN fields in the inspector, showing UNKNOWN when unavailable.
+Show remaining identifiers beneath Contacts and chooser headings without duplicates.
 Selecting a contact reveals its available details, including the source and age of its last position.
 Show unavailable fields explicitly as unknown.
 
@@ -125,7 +133,7 @@ The accepted design is recorded in [the detailed design](design/aircraft-view-de
 Offer automatic label decluttering alongside explicit aircraft view filters, retaining individual aircraft symbols.
 Prioritise the selected label and fresh contacts, prefer stable nearby label placement, and suppress labels that still overlap.
 Reveal more labels as zoom creates space and draw symbols above label backgrounds.
-Provide Automatic, All, and Selected only label modes without shrinking callsign/altitude text to fit crowded traffic.
+Provide Automatic, All, and Selected only label modes without shrinking identifier/altitude text to fit crowded traffic.
 Use the [startup presentation policy](#startup-presentation-and-control-visibility) for initial label, trail, and direction-vector preferences.
 Provide All, Selected, and None trail-display choices plus an independent direction-vector switch, while retaining normal trail history regardless of its display.
 
@@ -163,7 +171,7 @@ Use the same presentation controls across source modes while retaining the exist
 
 The Contacts list follows aircraft criteria plus the selected exception, marking contacts outside the current view.
 Search callsign, ICAO address, registration, and model code within that list without changing map filters or counts, and provide a separate clear-search action.
-An ambiguous aircraft click opens a short chooser of eligible nearby contacts with callsign/address, altitude, and known model.
+An ambiguous aircraft click opens a short chooser of eligible nearby contacts with the preferred identifier, remaining identifiers, altitude, and known model.
 Report In view, Outside view, and Filtered separately, making the total received positioned contacts available in the Contacts panel and keeping heard-without-position counts separate.
 Aircraft filters do not alter the existing online viewport request, provider allowance, or ordinary contact lifecycle.
 Unknown aircraft in the viewed area remain eligible for permitted enrichment even when filtering hides them.
@@ -258,7 +266,7 @@ Both modes keep the sweep anchored to the home location.
 
 Measure position age from the source observation, independently of when the sweep or interface last refreshed.
 When a contact becomes stale, dim it in amber at its last known position before removing it at the removal threshold.
-Keep stale text in the selected contact's sidebar, with only callsign and altitude beside the map plot.
+Keep stale text in the selected contact's sidebar, with only the preferred identifier and altitude beside the map plot.
 Expose position age in the selected contact's details.
 
 ## Configurable defaults
@@ -276,6 +284,7 @@ Expose position age in the selected contact's details.
 | Initial viewing radius | 100 nautical miles |
 | Missing receiver attempt limit | 3 attempts, including the initial start |
 | Aircraft view criteria | Unrestricted, including ground |
+| Aircraft identifier | Registration, then callsign, then address |
 | Label mode | All on first launch |
 | Trail display | All aircraft on first launch |
 | Direction vectors | Enabled |

@@ -17,6 +17,8 @@ struct RadarSurface: View {
     @State private var navigationFrame = CGRect.zero
     @Environment(\.scenePhase) private var scenePhase
 
+    private var currentChoices: [RadarObjectChoice] { choices.compactMap(model.refreshedChoice) }
+
     var body: some View {
         ZStack {
             GeographyCanvas(paths: model.geography, camera: model.camera, settings: model.displaySettings)
@@ -28,7 +30,7 @@ struct RadarSurface: View {
                 }
                 .allowsHitTesting(false)
                 AircraftCanvas(contacts: model.eligibleContacts, camera: model.camera, settings: model.displaySettings, selected: model.selectedAddress,
-                    reserved: reservedRegions)
+                    reserved: reservedRegions, identities: model.settings.source == .synthetic ? [:] : model.identities)
                     .allowsHitTesting(false)
             }
             if let coverage = model.onlineCoverage, coverage.limited, let origin = model.origin {
@@ -60,7 +62,7 @@ struct RadarSurface: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("SELECT OBJECT").font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted).padding(8)
-                            ForEach(choices) { choice in
+                            ForEach(currentChoices) { choice in
                                 Button { model.selection = choice.id; showingChooser = false } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(choice.title).foregroundStyle(RadarStyle.green)
@@ -69,7 +71,7 @@ struct RadarSurface: View {
                                 }.buttonStyle(.plain)
                             }
                         }.padding(8)
-                    }.frame(width: 310, height: min(380, CGFloat(choices.count * 58 + 50))).background(RadarStyle.panel)
+                    }.frame(width: 310, height: min(380, CGFloat(currentChoices.count * 58 + 50))).background(RadarStyle.panel)
                 }
         }
         .overlay {
@@ -244,6 +246,7 @@ struct AircraftCanvas: View {
     let settings: RadarSettings
     let selected: String?
     var reserved: [CGRect] = []
+    var identities: [String: AircraftIdentity] = [:]
 
     @State private var labelLayout = AircraftLabelLayout()
 
@@ -269,8 +272,9 @@ struct AircraftCanvas: View {
                     vector.addLine(to: CGPoint(x: point.x + direction.east * 22, y: point.y - direction.north * 22))
                     context.stroke(vector, with: .color(color), lineWidth: 0.8)
                 }
-                let callsign = contact.observation.callsign ?? contact.observation.address.uppercased()
-                let label = "\(callsign)\n\(settings.altitude(contact.observation.altitude))"
+                let identifiers = AircraftIdentifiers(observation: contact.observation, identity: identities[contact.observation.address],
+                    preferred: settings.aircraftIdentifier)
+                let label = "\(identifiers.primary)\n\(settings.altitude(contact.observation.altitude))"
                 let text = context.resolve(Text(label).font(.system(size: 10, design: .monospaced)).foregroundStyle(color))
                 let candidate = AircraftLabelCandidate(id: contact.id, point: point,
                     size: text.measure(in: CGSize(width: 200, height: 40)), selected: contact.id == selected,

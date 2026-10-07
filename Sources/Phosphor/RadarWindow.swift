@@ -290,6 +290,10 @@ struct ContactInspector: View {
     var outsideFilters: Bool = false
     let dismiss: () -> Void
 
+    private var identifiers: AircraftIdentifiers {
+        AircraftIdentifiers(observation: contact.observation, identity: identity, preferred: settings.aircraftIdentifier)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -302,7 +306,7 @@ struct ContactInspector: View {
                 }
                 .foregroundStyle(contact.stale ? RadarStyle.amber : RadarStyle.muted)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(contact.observation.callsign ?? contact.observation.address.uppercased())
+                    Text(identifiers.primary)
                         .font(.system(size: 23, weight: .medium, design: .monospaced))
                         .foregroundStyle(RadarStyle.bright)
                     Text("\(contact.observation.address.hasPrefix("~") ? "NON-ICAO" : "ICAO") \(contact.observation.address.uppercased())").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.muted)
@@ -310,7 +314,8 @@ struct ContactInspector: View {
                 if let showOnMap { Button("Show on map", action: showOnMap) }
                 if outsideFilters { Text("OUTSIDE FILTERS").foregroundStyle(RadarStyle.amber) }
                 Rectangle().fill(RadarStyle.line).frame(height: 1)
-                field("REGISTRATION", identity?.registration?.value ?? "UNKNOWN")
+                field("REGISTRATION", identifiers.registration ?? "UNKNOWN")
+                field("CALLSIGN", identifiers.callsign ?? "UNKNOWN")
                 field("AIRCRAFT TYPE", identity?.aircraftType?.value ?? "UNKNOWN")
                 if let identity {
                     field("DETAILS UPDATED", identity.lastUpdated?.formatted(date: .abbreviated, time: .shortened) ?? "UNKNOWN")

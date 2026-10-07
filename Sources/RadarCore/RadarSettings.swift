@@ -38,6 +38,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var enrichIdentities: Bool = true
     public var identityRefreshDays: Double = 7
     public var aircraftFilters = AircraftViewFilters()
+    public var aircraftIdentifier: AircraftIdentifierPreference = .registration
     public var labelMode: AircraftLabelMode = .automatic
     public var trailMode: AircraftTrailMode = .selected
     public var directionVectors: Bool = true
@@ -60,7 +61,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
-        case labelMode, trailMode, directionVectors, controlVisibility, aircraftFilters, localReceiverAttemptLimit, mapLayers
+        case aircraftIdentifier, labelMode, trailMode, directionVectors, controlVisibility, aircraftFilters, localReceiverAttemptLimit, mapLayers
     }
 
     // Decode missing keys with defaults so an upgrade preserves the user's existing preferences.
@@ -86,6 +87,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
         identityRefreshDays = try values.decodeIfPresent(Double.self, forKey: .identityRefreshDays) ?? identityRefreshDays
         aircraftFilters = try values.decodeIfPresent(AircraftViewFilters.self, forKey: .aircraftFilters) ?? aircraftFilters
+        aircraftIdentifier = try values.decodeIfPresent(AircraftIdentifierPreference.self, forKey: .aircraftIdentifier) ?? aircraftIdentifier
         labelMode = try values.decodeIfPresent(AircraftLabelMode.self, forKey: .labelMode) ?? labelMode
         trailMode = try values.decodeIfPresent(AircraftTrailMode.self, forKey: .trailMode) ?? trailMode
         directionVectors = try values.decodeIfPresent(Bool.self, forKey: .directionVectors) ?? directionVectors

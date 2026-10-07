@@ -66,13 +66,16 @@ private struct AircraftContactRow: View {
     var outsideView = false
     var outsideFilters = false
 
+    private var identifiers: AircraftIdentifiers {
+        AircraftIdentifiers(observation: contact.observation, identity: identity, preferred: settings.aircraftIdentifier)
+    }
+
     var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(contact.observation.callsign ?? contact.observation.address.uppercased())
+                Text(identifiers.primary)
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
-                Text([contact.observation.callsign != nil ? contact.observation.address.uppercased() : nil,
-                      identity?.registration?.value, identity?.aircraftType?.value].compactMap { $0 }.joined(separator: " · "))
+                Text((identifiers.secondary + [identity?.aircraftType?.value].compactMap { $0 }).joined(separator: " · "))
                     .font(.system(size: 10, design: .monospaced)).foregroundStyle(RadarStyle.muted)
                 if outsideFilters || outsideView {
                     Text([outsideFilters ? "Outside filters" : nil, outsideView ? "Outside view" : nil].compactMap { $0 }.joined(separator: " · "))

@@ -46,6 +46,20 @@ enum PreviewRenderer {
         try await image(model, to: folder.appendingPathComponent("minimum-window.png"), width: 800, height: 560)
         try await image(RadarSettingsView(model: model, updater: AppUpdater(), save: { _ in }),
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
+        if CommandLine.arguments.contains("--preview-identifiers") {
+            for preference in AircraftIdentifierPreference.allCases {
+                var presentation = model.settings
+                presentation.aircraftIdentifier = preference
+                model.apply(presentation)
+                model.returnToReceiver()
+                let prefix = preference.rawValue
+                try await image(model, to: folder.appendingPathComponent("\(prefix)-inspection.png"), width: 1200, height: 800)
+                try await image(model, to: folder.appendingPathComponent("\(prefix)-minimum.png"), width: 800, height: 560)
+                try await image(AircraftContactsView(model: model), to: folder.appendingPathComponent("\(prefix)-contacts.png"), width: 440, height: 460)
+                try await image(AircraftOverlapChooser(model: model, contactIDs: Array(model.eligibleContacts.prefix(3).map(\.id)), choose: { _ in }),
+                    to: folder.appendingPathComponent("\(prefix)-chooser.png"), width: 340, height: 320)
+            }
+        }
         if localEnrichment {
             var offline = model.settings
             offline.enrichIdentities = false

@@ -33,6 +33,12 @@ It looks in the standard Homebrew locations and the process PATH; set `READSB_PA
 
 Enter the receiver's latitude and longitude in Settings and save them.
 Those coordinates and other settings stay in local macOS preferences, outside the repository.
+Aircraft headings default to registration, falling back to callsign and then the uppercase aircraft address.
+Choose Registration or Callsign under Settings > Presentation > Aircraft identifier and click Save settings.
+Callsign preference falls back to registration, then address.
+This choice applies to map labels, the inspector, Contacts, and aircraft choosers, and survives relaunch.
+The inspector always includes labelled registration and callsign fields.
+See [identifier verification](verification-aircraft-identifiers.md) for checks and native exercise steps.
 When Local or Local + Online is selected, the receiver starts when the app opens.
 Its app-owned process stops when switching to Online or Synthetic, closing the last window, or quitting.
 Close other applications using the dongle before retrying reception.

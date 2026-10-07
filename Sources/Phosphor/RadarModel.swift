@@ -35,11 +35,20 @@ final class RadarModel {
         }
     }
     func objectChoices(at point: CGPoint, secondary: Bool = false) -> [RadarObjectChoice] {
-        let aircraft = aircraftCandidates(at: point).map {
-            RadarObjectChoice(id: .aircraft($0.id), title: $0.observation.callsign ?? $0.id.uppercased(),
-                detail: [$0.id.uppercased(), settings.altitude($0.observation.altitude), identity(for: $0)?.aircraftType?.value].compactMap { $0 }.joined(separator: " / "))
-        }
+        let aircraft = aircraftCandidates(at: point).map(aircraftChoice)
         return secondary ? aircraft + mapChoices(at: point) : aircraft.isEmpty ? mapChoices(at: point) : aircraft
+    }
+    private func aircraftChoice(_ contact: PresentedContact) -> RadarObjectChoice {
+        let identity = identity(for: contact)
+        let identifiers = AircraftIdentifiers(observation: contact.observation, identity: identity, preferred: settings.aircraftIdentifier)
+        return RadarObjectChoice(id: .aircraft(contact.id), title: identifiers.primary,
+            detail: (identifiers.secondary + [settings.altitude(contact.observation.altitude), identity?.aircraftType?.value].compactMap { $0 }).joined(separator: " / "))
+    }
+    /// Keep an open chooser's candidates stable while displaying their current aircraft details.
+    func refreshedChoice(_ choice: RadarObjectChoice) -> RadarObjectChoice? {
+        guard case .aircraft(let address) = choice.id else { return choice }
+        guard let contact = eligibleContacts.first(where: { $0.id == address }) else { return nil }
+        return aircraftChoice(contact)
     }
     func validateMapSelection() {
         guard case .map(let id) = selection else { return }
