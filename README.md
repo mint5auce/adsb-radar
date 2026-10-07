@@ -9,17 +9,19 @@ Explore aircraft details, trails, and bundled UK airways, airspace, and airports
 [Watch the original 15-second demo: South UK to London](assets/demo/adsb-radar.mp4).
 This historical recording shows the former ADSB Radar branding.
 
-## Build and start
+## Install the app (recommended)
 
-An easy-to-install package for non-developers is coming very soon.
-For now, build from source using the instructions below.
+The signed and notarised application package requires macOS 14 or later and supports Apple Silicon and Intel Macs.
+No developer tools are needed.
 
-Requires macOS 14+ and Swift 6 developer tools.
+1. Open the [latest release](https://github.com/mint5auce/phosphor/releases/latest) and download `Phosphor-<version>.zip` from **Assets**.
+2. Extract the ZIP and drag **Phosphor.app** into **Applications**.
+3. Open Phosphor from Applications.
 
-```sh
-./scripts/build-app.sh
-open 'build/Phosphor.app'
-```
+Future updates are available through **Phosphor > Check for Updates**.
+Automatic update preferences are in Settings.
+
+## Get started
 
 In Settings, save your home coordinates and choose a source:
 
@@ -36,10 +38,17 @@ Use Command-0 to return home.
 Quit any running copy, then launch:
 
 ```sh
-'build/Phosphor.app/Contents/MacOS/Phosphor' --synthetic --scenario demo
+'/Applications/Phosphor.app/Contents/MacOS/Phosphor' --synthetic --scenario demo
 ```
 
 ## Development
+
+To build from source, install Swift 6 developer tools on macOS 14 or later, then run:
+
+```sh
+./scripts/build-app.sh
+open 'build/Phosphor.app'
+```
 
 Use `./scripts/build-app.sh release` for a release build in `build/release/Phosphor.app` and `swift test` to run the tests.
 See the [usage guide](docs/usage.md) for settings, receiver setup, and manual checks, or the [product specification](docs/product-spec.md) for the accepted design.
