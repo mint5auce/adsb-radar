@@ -1,6 +1,6 @@
 # Phosphor
 
-A native macOS aircraft viewer with a vintage military radar display, inspired by [Air Defender](https://airdefendergame.com/).
+Phosphor (née adsb-radar), a native macOS aircraft viewer with a vintage military radar display, inspired by [Air Defender](https://airdefendergame.com/).
 Track aircraft from an RTL-SDR receiver, [adsb.fi](https://adsb.fi), or an offline synthetic demo.
 Explore aircraft details, trails, and bundled UK airways, airspace, and airports.
 
