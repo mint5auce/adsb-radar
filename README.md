@@ -6,8 +6,7 @@ Explore aircraft details, trails, and bundled UK airways, airspace, and airports
 
 ![Phosphor showing live aircraft over southern England with map overlays off](assets/demo/phosphor-preview.png)
 
-[Watch the original 15-second demo: South UK to London](assets/demo/adsb-radar.mp4).
-This historical recording shows the former ADSB Radar branding.
+[Watch the original 15-second demo: South UK to London](assets/demo/adsb-radar.mp4)
 
 ## Install the app (recommended)
 
