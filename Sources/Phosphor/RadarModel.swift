@@ -18,7 +18,11 @@ final class RadarModel {
     private(set) var mapMessage: String?
     var contactsSearch = ""
     let mapLayers: MapLayerModel
-    var selection: RadarSelection? { didSet { if selection != oldValue { cancelIdentityRequest() } } }
+    var selection: RadarSelection? {
+        didSet {
+            if selection != oldValue { cancelIdentityRequest(); refreshSelectedRoute() }
+        }
+    }
     var selectedAddress: String? {
         get { if case .aircraft(let id) = selection { return id }; return nil }
         set { if let newValue { selection = .aircraft(newValue) } else if selectedAddress != nil { selection = nil } }
@@ -65,6 +69,7 @@ final class RadarModel {
 
     @ObservationIgnored private let provider: any OnlineAircraftProvider & AircraftIdentityProvider
     @ObservationIgnored private let identityStorage: any AircraftIdentityStorage
+    private let routeLookup: FlightRouteLookup
     @ObservationIgnored private var cacheLoad: Task<Void, Never>?
     @ObservationIgnored private var cacheLoop: Task<Void, Never>?
     @ObservationIgnored private var savedIdentities: [String: AircraftIdentity] = [:]
@@ -94,11 +99,14 @@ final class RadarModel {
 
     init(source: (any AircraftDataSource)? = nil, sources: [AircraftFeed: any AircraftDataSource] = [:],
          provider: any OnlineAircraftProvider & AircraftIdentityProvider = ADSBFiProvider(),
+         routeProvider: any FlightRouteProvider = VirtualRadarRouteProvider(),
+         routeNow: @escaping @MainActor () -> Date = { .now },
          identityStorage: any AircraftIdentityStorage = FileAircraftIdentityStorage(),
          mapLayers: MapLayerModel = MapLayerModel(), initialSettings: RadarSettings? = nil, options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
         self.mapLayers = mapLayers
         self.provider = provider
         self.identityStorage = identityStorage
+        routeLookup = FlightRouteLookup(provider: routeProvider, now: routeNow)
         suppliedSource = source
         suppliedSources = sources
         preferences = RadarPreferences(defaults: defaults, options: options)
@@ -257,6 +265,14 @@ final class RadarModel {
         })
     }
     var retrying: Bool { statuses.values.contains(.starting) }
+    var selectedRoute: FlightRouteLookupState { routeLookup.state }
+
+    private func refreshSelectedRoute() {
+        let contact = selectedContact
+        let eligible = loop != nil && !shuttingDown && settings.source != .synthetic
+        routeLookup.update(address: eligible ? contact?.id : nil, callsign: contact?.observation.callsign,
+                           allowsLookup: settings.enrichIdentities)
+    }
     var reception: ReceptionStatus {
         statuses[settings.source == .online ? .online : settings.source == .synthetic ? .synthetic : .local] ?? .starting
     }
@@ -391,6 +407,7 @@ final class RadarModel {
         receivedPositionedCount = session.receivedPositionedCount
         currentLocalCategories = currentLocalCategories.filter { Date.now.timeIntervalSince($0.value.updatedAt) <= settings.removalSeconds }
         if let selectedAddress, !contacts.contains(where: { $0.id == selectedAddress }) { self.selectedAddress = nil }
+        refreshSelectedRoute()
     }
 
     /// Retires only disabled or explicitly restarted sources; shared sources keep polling.
@@ -499,6 +516,7 @@ final class RadarModel {
 
     func shutdown() async {
         shuttingDown = true
+        routeLookup.reset()
         transitionRevision += 1
         mapTask?.cancel()
         searchTask?.cancel()
@@ -559,6 +577,7 @@ final class RadarModel {
             camera.offset = RadarPoint()
             loadGeography()
         }
+        refreshSelectedRoute()
     }
 
     func setMode(_ mode: UpdateMode) {
@@ -589,6 +608,7 @@ final class RadarModel {
     }
 
     private func clearContacts() {
+        routeLookup.reset()
         sweepStartedAt = .now
         contacts = []
         receivedPositionedCount = 0

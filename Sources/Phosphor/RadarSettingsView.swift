@@ -53,8 +53,11 @@ struct RadarSettingsView: View {
                         TextField("Refresh aircraft details after (days)", value: $draft.identityRefreshDays, format: .number)
                             .help("From one hour (0.0417 days) to ten years (3650 days).")
                         Text("Known details remain available offline. Refresh happens when aircraft are encountered.").foregroundStyle(.secondary)
-                        Text("Optional registration and aircraft type from adsb.fi, including in Local mode.").foregroundStyle(.secondary)
+                        Text("Optional aircraft details from adsb.fi and likely routes for selected aircraft from Virtual Radar Server via adsb.lol, including in Local mode.").foregroundStyle(.secondary)
+                        Text("Route lookups send the selected callsign only. Matches are reused for 30 minutes in this session and may be outdated or cover multiple legs.").foregroundStyle(.secondary)
                         Link("Aircraft data from adsb.fi", destination: URL(string: "https://adsb.fi")!)
+                        Link("Route data from Virtual Radar Server (CC0)", destination: VirtualRadarRouteProvider.sourceURL)
+                        Link("Route hosting by adsb.lol", destination: URL(string: "https://adsb.lol")!)
                     }
                     if draft.source == .synthetic {
                         Picker("Scenario", selection: $draft.scenario) {

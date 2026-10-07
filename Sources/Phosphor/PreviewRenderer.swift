@@ -7,6 +7,7 @@ import SwiftUI
 @MainActor
 enum PreviewRenderer {
     static func render(to directory: String, options: RadarLaunchOptions = RadarLaunchOptions(), online: Bool = false, combined: Bool = false, localEnrichment: Bool = false, cachePreview: Bool = false) async throws {
+        if CommandLine.arguments.contains("--preview-routes") { try await renderRoutes(to: directory); return }
         if cachePreview { try await renderCacheSequence(to: directory); return }
         var settings = options.applying(to: RadarSettings())
         let syntheticPlayback = options.source == .synthetic
@@ -21,7 +22,7 @@ enum PreviewRenderer {
         let localFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")
         let onlineFixture = PreviewSource(origin: SyntheticSource.exampleLocation, source: "adsb.fi")
         let sources: [AircraftFeed: any AircraftDataSource] = combined ? [.local: localFixture, .online: onlineFixture] : localEnrichment ? [.local: localFixture] : [:]
-        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL(fileURLWithPath: directory).appendingPathComponent("preview-identities.json")), initialSettings: settings, defaults: defaults)
+        let model = RadarModel(source: combined || localEnrichment ? nil : fixture, sources: sources, provider: PreviewIdentityProvider(), routeProvider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL(fileURLWithPath: directory).appendingPathComponent("preview-identities.json")), initialSettings: settings, defaults: defaults)
         model.start()
         for _ in 0..<100 {
             if model.geography != nil, !model.mapLayers.projected.isEmpty, !model.contacts.isEmpty { break }
@@ -122,7 +123,7 @@ enum PreviewRenderer {
         settings.receiver = settings.receiver ?? SyntheticSource.exampleLocation
         let maps = MapLayerModel(store: MapSnapshotStore(directory: URL.temporaryDirectory.appendingPathComponent("phosphor-ui-map-data")),
             updater: CommandLine.arguments.contains("--map-offline") ? MapUpdateService(download: { _ in throw URLError(.notConnectedToInternet) }) : MapUpdateService())
-        return RadarModel(source: DensePreviewSource(), identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("phosphor-ui-verification-identities.json")),
+        return RadarModel(source: DensePreviewSource(), routeProvider: PreviewIdentityProvider(), identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("phosphor-ui-verification-identities.json")),
             mapLayers: maps, initialSettings: settings, options: options, defaults: defaults)
     }
 
@@ -158,14 +159,14 @@ enum PreviewRenderer {
         settings.mode = .immediate
         let original = RadarModel(sources: [.local: PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")],
             provider: PreviewIdentityProvider(registration: "G-CACHED", aircraftType: "A319", updatedAt: Date.now.addingTimeInterval(-8 * 86400)),
-            identityStorage: storage, initialSettings: settings, defaults: defaults)
+            routeProvider: PreviewIdentityProvider(), identityStorage: storage, initialSettings: settings, defaults: defaults)
         original.start()
         try await waitForIdentity(original)
         try await image(original, to: folder.appendingPathComponent("before-restart.png"), width: 1200, height: 800)
         await original.shutdown()
 
         let offline = RadarModel(sources: [.local: PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")],
-            provider: PreviewIdentityProvider(failing: true), identityStorage: storage, initialSettings: settings, defaults: defaults)
+            provider: PreviewIdentityProvider(failing: true), routeProvider: PreviewIdentityProvider(), identityStorage: storage, initialSettings: settings, defaults: defaults)
         offline.start()
         try await waitForIdentity(offline)
         try await Task.sleep(for: .milliseconds(600))
@@ -177,7 +178,7 @@ enum PreviewRenderer {
 
         settings.enrichIdentities = true
         let refreshed = RadarModel(sources: [.local: PreviewSource(origin: SyntheticSource.exampleLocation, source: "LOCAL RTL-SDR")],
-            provider: PreviewIdentityProvider(registration: "G-REFRESH", aircraftType: "B738"), identityStorage: storage,
+            provider: PreviewIdentityProvider(registration: "G-REFRESH", aircraftType: "B738"), routeProvider: PreviewIdentityProvider(), identityStorage: storage,
             initialSettings: settings, defaults: defaults)
         refreshed.start()
         try await waitForIdentity(refreshed)
@@ -249,7 +250,7 @@ enum PreviewRenderer {
         try await image(RadarWindow(model: model), to: url, width: width, height: height)
     }
 
-    private static func image<Content: View>(_ content: Content, to url: URL, width: Double, height: Double) async throws {
+    static func image<Content: View>(_ content: Content, to url: URL, width: Double, height: Double) async throws {
         let content = content.frame(width: width, height: height).environment(\.colorScheme, .dark)
         let view = NSHostingView(rootView: content)
         view.frame = NSRect(x: 0, y: 0, width: width, height: height)
@@ -297,7 +298,8 @@ private actor PreviewSource: AircraftDataSource {
 #endif
 
 #if DEBUG
-private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentityProvider {
+private struct PreviewIdentityProvider: OnlineAircraftProvider, AircraftIdentityProvider, FlightRouteProvider {
+    func route(for callsign: String) async throws -> FlightRoute? { nil }
     var registration = "G-TEST"
     var aircraftType = "A320"
     var updatedAt = Date.now

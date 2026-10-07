@@ -388,7 +388,8 @@ Identity-only lookups must not introduce contacts, update their movement, refres
 Enrichment failures must not interrupt reception or the radar display; retain known identity information and leave unavailable fields unknown.
 Apply the provider's shared request-rate limit to both position requests and identity-enrichment requests.
 Synthetic operation remains isolated from real aircraft data and does not perform online enrichment.
-Photos, route lookups, and additional cockpit telemetry are outside the first online-feed addition.
+Photos and additional cockpit telemetry are outside the first online-feed addition.
+Flight-route enrichment follows the separate design below.
 
 Prefer free access; account registration is acceptable.
 Use adsb.fi as the first online feed, keeping the provider replaceable.
@@ -399,6 +400,39 @@ Verify provider response handling, observation timestamps, source preference and
 Use deterministic provider responses for automated checks so normal tests do not depend on internet access or live traffic.
 Manually inspect all four source modes, configurable limits, panning beyond the search area, source health, offline operation, and persisted identity details in the native app.
 Verify available live adsb.fi data during implementation and explicitly report any provider access or physical receiver checks that could not be completed.
+
+## Flight-route enrichment
+
+The departure and destination design was accepted on 7 October 2026.
+Show a LIKELY ROUTE section in the selected real aircraft's inspector with Departure, optional Via, and Destination airport names and codes.
+These are callsign database matches, not confirmed current flights or diversion information.
+For routes with intermediate airports, show May cover multiple legs and do not infer the current leg from position.
+Airport fields are informational, with no new map navigation, route search, or route overlays.
+
+Use Virtual Radar Server's CC0 standing route data through the per-callsign JSON mirror hosted by adsb.lol.
+Keep the provider replaceable, and require clear display/cache rights and a representative live-contact check before release.
+Show the provider, lookup time, and whether a result was reused from the session cache.
+Do not describe lookup time as the route's effective or verification date.
+
+Use the existing Enrich aircraft details online setting in Local, Online, and Local + Online modes.
+Explain the additional provider and that only the selected callsign is sent for route enrichment.
+Only selected aircraft trigger route requests, independently of identity enrichment, reception, movement, position age, and active position source.
+Validate the echoed callsign and complete ordered airport sequence before accepting a match.
+Discard responses after selection, callsign, or permission changes.
+Synthetic neither requests nor displays real routes, and transitions clear route lookup state and caches.
+
+Reuse successful matches for 30 minutes within the current session and missing matches for five minutes.
+Never persist route results between launches.
+Fresh cached matches remain available when enrichment is disabled.
+After expiry, show Unknown if a refresh fails, rather than continuing to show an expired match.
+Show Looking up… while a request runs and Unknown when no match is available.
+Retry temporary failures with backoff while selected, honour provider Retry-After, and pace route requests independently of adsb.fi's position allowance.
+Route failures do not affect reception status or contact lifecycle.
+
+Verify provider responses and selected-route behaviour at the agreed provider and RadarModel boundaries.
+Use deterministic responses and an injected route clock for selection, callsign changes, caching, expiry, permissions, Synthetic isolation, missing matches, and outages.
+Inspect native normal/minimum layouts with long airport names, intermediate stops, cached, loading, and unknown states.
+See [the route verification record](verification-routes.md) for source evidence, coverage limitations, candidate commands, and manual steps.
 
 ## Verification and first milestone
 

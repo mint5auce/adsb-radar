@@ -90,7 +90,7 @@ Local reception resumes precedence when fresh observations return, without dupli
 
 Enrich aircraft details online is enabled by default, including in Local mode.
 It adds optional registration and aircraft type to the inspector using visible aircraft and selected-contact lookups.
-Disable it in Settings to stop dedicated identity requests; ordinary Online responses can still supply details.
+Disable it in Settings to stop dedicated identity and route requests; ordinary Online responses can still supply identity details.
 Known identities survive relaunches in a local Application Support cache, including while offline or enrichment is disabled.
 Set the identity refresh age separately in Settings; the default is seven days and fractional days are supported.
 Only encountered visible or selected aircraft trigger dedicated refreshes, and their details show the provider and successful update date.
@@ -100,6 +100,19 @@ Synthetic does not request or display real identity data.
 Aircraft data is supplied by [adsb.fi](https://adsb.fi), using its [public personal-use API](https://github.com/adsbfi/opendata).
 No account, payment, or receiver sharing is enabled.
 For implementation checks and exact manual steps, see [online verification](verification-online.md).
+
+## Likely flight routes
+
+For real aircraft, selecting a contact also looks up its callsign in Virtual Radar Server's route data hosted by adsb.lol.
+The inspector's LIKELY ROUTE section shows Departure, optional Via, and Destination airport names and codes.
+These are database matches and may be outdated, miss diversions, or describe a multi-leg service rather than the current leg.
+Only the callsign is sent for a route lookup; airport fields do not move the map.
+Looking up… indicates an active request, and Unknown means no usable match is available.
+Matches are reused for 30 minutes in the current session, with provider, lookup time, and cached status shown.
+Fresh cached routes remain visible if enrichment is disabled; expired routes become Unknown when refreshing fails.
+Missing matches are reused for five minutes, and temporary failures retry with backoff without changing reception status.
+Route results do not survive relaunches, and Synthetic neither requests nor displays real routes.
+See [route verification](verification-routes.md) for the source licence, live sample, and manual checks.
 
 ## Offline Test and Demo scenarios
 
