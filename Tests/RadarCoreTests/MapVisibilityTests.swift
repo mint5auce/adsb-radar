@@ -27,15 +27,76 @@ struct MapVisibilityTests {
         let high = preferences.setFlightLevel("1000"); #expect(!high)
         #expect(preferences.flightLevel == 245)
     }
-    @Test func airportsIgnoreAltitudeAndSmallFieldsRequireZoom() {
+    @Test func airportSizesAreIndependentOfZoomAndFlightLevel() {
         let point = GeographicCoordinate(latitude: 52, longitude: -1)!
         var feature = MapFeature(id: "test", kind: .airport, name: "Field", label: "Field", paths: [[point]])
         var preferences = MapLayerPreferences(); preferences.flightLevel = 400
+        feature.airportSize = .medium
         #expect(feature.visibility(preferences, radiusNM: 100) == .included)
-        feature.smallAirport = true
+        feature.airportSize = .small; feature.smallAirport = true
         #expect(feature.visibility(preferences, radiusNM: 100) == .hidden)
+        #expect(feature.visibility(preferences, radiusNM: 25) == .hidden)
+        preferences.airportFilters.sizes = [.small]
+        #expect(feature.visibility(preferences, radiusNM: 250) == .included)
         #expect(feature.visibility(preferences, radiusNM: 25) == .included)
+        feature.airportSize = .large; feature.smallAirport = false
+        #expect(feature.visibility(preferences, radiusNM: 25) == .hidden)
+        preferences.airportFilters.sizes.insert(.large)
+        #expect(feature.visibility(preferences, radiusNM: 250) == .included)
+        preferences.airportFilters.sizes = []
+        #expect(feature.visibility(preferences, radiusNM: 25) == .hidden)
+        preferences.airportFilters.sizes = Set(AirportSize.allCases)
         preferences.airports = false
         #expect(feature.visibility(preferences, radiusNM: 25) == .hidden)
+    }
+
+    @Test func airportServiceFiltersCombineWithSizeAndUnknownChoices() {
+        let point = GeographicCoordinate(latitude: 52, longitude: -1)!
+        var airport = MapFeature(id: "test", kind: .airport, name: "Field", label: "Field", paths: [[point]])
+        airport.airportSize = .medium
+        var preferences = MapLayerPreferences()
+        let cases: [(Bool?, MapVisibility, MapVisibility)] = [
+            (true, .included, .hidden), (false, .hidden, .included), (nil, .included, .included)
+        ]
+        for (status, withService, withoutService) in cases {
+            airport.scheduledService = status
+            preferences.airportFilters.service = .withScheduledService
+            #expect(airport.visibility(preferences, radiusNM: 100) == withService)
+            preferences.airportFilters.service = .withoutScheduledService
+            #expect(airport.visibility(preferences, radiusNM: 100) == withoutService)
+            preferences.airportFilters.service = .all
+            #expect(airport.visibility(preferences, radiusNM: 100) == .included)
+        }
+        preferences.airportFilters.includeUnknownService = false
+        #expect(airport.visibility(preferences, radiusNM: 100) == .included)
+        preferences.airportFilters.service = .withScheduledService
+        #expect(airport.visibility(preferences, radiusNM: 100) == .hidden)
+        preferences.airportFilters.service = .withoutScheduledService
+        #expect(airport.visibility(preferences, radiusNM: 100) == .hidden)
+        airport.scheduledService = false
+        #expect(airport.visibility(preferences, radiusNM: 100) == .included)
+        preferences.airportFilters.sizes = [.large]
+        #expect(airport.visibility(preferences, radiusNM: 100) == .hidden)
+        let route = MapFeature(id: "route", kind: .route, name: "L1", label: "L1", paths: [[point, point]])
+        #expect(route.visibility(preferences, radiusNM: 100) == .included)
+    }
+
+    @Test func olderAirportSnapshotsRetainSizesAndTreatServiceAsUnknown() throws {
+        let point = GeographicCoordinate(latitude: 52, longitude: -1)!
+        var preferences = MapLayerPreferences()
+        preferences.airportFilters.service = .withScheduledService
+        for size in AirportSize.allCases {
+            var legacy = MapFeature(id: size.rawValue, kind: .airport, name: "Field", label: "Field", paths: [[point]])
+            legacy.smallAirport = size == .small
+            legacy.details = [MapDetail("TYPE", size.rawValue.replacingOccurrences(of: "_", with: " ").uppercased())]
+            let airport = try JSONDecoder().decode(MapFeature.self, from: JSONEncoder().encode(legacy))
+            #expect(airport.airportSize == nil && airport.scheduledService == nil)
+            #expect(airport.inspectionDetails.contains(MapDetail("SCHEDULED SERVICE", "UNKNOWN")))
+            preferences.airportFilters.sizes = [size]
+            #expect(airport.visibility(preferences, radiusNM: 250) == .included)
+            preferences.airportFilters.includeUnknownService = false
+            #expect(airport.visibility(preferences, radiusNM: 250) == .hidden)
+            preferences.airportFilters.includeUnknownService = true
+        }
     }
 }

@@ -208,9 +208,20 @@ Keep regions with incomparable or missing altitude limits dimly visible and show
 Preserve published altitude references and units in the inspector.
 This remains a novelty feature for enjoyment and exploration: uncertainty handling is a small inspector note, without pressure setup, terrain modelling, or warning banners.
 
-Show large and medium airports at normal viewing scales and introduce small airports as the user zooms in.
+Under Map → Airports, provide independent Large, Medium, and Small size checkboxes.
+Default to Large and Medium enabled and Small disabled, including when upgrading existing installations without airport-filter preferences.
+Enabling Small shows eligible small-airport markers at every zoom level, replacing their earlier zoom-dependent visibility.
+Offer All, With scheduled service, and Without scheduled service, defaulting to All.
+Use OurAirports' scheduled-service field without inferring military, cargo, business aviation, or general aviation use.
+Offer Include unknown for missing service information, enabled by default.
+Match any enabled size, then apply the service criterion; disabling every size hides all airport markers.
+Apply airport-filter changes immediately and remember them between launches.
+Preserve existing preferences, including the Airports layer switch, when adding the new defaults.
+Airport filters affect airport markers and their selection only, independently of aircraft filters and the flight-level slice.
+Keep the existing airport-label decluttering and always label the selected visible airport.
+Clear airport selection and its inspector when an airport filter hides it.
 Exclude closed airports, heliports, and seaplane bases initially.
-Selecting an airport shows its name, codes, and elevation.
+Selecting an airport shows its name, codes, elevation, size, and scheduled-service status, explicitly showing unknown service information.
 
 Use the [startup presentation policy](#startup-presentation-and-control-visibility) for initial layer switches and remember layer switches and the altitude view between launches.
 Show airport codes and sparse route names, introducing waypoint names and smaller features as the user zooms in.

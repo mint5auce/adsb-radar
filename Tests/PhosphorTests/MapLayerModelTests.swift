@@ -4,6 +4,51 @@ import RadarCore
 @testable import Phosphor
 
 struct MapLayerModelTests {
+    @Test @MainActor func airportFiltersClearSelectionAndHitTargetsWhilePreservingCameraAndSettings() async throws {
+        let suite = "airport-filter-model-\(UUID())"
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite); try? FileManager.default.removeItem(at: folder) }
+        let maps = MapLayerModel(store: MapSnapshotStore(directory: folder))
+        var settings = RadarSettings(); settings.mode = .immediate; settings.enrichIdentities = false
+        settings.receiver = GeographicCoordinate(latitude: 51.47, longitude: -0.4543)
+        settings.mapLayers.routes = false; settings.mapLayers.airspace = false
+        let source = ViewFixtureSource(observations: [AircraftObservation(address: "abc123", position: settings.receiver, positionTime: .now)])
+        let model = RadarModel(source: source, identityStorage: MemoryIdentityStorage(), mapLayers: maps, initialSettings: settings, defaults: defaults)
+        model.start()
+        for _ in 0..<100 {
+            if !maps.projected.isEmpty, !model.contacts.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(model.contacts.map(\.id) == ["abc123"])
+        let airport = try #require(maps.snapshots.flatMap(\.features).first { $0.label == "EGLL" })
+        #expect(airport.airportSize == .large && airport.scheduledService == true)
+        let point = try #require(airport.paths.first?.first)
+        let projected = ReceiverProjection(origin: try #require(settings.receiver)).project(point)
+        let camera = model.camera
+        let screen = camera.screen(projected, width: model.viewportWidth, height: model.viewportHeight)
+        let hit = CGPoint(x: screen.x, y: screen.y)
+        #expect(model.mapChoices(at: hit).contains { $0.id == .map(airport.id) })
+        model.selection = .map(airport.id)
+        var changed = model.settings
+        changed.mapLayers.airportFilters.sizes = [.medium]
+        model.apply(changed)
+        #expect(model.selectedMapFeature == nil && model.selection == nil)
+        #expect(!model.mapChoices(at: hit).contains { $0.id == .map(airport.id) })
+        changed.mapLayers.airportFilters.sizes = [.large]
+        model.apply(changed)
+        model.selection = .map(airport.id)
+        changed.mapLayers.airportFilters.service = .withoutScheduledService
+        model.apply(changed)
+        #expect(model.selection == nil)
+        #expect(!model.mapChoices(at: hit).contains { $0.id == .map(airport.id) })
+        #expect(model.camera == camera && model.settings.receiver == settings.receiver)
+        #expect(model.settings.aircraftFilters == settings.aircraftFilters)
+        #expect(model.contacts.map(\.id) == ["abc123"])
+        #expect(RadarPreferences(defaults: defaults).load().mapLayers == changed.mapLayers)
+        await model.shutdown()
+    }
+
     @Test @MainActor func bundledMapsSelectAndHideWithoutDisturbingAircraftOrCamera() async throws {
         let suite = "map-tests-\(UUID())", folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let defaults = UserDefaults(suiteName: suite)!

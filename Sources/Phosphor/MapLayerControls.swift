@@ -11,6 +11,13 @@ struct MapLayerControls: View {
             layer("Routes", key: \.routes)
             layer("Airspace", key: \.airspace)
             layer("Airports", key: \.airports)
+            AirportFilterControls(filters: Binding(get: { model.settings.mapLayers.airportFilters }, set: { filters in
+                var settings = model.settings
+                settings.mapLayers.airportFilters = filters
+                model.apply(settings)
+            }))
+            .padding(.leading, 20)
+            .disabled(!model.settings.mapLayers.airports)
             Divider().overlay(RadarStyle.line)
             MapAltitudeControl(model: model)
             Divider().overlay(RadarStyle.line)

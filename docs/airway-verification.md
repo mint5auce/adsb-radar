@@ -57,7 +57,9 @@ Unsupported composition or geometry rejects the whole incoming NATS generation a
 This does not claim general support for every future AIXM construct.
 Published routes with unknown widths remain centrelines, and operational activation is not inferred.
 
-Small airports appear at a radius of 35 NM or less.
+Airport sizes and scheduled service use the controls beneath Airports in Map, with Large and Medium enabled by default.
+Enabling Small shows small-airport markers at every zoom level.
+See [the airport-filter design and verification guide](airport-filter-verification.md) for the current controls and upgrade behaviour.
 Flight levels accept whole values from 0 to 660, with ten-level steps and inclusive bounds.
 Only compatible standard-pressure FL, FT or M limits are compared; incomparable or missing limits remain uncertain and dimmed.
 Airport markers and aircraft contacts are unaffected by the slice.
@@ -81,7 +83,7 @@ For ordinary moving synthetic traffic, launch with `--synthetic --scenario demo`
 4. Disable the selected feature's layer and confirm its inspector closes.
 5. Click a cluster of aircraft over airspace: primary click offers aircraft only; secondary click includes the map features underneath.
 6. Choose a map feature, then select an aircraft and confirm there is only one inspector.
-7. Pan, zoom and return home; zoom below 35 NM to reveal small airports and waypoint detail.
+7. Pan, zoom and return home; enable Small to reveal small airports at every zoom level, and zoom below 35 NM to inspect finer waypoint detail.
 8. Choose All levels, a preset, custom FL 145 and the step buttons; invalid text must leave the last valid slice unchanged.
 9. Select a standard-pressure route and slice outside its limits to clear it; inspect a region with MSL/SFC limits for the small Uncertain slice-status note.
 10. Open Map data, run Check for map updates, and confirm the camera, layer switches and selected visible object survive.

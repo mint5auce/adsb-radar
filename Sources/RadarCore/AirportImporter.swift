@@ -14,13 +14,19 @@ public enum AirportImporter {
             let fields = Dictionary(uniqueKeysWithValues: zip(header, row))
             func field(_ key: String) -> String? { fields[key].flatMap { $0.isEmpty ? nil : $0 } }
             guard ["GB", "GG", "JE", "IM"].contains(field("iso_country") ?? ""),
-                  let type = field("type"), ["large_airport", "medium_airport", "small_airport"].contains(type) else { continue }
+                  let type = field("type"), let size = AirportSize(rawValue: type) else { continue }
             guard let id = field("id"), let ident = field("ident"), let name = field("name"),
                   let lat = field("latitude_deg").flatMap(Double.init), let lon = field("longitude_deg").flatMap(Double.init),
                   let coordinate = GeographicCoordinate(latitude: lat, longitude: lon) else { throw MapDataError.invalid("Invalid airport position or identity") }
             let code = field("icao_code") ?? field("iata_code") ?? field("local_code") ?? ident
             var feature = MapFeature(id: "airport:" + id, kind: .airport, name: name, label: code, paths: [[coordinate]])
-            feature.smallAirport = type == "small_airport"
+            feature.smallAirport = size == .small
+            feature.airportSize = size
+            switch field("scheduled_service") {
+            case "yes": feature.scheduledService = true
+            case "no": feature.scheduledService = false
+            default: feature.scheduledService = nil
+            }
             feature.details = [MapDetail("ICAO", field("icao_code") ?? "UNKNOWN"), MapDetail("IATA", field("iata_code") ?? "UNKNOWN"),
                 MapDetail("GPS CODE", field("gps_code") ?? "UNKNOWN"), MapDetail("LOCAL CODE", field("local_code") ?? "UNKNOWN"),
                 MapDetail("SOURCE IDENTIFIER", ident), MapDetail("TYPE", type.replacingOccurrences(of: "_", with: " ").uppercased()),

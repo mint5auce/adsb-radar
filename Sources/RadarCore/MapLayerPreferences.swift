@@ -4,8 +4,21 @@ public struct MapLayerPreferences: Codable, Equatable, Sendable {
     public var routes = true
     public var airspace = true
     public var airports = true
+    public var airportFilters = AirportFilters()
     public var flightLevel: Int?
     public init() {}
+
+    private enum CodingKeys: String, CodingKey { case routes, airspace, airports, airportFilters, flightLevel }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        routes = try values.decodeIfPresent(Bool.self, forKey: .routes) ?? routes
+        airspace = try values.decodeIfPresent(Bool.self, forKey: .airspace) ?? airspace
+        airports = try values.decodeIfPresent(Bool.self, forKey: .airports) ?? airports
+        airportFilters = try values.decodeIfPresent(AirportFilters.self, forKey: .airportFilters) ?? airportFilters
+        flightLevel = try values.decodeIfPresent(Int.self, forKey: .flightLevel)
+    }
+
     public func enabled(_ kind: MapFeatureKind) -> Bool {
         switch kind { case .route: routes; case .airspace: airspace; case .airport: airports }
     }
@@ -35,7 +48,8 @@ extension MapFeature {
         return (floor...ceiling).contains(Double(level)) ? .included : .hidden
     }
     public func visibility(_ preferences: MapLayerPreferences, radiusNM: Double) -> MapVisibility {
-        guard preferences.enabled(kind), !smallAirport || radiusNM <= 35 else { return .hidden }
+        guard preferences.enabled(kind) else { return .hidden }
+        if kind == .airport, !preferences.airportFilters.matches(self) { return .hidden }
         return slice(at: preferences.flightLevel)
     }
 }

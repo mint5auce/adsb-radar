@@ -33,6 +33,9 @@ enum PreviewRenderer {
         if CommandLine.arguments.contains("--preview-airspace") {
             try await renderMapLayers(model, folder: folder)
         }
+        if CommandLine.arguments.contains("--preview-airports") {
+            try await renderAirportFilters(model, folder: folder)
+        }
         model.selectedAddress = model.contacts.first?.id
         if online || combined || localEnrichment {
             for _ in 0..<50 {
@@ -187,6 +190,25 @@ enum PreviewRenderer {
             to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         await refreshed.shutdown()
         print("Rendered cache restart / offline / refresh native views in \(directory)")
+    }
+
+    private static func renderAirportFilters(_ model: RadarModel, folder: URL) async throws {
+        let original = model.settings
+        let camera = model.camera
+        defer { model.apply(original); model.camera = camera }
+        var allSizes = AirportFilters(); allSizes.sizes = Set(AirportSize.allCases)
+        var scheduled = AirportFilters(); scheduled.service = .withScheduledService; scheduled.includeUnknownService = false
+        var none = AirportFilters(); none.sizes = []
+        model.returnToReceiver()
+        for (name, filters) in [("default", AirportFilters()), ("all-sizes", allSizes), ("scheduled", scheduled), ("none", none)] {
+            var settings = model.settings
+            settings.mapLayers.routes = false; settings.mapLayers.airspace = false; settings.mapLayers.airports = true
+            settings.mapLayers.airportFilters = filters
+            model.apply(settings)
+            try await image(model, to: folder.appendingPathComponent("airports-\(name).png"), width: 1200, height: 800)
+            try await image(model, to: folder.appendingPathComponent("airports-\(name)-minimum.png"), width: 800, height: 560)
+            try await image(MapLayerControls(model: model), to: folder.appendingPathComponent("airport-controls-\(name).png"), width: 410, height: 540)
+        }
     }
 
     private static func renderMapLayers(_ model: RadarModel, folder: URL) async throws {

@@ -47,6 +47,12 @@ Close other applications using the dongle before retrying reception.
 
 The map includes offline UK ATS route centrelines, published controlled-airspace boundaries, and OurAirports airport markers.
 Use the independent Routes, Airspace and Airports switches; choose All levels or a flight-level slice to explore the network.
+In Map, the Airports controls offer independent Large, Medium and Small checkboxes, with Large and Medium enabled by default.
+Enable Small to show small-airport markers at every zoom level; labels still avoid overlaps.
+Choose All, With scheduled service or Without scheduled service, and use Include unknown to retain airports whose service information is unavailable.
+Sizes combine with the service choice; turning off all three sizes hides every airport marker.
+These choices apply immediately and survive relaunch, including while the Airports layer is switched off.
+Filtering out a selected airport closes its inspector without moving the map or filtering aircraft.
 Click a feature for its details, or secondary-click to choose among aircraft and map features under the pointer.
 The map-data info button shows sources, dates and a manual update action.
 See [data provenance, refresh commands and verification steps](airway-verification.md).

@@ -42,8 +42,13 @@ public struct MapFeature: Codable, Equatable, Identifiable, Sendable {
     public var upper: MapAltitude = .unknown
     public var details: [MapDetail] = []
     public var smallAirport = false
+    public var airportSize: AirportSize?
+    public var scheduledService: Bool?
     public var routeEndpoints: [MapRouteEndpoint]?
     public var inspectionDetails: [MapDetail] {
+        if kind == .airport {
+            return details + [MapDetail("SCHEDULED SERVICE", scheduledService.map { $0 ? "YES" : "NO" } ?? "UNKNOWN")]
+        }
         guard let routeEndpoints, routeEndpoints.count == 2 else { return details }
         return [MapDetail("FROM", routeEndpoints[0].name), MapDetail("TO", routeEndpoints[1].name)] + details
     }
