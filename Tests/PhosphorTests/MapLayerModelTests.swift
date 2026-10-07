@@ -15,10 +15,11 @@ struct MapLayerModelTests {
         settings.mapLayers.routes = false; settings.mapLayers.airspace = false
         let source = ViewFixtureSource(observations: [AircraftObservation(address: "abc123", position: settings.receiver, positionTime: .now)])
         let model = RadarModel(source: source, identityStorage: MemoryIdentityStorage(), mapLayers: maps, initialSettings: settings, defaults: defaults)
+        // Await the bundled fixture instead of imposing a two-second disk-load deadline.
+        await maps.load(origin: settings.receiver)
         model.start()
-        for _ in 0..<100 {
-            if !maps.projected.isEmpty, !model.contacts.isEmpty { break }
-            try await Task.sleep(for: .milliseconds(20))
+        try await eventually(timeout: .seconds(15)) {
+            !maps.loading && !maps.projected.isEmpty && !model.contacts.isEmpty
         }
         #expect(model.contacts.map(\.id) == ["abc123"])
         let airport = try #require(maps.snapshots.flatMap(\.features).first { $0.label == "EGLL" })
@@ -90,10 +91,11 @@ struct MapLayerModelTests {
         var settings = RadarSettings(); settings.receiver = origin; settings.mode = .immediate; settings.enrichIdentities = false
         let source = ViewFixtureSource(observations: [AircraftObservation(address: "abc123", position: origin, positionTime: .now)])
         let model = RadarModel(source: source, identityStorage: MemoryIdentityStorage(), mapLayers: maps, initialSettings: settings, defaults: defaults)
+        // Await the bundled fixture instead of imposing a two-second disk-load deadline.
+        await maps.load(origin: settings.receiver)
         model.start()
-        for _ in 0..<100 {
-            if !maps.projected.isEmpty, !model.contacts.isEmpty { break }
-            try await Task.sleep(for: .milliseconds(20))
+        try await eventually(timeout: .seconds(15)) {
+            !maps.loading && !maps.projected.isEmpty && !model.contacts.isEmpty
         }
         let point = CGPoint(x: model.viewportWidth / 2, y: model.viewportHeight / 2)
         #expect(model.objectChoices(at: point).map(\.id) == [.aircraft("abc123")])
