@@ -1,0 +1,73 @@
+name: Recover update feed
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag containing the verified appcast
+        required: true
+        type: string
+      appcast_sha256:
+        description: SHA-256 of the locally verified signed appcast
+        required: true
+        type: string
+
+concurrency:
+  group: app-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPDATES_FEED_URL: ${{ vars.UPDATES_FEED_URL || 'https://jon-hadley.com/phosphor/appcast.xml' }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the verified release feed
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_SHA256: ${{ inputs.appcast_sha256 }}
+        run: |
+          set -eu
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          mkdir -p site
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/appcast.xml" \
+            --output site/appcast.xml
+          printf '%s  site/appcast.xml\n' "$EXPECTED_SHA256" | sha256sum --check
+          touch site/.nojekyll
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: site/
+
+  deploy:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        id: deployment
+      - name: Verify hosted feed bytes
+        env:
+          EXPECTED_SHA256: ${{ inputs.appcast_sha256 }}
+        run: |
+          set -eu
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --location "$UPDATES_FEED_URL" --output hosted-appcast.xml && \
+              printf '%s  hosted-appcast.xml\n' "$EXPECTED_SHA256" | sha256sum --check; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Hosted update feed does not match the verified release feed.' >&2
+          exit 1

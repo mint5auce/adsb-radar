@@ -180,6 +180,13 @@ Retrying the publish job accepts matching existing assets but rejects different 
 Do not rebuild an already published version to repair a failed feed deployment.
 The signed appcast attached to the release provides a recovery copy; verify it before deploying it.
 
+For a locally prepared release or feed recovery, publish the verified artifacts using `scripts/github-release.py` and deploy the attached signed feed with the Recover update feed workflow.
+Supply the published tag and the SHA-256 of the locally verified appcast.
+This workflow downloads the public release asset, checks its hash before deployment, and checks the hosted bytes afterwards without rebuilding the application.
+Run it from `main` after temporarily allowing that branch in the `github-pages` environment's deployment policies, then remove that temporary permission when the run finishes.
+Keep the existing `v*` tag policy in place throughout recovery.
+Publication and recovery deployment require explicit approval.
+
 Withdraw a faulty update by removing its entry from a local copy of the feed, signing it again with Sparkle's `sign_update`, and deploying it after approval.
 Keep the original release artifacts and their build number record.
 Ship a correction as a new version with a higher build number.
