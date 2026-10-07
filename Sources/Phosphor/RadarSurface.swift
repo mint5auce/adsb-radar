@@ -15,6 +15,7 @@ struct RadarSurface: View {
     @State private var topOverlayFrame = CGRect.zero
     @State private var bottomOverlayFrame = CGRect.zero
     @State private var navigationFrame = CGRect.zero
+    @State private var homePromptFrame = CGRect.zero
     @Environment(\.scenePhase) private var scenePhase
 
     private var currentChoices: [RadarObjectChoice] { choices.compactMap(model.refreshedChoice) }
@@ -52,8 +53,10 @@ struct RadarSurface: View {
             model.camera = (dragOrigin ?? model.camera).panned(dx: event.translation.width, dy: event.translation.height, width: size.width, height: size.height)
         }.onEnded { _ in dragOrigin = nil })
         .simultaneousGesture(MagnifyGesture().onChanged { event in
+            guard acceptsNavigation(at: event.startLocation) else { return }
             if zoomOrigin == nil { zoomOrigin = model.camera }
-            model.camera = (zoomOrigin ?? model.camera).zoomed(by: event.magnification)
+            model.camera = (zoomOrigin ?? model.camera).zoomed(by: event.magnification,
+                atX: event.startLocation.x, y: event.startLocation.y, width: size.width, height: size.height)
         }.onEnded { _ in zoomOrigin = nil })
         .simultaneousGesture(SpatialTapGesture().onEnded { event in select(at: event.location) })
         .overlay(alignment: .topLeading) {
@@ -75,6 +78,18 @@ struct RadarSurface: View {
                 }
         }
         .overlay {
+            MapScrollInput(accepts: acceptsNavigation) { point, motion in
+                switch motion {
+                case let .pan(dx, dy):
+                    model.camera = model.camera.panned(dx: dx, dy: dy,
+                        width: size.width, height: size.height)
+                case let .zoom(factor):
+                    model.camera = model.camera.zoomed(by: factor,
+                        atX: point.x, y: point.y, width: size.width, height: size.height)
+                }
+            }.allowsHitTesting(false)
+        }
+        .overlay {
             MapSecondaryClick { point in
                 // The AppKit event monitor also sees clicks on the bars layered above this map.
                 guard point.y >= topInset, point.y < size.height - bottomInset else { return }
@@ -84,7 +99,7 @@ struct RadarSurface: View {
             }.allowsHitTesting(false)
         }
         .accessibilityLabel("Aircraft radar map")
-        .accessibilityHint("Drag to pan. Pinch or use zoom buttons. Use Contacts to select an aircraft with the keyboard.")
+        .accessibilityHint("Drag or scroll with two fingers to pan. Use the mouse wheel, pinch, or zoom buttons to zoom. Use Contacts to select an aircraft with the keyboard.")
     }
 
     private var overlays: some View {
@@ -126,7 +141,9 @@ struct RadarSurface: View {
                     Button("Enter latitude and longitude", action: openSettings).buttonStyle(.bordered)
                 }
                 .padding(24).background(RadarStyle.panel).overlay(Rectangle().stroke(RadarStyle.line))
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("radar-map")) } action: { homePromptFrame = $0 }
                 .frame(maxWidth: .infinity, alignment: .center)
+                .onDisappear { homePromptFrame = .zero }
             }
             Spacer()
             HStack {
@@ -162,6 +179,11 @@ struct RadarSurface: View {
     private func control(_ label: String, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: symbol).frame(width: 40, height: 36).contentShape(Rectangle()) }
             .buttonStyle(.plain).help(label).accessibilityLabel(label)
+    }
+
+    private func acceptsNavigation(at point: CGPoint) -> Bool {
+        point.y >= topInset && point.y < size.height - bottomInset
+            && !navigationFrame.contains(point) && !homePromptFrame.contains(point) && !showingChooser
     }
 
     private func select(at point: CGPoint) {

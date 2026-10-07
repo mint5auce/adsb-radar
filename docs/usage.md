@@ -145,7 +145,11 @@ Demo keeps all aircraft moving with complete flight information and fresh positi
 
 ## Use the radar
 
-Drag the map to pan and pinch or use the plus and minus controls to zoom.
+Drag the map or scroll with two fingers on a trackpad to pan.
+Use the mouse wheel or pinch to zoom while keeping the geographic point beneath the pointer fixed.
+Wheel zoom changes scale by roughly 10% per notch, respects macOS scrolling direction, and uses the existing 5-3000 NM viewing-radius limits.
+The plus and minus controls continue to zoom around the map centre.
+Scrolling over controls, inspectors, or popovers stays with those controls rather than moving the map.
 The sweep and range rings remain anchored to the saved receiver location.
 Use the location control or Command-0 to return to the receiver.
 
@@ -176,6 +180,27 @@ swift test
 
 The core checks exercise decoded observations, missing fields, a real child-process receiver fixture, freshness and removal thresholds, history retention, sweep crossings, coordinate transforms, and known unit conversions.
 The receiver fixture does not require a dongle or network access.
+
+For manual mouse-wheel and trackpad checks, build and launch the offline candidate from the repository root:
+
+```sh
+./scripts/build-app.sh
+'build/Phosphor.app/Contents/MacOS/Phosphor' --synthetic --scenario demo --demo-count 100
+```
+
+1. Put the pointer over a recognisable coastline feature away from the centre and turn the wheel in both directions.
+   Confirm that the feature stays beneath the pointer, zoom changes promptly, and the direction matches your macOS scroll preference.
+2. Zoom repeatedly to the 5 NM and 3000 NM limits, then reverse direction.
+   Confirm that the map does not drift at either limit and responds when reversing.
+3. Pan horizontally, vertically, and diagonally with two fingers, including momentum after lifting them.
+   Pinch over an off-centre coastline feature and confirm pointer anchoring.
+4. Scroll over the visible bars, navigation buttons, Contacts, an inspector, and Settings.
+   Confirm that panels scroll normally and the map stays still.
+5. Repeat with hidden bars and at the minimum window size, then check drag-to-pan, aircraft selection, zoom buttons, and Command-0.
+
+The scrolling implementation passed the full 138-test Swift suite and the debug app build on 7 October 2026.
+Automated checks cover signed wheel deltas, phase-less precise wheels, trackpad panning and momentum, control/window routing, pointer anchoring, zoom limits, selection, and existing drag/button behaviour.
+Native scrolling was exercised in an offline fixture; physical wheel sensitivity, trackpad pinch delivery, and a complete manual panel pass remain to be checked on hardware.
 
 For offscreen native layout inspection, build the debug executable and render synthetic contacts without opening or controlling a desktop window:
 

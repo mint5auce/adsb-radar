@@ -85,4 +85,14 @@ public struct RadarCamera: Equatable, Sendable {
         camera.radiusNM = min(3000, max(5, radiusNM / factor))
         return camera
     }
+
+    /// Keep the projected geographic point beneath a viewport pixel fixed, including at zoom limits.
+    public func zoomed(by factor: Double, atX x: Double, y: Double, width: Double, height: Double) -> RadarCamera {
+        guard x.isFinite, y.isFinite, width.isFinite, height.isFinite, width > 0, height > 0 else { return self }
+        var camera = zoomed(by: factor)
+        let scaleChange = 1 / pixelsPerNM(width: width, height: height) - 1 / camera.pixelsPerNM(width: width, height: height)
+        camera.offset.east += (x - width / 2) * scaleChange
+        camera.offset.north -= (y - height / 2) * scaleChange
+        return camera
+    }
 }

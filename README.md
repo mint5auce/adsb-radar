@@ -30,7 +30,7 @@ In Settings, save your home coordinates and choose a source:
 - **Local + Online**: both sources in one view.
 - **Synthetic**: offline Test or Demo traffic.
 
-Drag to pan, pinch to zoom, and click an aircraft to inspect it.
+Drag or scroll with two fingers to pan, use the mouse wheel or pinch to zoom around the pointer, and click an aircraft to inspect it.
 Use Command-0 to return home.
 
 ## Try the offline demo

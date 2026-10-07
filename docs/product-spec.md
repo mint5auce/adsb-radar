@@ -58,6 +58,10 @@ Selecting a contact reveals its available details, including the source and age 
 Show unavailable fields explicitly as unknown.
 
 The map is north-up and supports free pan and zoom.
+Dragging and two-finger trackpad scrolling pan the map.
+The mouse wheel and pinch gesture zoom around the pointer, preserving the geographic point beneath it.
+Wheel zoom respects macOS scrolling direction and changes scale by approximately 10% per notch within the existing 5-3000 NM viewing-radius limits.
+Zoom buttons retain centre-based zoom, and scrolling over controls or panels does not navigate the map.
 Start centred on a saved, manually entered home location, which can be changed in settings and represents the receiver location when using local reception.
 Reuse this saved location across real-data source modes, labelling it Home location in Online mode.
 Require a manually entered location before starting Online mode if none is saved; do not detect the user's location automatically.
