@@ -176,7 +176,7 @@ private struct RadarHeader: View {
             }
             .buttonStyle(.plain).help(model.filterSummary)
             .popover(isPresented: $showingFilters) { AircraftFiltersView(model: model) }
-            presentationMenu
+            RadarPresentationMenu(model: model)
             Button { showingMap.toggle() } label: { Label("MAP", systemImage: "map") }
                 .buttonStyle(.plain).fixedSize()
                 .popover(isPresented: $showingMap) { MapLayerControls(model: model) }
@@ -184,25 +184,6 @@ private struct RadarHeader: View {
                 .buttonStyle(.plain).fixedSize()
                 .popover(isPresented: $showingContacts) { AircraftContactsView(model: model) }
         }.fixedSize()
-    }
-
-    private var presentationMenu: some View {
-        Menu {
-            Picker("Labels", selection: Binding(get: { model.settings.labelMode }, set: { value in
-                var settings = model.settings; settings.labelMode = value; model.apply(settings)
-            })) {
-                ForEach(AircraftLabelMode.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            Picker("Trails", selection: Binding(get: { model.settings.trailMode }, set: { value in
-                var settings = model.settings; settings.trailMode = value; model.apply(settings)
-            })) {
-                ForEach(AircraftTrailMode.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            Toggle("Direction vectors", isOn: Binding(get: { model.settings.directionVectors }, set: { value in
-                var settings = model.settings; settings.directionVectors = value; model.apply(settings)
-            }))
-        } label: { Label("VIEW", systemImage: "eye") }
-        .menuStyle(.borderlessButton).fixedSize()
     }
 
 }
