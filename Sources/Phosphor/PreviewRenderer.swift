@@ -125,6 +125,7 @@ enum PreviewRenderer {
     }
 
     static func interactiveModel(options: RadarLaunchOptions) -> RadarModel {
+        if CommandLine.arguments.contains("--preview-routes") { return interactiveRouteModel() }
         let defaults = UserDefaults(suiteName: "phosphor-ui-verification")!
         var settings = RadarPreferences(defaults: defaults, options: options).load()
         settings.source = .synthetic

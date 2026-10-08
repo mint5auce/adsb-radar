@@ -52,10 +52,11 @@ Callsign preference reverses the first two fallback steps.
 Use registration as the default for both new installations and older saved preferences without this choice.
 Apply the same identifier preference to map labels, the inspector heading, Contacts, and aircraft choosers.
 Update headings when identity information becomes available, without changing contact selection or movement.
-Keep explicit REGISTRATION and CALLSIGN fields in the inspector, showing UNKNOWN when unavailable.
+Show the preferred identifier and the other available registration/callsign on separate lines in the inspector heading, without case-insensitive duplicates.
+Use the uppercase aircraft address when neither identifier is available.
 Show remaining identifiers beneath Contacts and chooser headings without duplicates.
 Selecting a contact reveals its available details, including the source and age of its last position.
-Show unavailable fields explicitly as unknown.
+Show unavailable telemetry explicitly as unknown and omit missing optional identity lines in the inspector.
 
 The map is north-up and supports free pan and zoom.
 Dragging and two-finger trackpad scrolling pan the map.
@@ -69,6 +70,31 @@ Keep range rings and the simulated sweep anchored to that geographic location wh
 Provide a return-to-receiver control, labelled Return home in Online mode.
 
 Bundle a lightweight coastline and border background so the geographic display and local reception work offline.
+
+### Selected aircraft sidebar
+
+The sidebar overhaul was accepted on 8 October 2026.
+Keep the existing phosphor colours, monospaced title and content styles, 256-point sidebar, and scrolling.
+Use CONTACT as the header, with a map-pin Show on map action and the existing deselect icon.
+Keep the Show on map icon distinct from the scan-mode control's scope icon.
+Provide accessible labels and help for both actions.
+Keep CONTACT / STALE in amber for stale contacts and retain OUTSIDE FILTERS beneath the identity block when applicable.
+
+Show the identifiers on separate lines first, followed by reported category, readable aircraft model, available owner/operator name, ICAO type, and the aircraft address.
+Wrap long identifiers when they do not fit, preserving the title font size.
+Allow model and owner/operator names to wrap without clipping.
+Omit unavailable category, model, type, and owner/operator lines.
+When only an ICAO type code is known, use it as the model fallback without repeating it on a separate ICAO TYPE line.
+Retain the owner/operator tooltip explaining that the source may identify a registered owner rather than the airline operating the flight.
+Label ordinary addresses ICAO and addresses beginning with `~` NON-ICAO.
+
+After a divider, show Altitude, Ground speed, Direction, Displayed position, and Position age, in that order, without a POSITION subtitle.
+Put the active position source in the Position age tooltip.
+Keep the last-known-position explanation beneath Position age for stale contacts.
+Follow with the collapsible LIKELY ROUTE section in real source modes, as specified below.
+End with a divider and Details updated, showing UNKNOWN when no identity update date exists.
+This date remains the oldest successful update of the known identity fields, rather than the position observation time or route lookup time.
+Remove the separate DETAIL section and repeated registration, callsign, category, model, type, owner/operator, and provenance fields.
 
 ## Startup presentation and control visibility
 
@@ -378,8 +404,8 @@ Include registration and aircraft type when supplied by the online feed, includi
 Prefer the source's readable model description, such as Boeing 777-300ER, over the ICAO type code in Contacts, aircraft choosers, and the inspector.
 Retain the ICAO type code in the inspector and support searching by either the code or readable model name.
 Show available source-reported owner/operator details in Contacts and the inspector, and include them in contact searches.
-Label this information Owner / Operator because a registered owner may differ from the airline operating the flight.
-Use the same optional identity fields when supplied by the local decoder, and retain the type-code fallback and explicit unknown inspector values when details are unavailable.
+Describe this information as owner/operator in help and accessibility text because a registered owner may differ from the airline operating the flight.
+Use the same optional identity fields when supplied by the local decoder, retaining the type-code fallback and omitting unavailable optional lines in the inspector.
 Keep identity enrichment independent of position selection and position age.
 Provide an Enrich aircraft details online setting, enabled by default, that permits adsb.fi lookups in Local mode.
 Disabling this setting stops dedicated enrichment requests while leaving online position requests governed by the selected source mode.
@@ -412,13 +438,23 @@ Verify available live adsb.fi data during implementation and explicitly report a
 The departure and destination design was accepted on 7 October 2026.
 Show a LIKELY ROUTE section in the selected real aircraft's inspector with Departure, optional Via, and Destination airport names and codes.
 These are callsign database matches, not confirmed current flights or diversion information.
-For routes with intermediate airports, show May cover multiple legs and do not infer the current leg from position.
+For routes with intermediate airports, show VIA without a multi-leg explanation and do not infer the current leg from position.
 Airport fields are informational, with no new map navigation, route search, or route overlays.
 
 Use Virtual Radar Server's CC0 standing route data through the per-callsign JSON mirror hosted by adsb.lol.
 Keep the provider replaceable, and require clear display/cache rights and a representative live-contact check before release.
-Show the provider, lookup time, and whether a result was reused from the session cache.
-Do not describe lookup time as the route's effective or verification date.
+Do not display the provider, lookup time, or session-cache label in the sidebar.
+Keep LIKELY ROUTE and help explaining that it is a callsign database match rather than a confirmed current flight or diversion.
+Fresh session-cache matches have the same presentation as newly fetched matches.
+
+Use a clickable disclosure header and chevron to show or hide the airport fields.
+For each new aircraft selection, start known routes expanded and unknown or loading routes collapsed.
+Show LIKELY ROUTE - UNKNOWN when unavailable and LIKELY ROUTE - LOOKING UP… while a request is running.
+If the user has not toggled the disclosure, follow route availability automatically, expanding when a match arrives and collapsing when it becomes unavailable.
+Preserve an explicit show/hide choice across route updates for that selected aircraft, including loading, missing, refreshed, and cached results.
+Reset that choice when a different aircraft is selected or the selection is dismissed.
+An unknown or loading route can still be expanded manually, showing UNKNOWN departure and destination until a match is available.
+Expanded multi-airport routes retain VIA without inferring the current leg or displaying a multi-leg explanation.
 
 Use the existing Enrich aircraft details online setting in Local, Online, and Local + Online modes.
 Explain the additional provider and that only the selected callsign is sent for route enrichment.
@@ -431,7 +467,7 @@ Reuse successful matches for 30 minutes within the current session and missing m
 Never persist route results between launches.
 Fresh cached matches remain available when enrichment is disabled.
 After expiry, show Unknown if a refresh fails, rather than continuing to show an expired match.
-Show Looking up… while a request runs and Unknown when no match is available.
+Use the loading and unknown disclosure headers described above while a request runs or no match is available.
 Retry temporary failures with backoff while selected, honour provider Retry-After, and pace route requests independently of adsb.fi's position allowance.
 Route failures do not affect reception status or contact lifecycle.
 

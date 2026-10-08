@@ -1,4 +1,5 @@
 #if DEBUG
+import AppKit
 import Foundation
 import RadarCore
 import SwiftUI
@@ -36,6 +37,25 @@ extension PreviewRenderer {
         for (name, state) in [("matched", route), ("unknown", .unknown), ("loading", .lookingUp)] {
             try await image(FlightRouteInspector(state: state).padding(24).background(RadarStyle.panel),
                             to: folder.appendingPathComponent(name + "-route.png"), width: 256, height: 560)
+            if let contact = model.selectedContact {
+                try fullSidebar(ContactInspector(contact: contact, identity: model.selectedIdentity, settings: settings,
+                                                 route: state, category: model.reportedCategory(for: contact), showOnMap: {}) {},
+                                to: folder.appendingPathComponent(name + "-sidebar.png"))
+            }
+        }
+        var callsignSettings = settings
+        callsignSettings.aircraftIdentifier = .callsign
+        model.apply(callsignSettings)
+        if let contact = model.selectedContact {
+            try fullSidebar(ContactInspector(contact: contact, identity: model.selectedIdentity, settings: callsignSettings,
+                                             route: route, category: model.reportedCategory(for: contact), showOnMap: {}) {},
+                            to: folder.appendingPathComponent("callsign-sidebar.png"))
+        }
+        model.apply(settings)
+        model.selectedAddress = "def456"
+        if let contact = model.selectedContact {
+            try fullSidebar(ContactInspector(contact: contact, identity: nil, settings: settings, showOnMap: {}, outsideFilters: true) {},
+                            to: folder.appendingPathComponent("missing-stale-sidebar.png"))
         }
         model.selectedAddress = nil
         model.selectedAddress = "abc123"
@@ -45,13 +65,39 @@ extension PreviewRenderer {
                         to: folder.appendingPathComponent("settings.png"), width: 560, height: 680)
         await model.shutdown()
     }
+
+    static func interactiveRouteModel() -> RadarModel {
+        var settings = RadarSettings()
+        settings.receiver = SyntheticSource.exampleLocation
+        settings.source = .local
+        settings.mode = .immediate
+        settings.controlVisibility = .alwaysVisible
+        let provider = RoutePreviewProvider()
+        let maps = MapLayerModel(store: MapSnapshotStore(directory: URL.temporaryDirectory.appendingPathComponent("phosphor-sidebar-map-data")),
+                                 updater: MapUpdateService(download: { _ in throw URLError(.notConnectedToInternet) }))
+        return RadarModel(source: RoutePreviewSource(), provider: provider, routeProvider: provider,
+                          identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("phosphor-sidebar-identities-\(UUID()).json")),
+                          mapLayers: maps, initialSettings: settings, defaults: UserDefaults(suiteName: "phosphor-sidebar-ui-verification")!)
+    }
+
+    private static func fullSidebar(_ inspector: ContactInspector, to url: URL) throws {
+        let renderer = ImageRenderer(content: inspector.content.frame(width: 256).background(RadarStyle.panel).environment(\.colorScheme, .dark))
+        renderer.scale = 2
+        guard let image = renderer.cgImage,
+              let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        try png.write(to: url)
+    }
 }
 
 private struct RoutePreviewProvider: FlightRouteProvider, OnlineAircraftProvider, AircraftIdentityProvider {
     func positions(in search: OnlineSearch) async throws -> ReceiverSnapshot { ReceiverSnapshot(observations: []) }
     func identities(for addresses: [String]) async throws -> [AircraftIdentityUpdate] { [] }
     func route(for callsign: String) async throws -> FlightRoute? {
-        FlightRoute(callsign: callsign, airports: [
+        if callsign == "DELAY1" { try await Task.sleep(for: .seconds(6)) }
+        guard callsign == "QFA31" || callsign == "DELAY1" else { return nil }
+        return FlightRoute(callsign: callsign, airports: [
             FlightRouteAirport(name: "Sydney Kingsford Smith International Airport", icao: "YSSY", iata: "SYD", coordinate: GeographicCoordinate(latitude: -33.9461, longitude: 151.177)!),
             FlightRouteAirport(name: "Singapore Changi Airport", icao: "WSSS", iata: "SIN", coordinate: GeographicCoordinate(latitude: 1.35019, longitude: 103.994)!),
             FlightRouteAirport(name: "London Heathrow Airport", icao: "EGLL", iata: "LHR", coordinate: GeographicCoordinate(latitude: 51.4706, longitude: -0.461941)!)
@@ -65,7 +111,15 @@ private actor RoutePreviewSource: AircraftDataSource {
     func poll() async -> ReceptionReading {
         ReceptionReading(status: .receiving, snapshot: ReceiverSnapshot(observations: [
             AircraftObservation(address: "abc123", callsign: "QFA31", position: SyntheticSource.exampleLocation,
-                                positionTime: .now, altitude: .feet(35000), speedKnots: 450, directionDegrees: 80)
+                                positionTime: .now, altitude: .feet(35000), speedKnots: 450, directionDegrees: 80, category: .heavy, source: "LOCAL FIXTURE"),
+            AircraftObservation(address: "def456", callsign: "NOMATCH", position: GeographicCoordinate(latitude: 51.7, longitude: -2.2),
+                                positionTime: Date.now.addingTimeInterval(-20), source: "LOCAL FIXTURE"),
+            AircraftObservation(address: "4067ce", callsign: "DELAY1", position: GeographicCoordinate(latitude: 51.5, longitude: -2.5),
+                                positionTime: .now, altitude: .feet(875), speedKnots: 115, directionDegrees: 233, category: .helicopter, source: "LOCAL FIXTURE")
+        ], identities: [
+            AircraftIdentityUpdate(address: "abc123", registration: "VH-LONG8", aircraftType: "A388", modelDescription: "AIRBUS A380-842",
+                                   ownerOperator: "Example Airline and Aircraft Leasing Company Limited", category: .heavy),
+            AircraftIdentityUpdate(address: "4067ce", registration: "G-WPDD", aircraftType: "EC35", category: .helicopter)
         ]))
     }
 }
