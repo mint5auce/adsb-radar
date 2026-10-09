@@ -71,6 +71,7 @@ final class RadarModel {
     @ObservationIgnored private let provider: any OnlineAircraftProvider & AircraftIdentityProvider
     @ObservationIgnored private let identityStorage: any AircraftIdentityStorage
     private let routeLookup: FlightRouteLookup
+    let photoLookup: AircraftPhotoLookup
     @ObservationIgnored private var cacheLoad: Task<Void, Never>?
     @ObservationIgnored private var cacheLoop: Task<Void, Never>?
     @ObservationIgnored private var savedIdentities: [String: AircraftIdentity] = [:]
@@ -101,6 +102,7 @@ final class RadarModel {
     init(source: (any AircraftDataSource)? = nil, sources: [AircraftFeed: any AircraftDataSource] = [:],
          provider: any OnlineAircraftProvider & AircraftIdentityProvider = ADSBFiProvider(),
          routeProvider: any FlightRouteProvider = VirtualRadarRouteProvider(),
+         photoProvider: any AircraftPhotoProvider = PlanespottersPhotoProvider(),
          routeNow: @escaping @MainActor () -> Date = { .now },
          identityStorage: any AircraftIdentityStorage = FileAircraftIdentityStorage(),
          mapLayers: MapLayerModel = MapLayerModel(), initialSettings: RadarSettings? = nil, options: RadarLaunchOptions = RadarLaunchOptions(), defaults: UserDefaults = .standard) {
@@ -108,6 +110,7 @@ final class RadarModel {
         self.provider = provider
         self.identityStorage = identityStorage
         routeLookup = FlightRouteLookup(provider: routeProvider, now: routeNow)
+        photoLookup = AircraftPhotoLookup(provider: photoProvider)
         suppliedSource = source
         suppliedSources = sources
         preferences = RadarPreferences(defaults: defaults, options: options)
@@ -520,6 +523,7 @@ final class RadarModel {
     func shutdown() async {
         shuttingDown = true
         routeLookup.reset()
+        photoLookup.reset()
         transitionRevision += 1
         mapTask?.cancel()
         searchTask?.cancel()
@@ -612,6 +616,7 @@ final class RadarModel {
 
     private func clearContacts() {
         routeLookup.reset()
+        photoLookup.reset()
         sweepStartedAt = .now
         contacts = []
         receivedPositionedCount = 0

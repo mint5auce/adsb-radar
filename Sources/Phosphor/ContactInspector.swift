@@ -9,6 +9,7 @@ struct ContactInspector: View {
     var category: AircraftCategoryValue? = nil
     var showOnMap: (() -> Void)? = nil
     var outsideFilters: Bool = false
+    var photoLookup: AircraftPhotoLookup? = nil
     let dismiss: () -> Void
 
     private var identifiers: AircraftIdentifiers {
@@ -16,7 +17,10 @@ struct ContactInspector: View {
     }
 
     var body: some View {
-        ScrollView { content }
+        GeometryReader { viewport in
+            ScrollView { inspectorContent(viewport: viewport.size) }
+                .coordinateSpace(name: "photoViewport")
+        }
             .frame(maxHeight: .infinity)
             .background(RadarStyle.panel)
             .overlay(alignment: .leading) { Rectangle().fill(RadarStyle.line).frame(width: 1) }
@@ -24,6 +28,10 @@ struct ContactInspector: View {
 
     // The same content is rendered without a scroll viewport in native verification previews.
     var content: some View {
+        inspectorContent(viewport: CGSize(width: 256, height: 10000))
+    }
+
+    private func inspectorContent(viewport: CGSize) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             HStack(spacing: 12) {
                 Text(contact.stale ? "CONTACT / STALE" : "CONTACT")
@@ -70,6 +78,10 @@ struct ContactInspector: View {
             .fixedSize(horizontal: false, vertical: true)
             if outsideFilters {
                 Text("OUTSIDE FILTERS").font(.system(size: 11, design: .monospaced)).foregroundStyle(RadarStyle.amber)
+            }
+            if settings.source != .synthetic, let photoLookup {
+                AircraftPhotoInspector(lookup: photoLookup, address: contact.id, registration: identifiers.registration,
+                                       enabled: settings.enrichIdentities, fullColour: settings.photosInColour, viewport: viewport)
             }
             rule
             InspectorField(title: "ALTITUDE", value: settings.altitude(contact.observation.altitude))

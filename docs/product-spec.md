@@ -433,6 +433,35 @@ Use deterministic provider responses for automated checks so normal tests do not
 Manually inspect all four source modes, configurable limits, panning beyond the search area, source health, offline operation, and persisted identity details in the native app.
 Verify available live adsb.fi data during implementation and explicitly report any provider access or physical receiver checks that could not be completed.
 
+## Aircraft photographs
+
+The photo design was accepted on 9 October 2026.
+Show a PHOTO disclosure only in the selected real aircraft's inspector, after identity and any outside-filter status and before telemetry.
+Use Planespotters.net's public API, querying a valid ICAO hex first and falling back to a known registration only when no photo matches.
+Never substitute a generic aircraft-model photograph.
+Keep this optional enrichment independent of positions, contact freshness, and aircraft identity storage.
+The existing Enrich aircraft details online setting permits photo requests and explains that the selected address or registration is sent to Planespotters.net.
+Synthetic neither requests nor displays real photos.
+
+Start PHOTO collapsed while looking up, automatically expanding when a photograph becomes available unless the user has chosen otherwise.
+Preserve explicit expansion/collapse choices across updates for the same selection and reset them for a different selection.
+Use PHOTO - LOOKING UP…, PHOTO - UNAVAILABLE, and PHOTO - DISABLED for the corresponding states, with brief explanatory content when expanded.
+Unavailable photos and network failures must not interrupt radar operation.
+
+Preserve the whole photograph, centred within a bounded area without stretching or cropping, using the API's larger thumbnail.
+Display green monochrome by default and reveal original colour while hovered or keyboard-focused.
+Transition in both directions over 150 ms without a hover delay; switch instantly with Reduce Motion.
+Provide Show aircraft photos in full colour in Settings, off by default, applied immediately, and remembered across launches.
+This preference keeps photos in colour regardless of hover or focus.
+Clicking or keyboard-activating the image opens the unchanged original photo-page link returned by the provider.
+Display visible photographer copyright credit beside the image, outside its colour treatment.
+
+Fetch images directly on the displaying device using unchanged provider URLs and a descriptive application user agent with a contact URL.
+Do not persist or rehost image bytes or retain them after display; release them when the photo is collapsed or its display ends.
+Keep metadata caches bounded and within the provider's maximum 24-hour allowance.
+Cancel obsolete requests and reject late results after selection, permission, visibility, or source changes.
+Verify provider handling, selected-photo state and disclosure, image lifetime, and settings persistence through deterministic tests, then inspect native rendering, focus, hover, and normal/minimum window layouts.
+
 ## Flight-route enrichment
 
 The departure and destination design was accepted on 7 October 2026.

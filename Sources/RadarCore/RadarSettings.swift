@@ -36,6 +36,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     public var onlineRefreshSeconds: Double = 5
     public var onlineRadiusNM: Double = 250
     public var enrichIdentities: Bool = true
+    public var photosInColour: Bool = false
     public var identityRefreshDays: Double = 7
     public var aircraftFilters = AircraftViewFilters()
     public var aircraftIdentifier: AircraftIdentifierPreference = .registration
@@ -59,6 +60,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
+        case photosInColour
         case receiver, mode, sweepSeconds, staleSeconds, removalSeconds, trailSeconds, initialRadiusNM
         case altitudeUnit, speedUnit, distanceUnit, source, scenario, demoCount, onlineRefreshSeconds, onlineRadiusNM, enrichIdentities, identityRefreshDays
         case aircraftIdentifier, labelMode, trailMode, directionVectors, controlVisibility, aircraftFilters, localReceiverAttemptLimit, mapLayers
@@ -85,6 +87,7 @@ public struct RadarSettings: Equatable, Codable, Sendable {
         onlineRefreshSeconds = try values.decodeIfPresent(Double.self, forKey: .onlineRefreshSeconds) ?? onlineRefreshSeconds
         onlineRadiusNM = try values.decodeIfPresent(Double.self, forKey: .onlineRadiusNM) ?? onlineRadiusNM
         enrichIdentities = try values.decodeIfPresent(Bool.self, forKey: .enrichIdentities) ?? enrichIdentities
+        photosInColour = try values.decodeIfPresent(Bool.self, forKey: .photosInColour) ?? photosInColour
         identityRefreshDays = try values.decodeIfPresent(Double.self, forKey: .identityRefreshDays) ?? identityRefreshDays
         aircraftFilters = try values.decodeIfPresent(AircraftViewFilters.self, forKey: .aircraftFilters) ?? aircraftFilters
         aircraftIdentifier = try values.decodeIfPresent(AircraftIdentifierPreference.self, forKey: .aircraftIdentifier) ?? aircraftIdentifier

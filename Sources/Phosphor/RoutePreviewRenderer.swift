@@ -17,7 +17,7 @@ extension PreviewRenderer {
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let provider = RoutePreviewProvider()
-        let model = RadarModel(source: RoutePreviewSource(), provider: provider, routeProvider: provider,
+        let model = RadarModel(source: RoutePreviewSource(), provider: provider, routeProvider: provider, photoProvider: PhotoPreviewProvider(),
                                identityStorage: FileAircraftIdentityStorage(url: folder.appendingPathComponent("preview-identities.json")),
                                initialSettings: settings, defaults: defaults)
         model.start()
@@ -75,7 +75,7 @@ extension PreviewRenderer {
         let provider = RoutePreviewProvider()
         let maps = MapLayerModel(store: MapSnapshotStore(directory: URL.temporaryDirectory.appendingPathComponent("phosphor-sidebar-map-data")),
                                  updater: MapUpdateService(download: { _ in throw URLError(.notConnectedToInternet) }))
-        return RadarModel(source: RoutePreviewSource(), provider: provider, routeProvider: provider,
+        return RadarModel(source: RoutePreviewSource(), provider: provider, routeProvider: provider, photoProvider: PhotoPreviewProvider(),
                           identityStorage: FileAircraftIdentityStorage(url: URL.temporaryDirectory.appendingPathComponent("phosphor-sidebar-identities-\(UUID()).json")),
                           mapLayers: maps, initialSettings: settings, defaults: UserDefaults(suiteName: "phosphor-sidebar-ui-verification")!)
     }

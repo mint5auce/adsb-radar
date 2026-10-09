@@ -234,6 +234,34 @@ Add `--synthetic --scenario demo --demo-count 250` to that command to render the
 
 ## Manual acceptance check
 
+### Aircraft photographs
+
+Build and start the offline photo fixture from the repository root:
+
+```sh
+./scripts/build-app.sh debug
+build/Phosphor.app/Contents/MacOS/Phosphor --ui-fixture --preview-routes --preview-photos --photo-fixture "$PWD/assets/test-fixtures/aircraft-photo.png"
+```
+
+Quit any running Phosphor instance first.
+This fixture uses isolated preferences and an illustrative generated aircraft image, without requesting provider photos.
+Its aircraft/image combinations intentionally exercise presentation rather than identification accuracy.
+
+1. Open Contacts and select VH-LONG8 / QFA31; confirm PHOTO appears below identity, expands automatically, preserves the whole image, and shows credit below it.
+2. Hover and move away to check the 150 ms colour transition in both directions; press Tab to focus the image and reveal colour, then activate it with Space to open the fixture's Planespotters API documentation link.
+3. Collapse PHOTO and confirm it stays collapsed while the same aircraft updates; choose another aircraft and return to confirm the manual choice resets.
+4. Select G-WPDD / DELAY1 to see the initially collapsed LOOKING UP state for six seconds; select NOMATCH to see the collapsed UNAVAILABLE state.
+5. In Settings, turn on Show aircraft photos in full colour and dismiss with Cancel; the change applies immediately and the image remains in colour.
+6. Turn off Enrich aircraft details online and save; confirm PHOTO - DISABLED and no image.
+7. Re-enable enrichment, then scroll the photo out of view, minimize or hide the app, and restore it; confirm the photo reloads without disturbing aircraft data or disclosure choice.
+8. Resize to the 800 × 560 minimum and confirm the inspector scrolls without clipping the photograph or credit.
+9. With macOS Reduce Motion enabled, confirm colour changes are instant.
+10. In a normal launch, confirm the colour preference survives relaunch, Synthetic has no PHOTO section, and an actual selected aircraft's photograph opens its original provider page.
+
+Native checks on 9 October 2026 verified green rendering, full-colour rendering, keyboard focus, collapsed loading/unavailable/disabled states, disclosure interaction, and the immediate colour setting after Cancel.
+Automated tests cover provider response validation and registration fallback, stale metadata/image results, disclosure/image lifetime, 24-hour metadata expiry, and preference migration/persistence.
+Pointer-hover timing, Reduce Motion, exact minimum-window layout, live image-page navigation, and hidden-window memory release still require the manual checks above; the UI automation surface did not provide a reliable hover or window-size control.
+
 ### Phosphor rename
 
 Build and start the rename candidate without receiver hardware:

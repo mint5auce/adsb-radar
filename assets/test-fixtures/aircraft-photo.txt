@@ -1,0 +1,10 @@
+Illustrative photo generated with the built-in imagegen tool on 9 October 2026.
+This is not a real aircraft identification record or a Planespotters photograph.
+Used only by explicitly enabled native photo previews; not bundled with the application.
+
+Prompt:
+Extract and recreate ONLY the small full-colour aircraft photograph visible in the right-hand sidebar of this generated UI mockup.
+Output just a standalone landscape 3:2 aircraft photograph, no UI, frame, credit, text overlays or screen.
+Keep the same original illustrative orange-and-white easyJet A320 with nose pointing left and whole airframe visible on runway, grey-blue sky, green grass.
+This is an illustrative test fixture for the app.
+Do not include any portion of the application interface.

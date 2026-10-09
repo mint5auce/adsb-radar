@@ -33,18 +33,21 @@ public protocol OnlineHTTPTransport: Sendable {
 
 public struct URLSessionOnlineTransport: OnlineHTTPTransport {
     private let session: URLSession
+    private let userAgent: String
 
-    public init() {
+    public init(userAgent: String = "Phosphor/0.1 (personal aircraft viewer)") {
+        self.userAgent = userAgent
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
         configuration.timeoutIntervalForResource = 20
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
         session = URLSession(configuration: configuration)
     }
 
     public func get(_ url: URL) async throws -> OnlineHTTPResponse {
         var request = URLRequest(url: url)
-        request.setValue("Phosphor/0.1 (personal aircraft viewer)", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw OnlineProviderError.invalidResponse }
         let retryAfter = Self.retryDate(http.value(forHTTPHeaderField: "Retry-After"), now: .now)

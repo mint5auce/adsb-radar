@@ -28,7 +28,7 @@ struct RadarWindow: View {
             RadarSurface(model: model, topInset: topInset, bottomInset: bottomInset,
                          openSettings: { showingSettings = true })
             if let contact = model.selectedContact {
-                ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, route: model.selectedRoute, category: model.reportedCategory(for: contact), showOnMap: model.showSelectedOnMap, outsideFilters: model.selectedOutsideFilters) { model.selectedAddress = nil }
+                ContactInspector(contact: contact, identity: model.selectedIdentity, settings: model.settings, route: model.selectedRoute, category: model.reportedCategory(for: contact), showOnMap: model.showSelectedOnMap, outsideFilters: model.selectedOutsideFilters, photoLookup: model.photoLookup) { model.selectedAddress = nil }
                     .frame(width: 256)
                     .padding(.top, topInset).padding(.bottom, bottomInset)
             } else if let feature = model.selectedMapFeature {

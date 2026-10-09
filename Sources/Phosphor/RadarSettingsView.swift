@@ -58,6 +58,9 @@ struct RadarSettingsView: View {
                         Link("Aircraft data from adsb.fi", destination: URL(string: "https://adsb.fi")!)
                         Link("Route data from Virtual Radar Server (CC0)", destination: VirtualRadarRouteProvider.sourceURL)
                         Link("Route hosting by adsb.lol", destination: URL(string: "https://adsb.lol")!)
+                        Text("Aircraft photos from Planespotters.net send the selected aircraft's ICAO address or registration. Photos require an internet connection and are not stored.")
+                            .foregroundStyle(.secondary)
+                        Link("Photo provider: Planespotters.net", destination: URL(string: "https://www.planespotters.net")!)
                     }
                     if draft.source == .synthetic {
                         Picker("Scenario", selection: $draft.scenario) {
@@ -102,6 +105,14 @@ struct RadarSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Presentation") {
+                    Toggle("Show aircraft photos in full colour", isOn: Binding(get: { model.settings.photosInColour }, set: { enabled in
+                        draft.photosInColour = enabled
+                        var settings = model.settings
+                        settings.photosInColour = enabled
+                        save(settings)
+                    }))
+                    Text("Applies immediately. Otherwise, hover or keyboard-focus a photo to reveal its original colour.")
+                        .foregroundStyle(.secondary)
                     Picker("Aircraft identifier", selection: $draft.aircraftIdentifier) {
                         ForEach(AircraftIdentifierPreference.allCases, id: \.self) { preference in
                             Text(preference.title).tag(preference)

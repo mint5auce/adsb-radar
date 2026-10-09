@@ -3,6 +3,22 @@ import Testing
 import RadarCore
 
 struct PreferencesTests {
+    @Test @MainActor func photoColourDefaultsToMonochromeAndSurvivesRelaunch() throws {
+        let name = "phosphor-photos-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = RadarPreferences(defaults: defaults)
+        #expect(!preferences.load().photosInColour)
+        defaults.set(Data(#"{"initialRadiusNM":75}"#.utf8), forKey: "phosphor-settings")
+        var settings = preferences.load()
+        #expect(!settings.photosInColour)
+        settings.photosInColour = true
+        preferences.save(settings)
+        let reloaded = RadarPreferences(defaults: defaults).load()
+        #expect(reloaded.photosInColour)
+        #expect(reloaded.initialRadiusNM == 75)
+    }
+
     @Test @MainActor func legacyPresentationSurvivesAndVisibilityChoicePersists() throws {
         let name = "phosphor-legacy-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))

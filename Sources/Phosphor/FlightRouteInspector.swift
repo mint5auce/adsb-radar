@@ -41,7 +41,7 @@ struct FlightRouteDisclosure {
     mutating func setExpanded(_ expanded: Bool) { manualExpansion = expanded }
 }
 
-private struct RadarRouteDisclosureStyle: DisclosureGroupStyle {
+struct RadarRouteDisclosureStyle: DisclosureGroupStyle {
     func makeBody(configuration: Configuration) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             Button { configuration.isExpanded.toggle() } label: {
